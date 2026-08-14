@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
-            if (session?.user) fetchUserRole(session.user.id);
+            if (session?.user) fetchUserRole(session.user);
             else setIsLoading(false);
         });
 
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setSession(session);
                 setUser(session?.user ?? null);
                 if (session?.user) {
-                    fetchUserRole(session.user.id);
+                    fetchUserRole(session.user);
                 } else {
                     setRole(null);
                     setIsLoading(false);
@@ -50,20 +50,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
     }, []);
 
-    const fetchUserRole = async (userId: string) => {
+    const fetchUserRole = async (userObj: User) => {
         try {
-            // Assuming a profiles table contains the role (candidate, company, admin, hiring_manager)
             const { data, error } = await supabase
                 .from('profiles')
                 .select('role')
-                .eq('id', userId)
+                .eq('id', userObj.id)
                 .single();
 
-            if (data && !error) {
+            if (data && !error && data.role) {
                 setRole(data.role);
+            } else if (userObj.user_metadata?.role) {
+                // Fallback to metadata if DB lookup fails (solves registration race condition)
+                setRole(userObj.user_metadata.role);
+            } else {
+                setRole('candidate'); // Default fallback
             }
         } catch (err) {
             console.warn('Error fetching role:', err);
+            // Another fallback check
+            if (userObj.user_metadata?.role) {
+                setRole(userObj.user_metadata.role);
+            } else {
+                setRole('candidate');
+            }
         } finally {
             setIsLoading(false);
         }
