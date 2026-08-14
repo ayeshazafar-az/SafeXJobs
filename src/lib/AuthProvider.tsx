@@ -34,10 +34,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Listen to auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (_event, session) => {
+                const sessionUser = session?.user ?? null;
+
+                // Fast-track role hydration so routing is absolutely instant
+                if (sessionUser?.user_metadata?.role) {
+                    setRole(sessionUser.user_metadata.role);
+                }
+
                 setSession(session);
-                setUser(session?.user ?? null);
-                if (session?.user) {
-                    fetchUserRole(session.user);
+                setUser(sessionUser);
+
+                if (sessionUser) {
+                    fetchUserRole(sessionUser);
                 } else {
                     setRole(null);
                     setIsLoading(false);
