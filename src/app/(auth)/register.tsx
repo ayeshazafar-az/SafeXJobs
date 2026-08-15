@@ -12,7 +12,7 @@ import {
 import { supabase } from '@/lib/supabase';
 
 export default function RegisterScreen() {
-    const [role, setRole] = useState<'candidate' | 'company' | 'hiring_manager'>('candidate');
+    const [role, setRole] = useState<'candidate' | 'company'>('candidate');
 
     // Shared fields
     const [email, setEmail] = useState('');
@@ -70,9 +70,9 @@ export default function RegisterScreen() {
                 role,
                 email: email.trim(),
                 phone,
-                full_name: (role === 'candidate' || role === 'hiring_manager') ? fullName : undefined,
+                full_name: role === 'candidate' ? fullName : undefined,
                 cnic: role === 'candidate' ? cnic : undefined,
-                company_name: (role === 'company' || role === 'hiring_manager') ? companyName : undefined,
+                company_name: role === 'company' ? companyName : undefined,
                 province: role === 'candidate' ? province : undefined,
                 city: role === 'candidate' ? city : undefined,
                 industry: role === 'company' ? industry : undefined,
@@ -113,12 +113,6 @@ export default function RegisterScreen() {
                         onPress={() => setRole('company')}
                     >
                         <Text style={[styles.roleButtonText, role === 'company' && styles.roleButtonTextActive]}>Company</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.roleButton, role === 'hiring_manager' && styles.roleButtonActive]}
-                        onPress={() => setRole('hiring_manager')}
-                    >
-                        <Text style={[styles.roleButtonText, role === 'hiring_manager' && styles.roleButtonTextActive]}>Manager</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -274,32 +268,6 @@ export default function RegisterScreen() {
                                     multiline
                                     value={description}
                                     onChangeText={setDescription}
-                                />
-                            </View>
-                        </>
-                    )}
-
-                    {/* Hiring Manager Fields */}
-                    {role === 'hiring_manager' && (
-                        <>
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>Full Name</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Sarah Ahmed"
-                                    placeholderTextColor="#64748b"
-                                    value={fullName}
-                                    onChangeText={setFullName}
-                                />
-                            </View>
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.label}>Company Code (or Name)</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Acme Corp"
-                                    placeholderTextColor="#64748b"
-                                    value={companyName}
-                                    onChangeText={setCompanyName}
                                 />
                             </View>
                         </>
