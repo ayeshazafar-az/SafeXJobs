@@ -1,17 +1,31 @@
+import { useAuth } from '@/lib/AuthProvider';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function PostJobScreen() {
+    const { user } = useAuth();
     const [title, setTitle] = useState('');
     const [department, setDepartment] = useState('');
     const [description, setDescription] = useState('');
-    const [salary, setSalary] = useState('');
+    const [salaryMin, setSalaryMin] = useState('');
+    const [salaryMax, setSalaryMax] = useState('');
     const [location, setLocation] = useState('');
     const [loading, setLoading] = useState(false);
-
     const [jobType, setJobType] = useState('Full-Time');
-    const [companyStatus, setCompanyStatus] = useState('Pending'); // Mock state representing DB 'status'
+    const [companyStatus, setCompanyStatus] = useState('Pending');
+
+    useEffect(() => {
+        if (!user) return;
+        // Fetch real verification status from profiles!
+        supabase.from('profiles').select('status').eq('id', user.id).single()
+            .then(({ data }) => {
+                if (data?.status) {
+                    setCompanyStatus(data.status);
+                }
+            });
+    }, [user]);
 
     if (companyStatus !== 'Verified') {
         return (
@@ -35,17 +49,33 @@ export default function PostJobScreen() {
         }
 
         setLoading(true);
-        // In a fully wired DB, we would insert into the jobs table here
-        // Example: await supabase.from('jobs').insert({ title, description, company_id: user.id })
-        setTimeout(() => {
-            setLoading(false);
-            Alert.alert('Job Published!', 'Your job has been published and is now waiting for top candidates.');
-            setTitle('');
-            setDepartment('');
-            setDescription('');
-            setSalary('');
-            setLocation('');
-        }, 800);
+
+        const { error } = await supabase.from('jobs').insert({
+            company_id: user?.id,
+            title,
+            description,
+            department,
+            location,
+            job_type: jobType,
+            salary_min: parseInt(salaryMin) || null,
+            salary_max: parseInt(salaryMax) || null,
+            is_active: true
+        });
+
+        setLoading(false);
+
+        if (error) {
+            Alert.alert('Error Posting Job', error.message);
+            return;
+        }
+
+        Alert.alert('Job Published!', 'Your job has been securely saved and is now live!');
+        setTitle('');
+        setDepartment('');
+        setDescription('');
+        setSalaryMin('');
+        setSalaryMax('');
+        setLocation('');
     };
 
     return (
@@ -108,13 +138,24 @@ export default function PostJobScreen() {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Salary Range (PKR/USD)</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="e.g. 150,000 - 250,000"
-                            placeholderTextColor="#64748b"
-                            value={salary}
-                            onChangeText={setSalary}
-                        />
+                        <View style={styles.rowInputs}>
+                            <TextInput
+                                style={[styles.input, { flex: 1, marginRight: 10 }]}
+                                placeholder="Min (e.g. 150000)"
+                                placeholderTextColor="#64748b"
+                                keyboardType="numeric"
+                                value={salaryMin}
+                                onChangeText={setSalaryMin}
+                            />
+                            <TextInput
+                                style={[styles.input, { flex: 1 }]}
+                                placeholder="Max (e.g. 250000)"
+                                placeholderTextColor="#64748b"
+                                keyboardType="numeric"
+                                value={salaryMax}
+                                onChangeText={setSalaryMax}
+                            />
+                        </View>
                     </View>
 
                     <View style={styles.inputGroup}>
@@ -218,6 +259,9 @@ const styles = StyleSheet.create({
     },
     chipTextActive: {
         color: '#ffffff',
+    },
+    rowInputs: {
+        flexDirection: 'row',
     },
     submitBtn: {
         backgroundColor: '#f59e0b',
