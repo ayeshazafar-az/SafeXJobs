@@ -32,7 +32,7 @@ export default function CompanyProfileScreen() {
                 </View>
                 <Text style={styles.companyName}>Acme Corp</Text>
                 <View style={styles.badgeContainer}>
-                    <Ionicons name="checkmark-seal" size={16} color="#10b981" />
+                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
                     <Text style={styles.badgeText}>Verified Company</Text>
                 </View>
                 <Text style={styles.userEmail}>{user?.email}</Text>
@@ -78,20 +78,59 @@ export default function CompanyProfileScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* Hiring Managers Section */}
+            {/* Hiring Managers Section (Step 5 PRD) */}
             <View style={styles.sectionCard}>
                 <View style={styles.sectionHeaderLine}>
                     <View style={styles.sectionHeader}>
                         <Ionicons name="people-outline" size={20} color="#ec4899" />
                         <Text style={styles.sectionTitle}>Hiring Managers</Text>
                     </View>
-                    <TouchableOpacity>
-                        <Ionicons name="add-circle" size={28} color="#f59e0b" />
-                    </TouchableOpacity>
                 </View>
 
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>No additional hiring managers assigned.</Text>
+                <Text style={styles.helperText}>Invite recruiters to manage specific job applications.</Text>
+
+                {/* Existing Managers */}
+                <View style={styles.managerCard}>
+                    <View style={styles.managerHeader}>
+                        <Ionicons name="person-circle" size={40} color="#3b82f6" />
+                        <View style={{ marginLeft: 12 }}>
+                            <Text style={styles.managerName}>Ali Khan</Text>
+                            <Text style={styles.managerRole}>Technical Recruiter • Engineering</Text>
+                        </View>
+                    </View>
+                    <Text style={styles.assignedJobsText}>Assigned Jobs: Senior React Developer</Text>
+                </View>
+
+                {/* Add Manager Form */}
+                <View style={styles.addManagerForm}>
+                    <Text style={styles.addManagerTitle}>Add New Hiring Manager</Text>
+
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Full Name</Text>
+                        <TextInput style={styles.input} placeholder="e.g. Sarah Ahmed" placeholderTextColor="#64748b" />
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Email Address</Text>
+                        <TextInput style={styles.input} placeholder="sarah@acmecorp.com" placeholderTextColor="#64748b" />
+                    </View>
+
+                    <View style={styles.rowInputs}>
+                        <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
+                            <Text style={styles.label}>Designation</Text>
+                            <TextInput style={styles.input} placeholder="HR Manager" placeholderTextColor="#64748b" />
+                        </View>
+
+                        <View style={[styles.inputContainer, { flex: 1 }]}>
+                            <Text style={styles.label}>Department</Text>
+                            <TextInput style={styles.input} placeholder="Marketing" placeholderTextColor="#64748b" />
+                        </View>
+                    </View>
+
+                    <TouchableOpacity style={styles.inviteButton}>
+                        <Ionicons name="mail" size={16} color="#fff" style={{ marginRight: 8 }} />
+                        <Text style={styles.inviteButtonText}>Send Invitation</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -233,4 +272,69 @@ const styles = StyleSheet.create({
         color: '#64748b',
         fontStyle: 'italic',
     },
+    helperText: {
+        color: '#94a3b8',
+        fontSize: 14,
+        marginBottom: 16,
+    },
+    managerCard: {
+        backgroundColor: '#0f172a',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#334155',
+        padding: 16,
+        marginBottom: 20,
+    },
+    managerHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    managerName: {
+        color: '#f8fafc',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    managerRole: {
+        color: '#94a3b8',
+        fontSize: 13,
+    },
+    assignedJobsText: {
+        color: '#3b82f6',
+        fontSize: 13,
+        fontWeight: '600',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
+    },
+    addManagerForm: {
+        borderTopWidth: 1,
+        borderTopColor: '#334155',
+        paddingTop: 20,
+    },
+    addManagerTitle: {
+        color: '#f8fafc',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 16,
+    },
+    rowInputs: {
+        flexDirection: 'row',
+    },
+    inviteButton: {
+        backgroundColor: '#ec4899',
+        borderRadius: 8,
+        paddingVertical: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        marginTop: 8,
+    },
+    inviteButtonText: {
+        color: '#ffffff',
+        fontWeight: 'bold',
+        fontSize: 15,
+    }
 });
