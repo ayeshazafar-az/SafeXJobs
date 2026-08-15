@@ -26,7 +26,7 @@ const InitialLayout = () => {
       } else if (session && inAuthGroup) {
         if (!role) return; // Wait until role is fetched!
 
-        if (role === 'company') {
+        if (role === 'company' || role === 'hiring_manager') {
           router.replace('/(company)/dashboard');
         } else if (role === 'admin') {
           router.replace('/(admin)/dashboard');
