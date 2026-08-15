@@ -16,7 +16,7 @@ export default function CandidateLayout() {
                     height: 60,
                 },
                 tabBarLabelStyle: {
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: '600'
                 }
             }}
@@ -24,15 +24,22 @@ export default function CandidateLayout() {
             <Tabs.Screen
                 name="dashboard"
                 options={{
-                    title: 'Dashboard',
+                    title: 'Home',
                     tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />
                 }}
             />
             <Tabs.Screen
                 name="jobs"
                 options={{
-                    title: 'Find Jobs',
-                    tabBarIcon: ({ color }) => <Ionicons name="briefcase" size={24} color={color} />
+                    title: 'Search',
+                    tabBarIcon: ({ color }) => <Ionicons name="search" size={24} color={color} />
+                }}
+            />
+            <Tabs.Screen
+                name="applications"
+                options={{
+                    title: 'Tracker',
+                    tabBarIcon: ({ color }) => <Ionicons name="document-text" size={24} color={color} />
                 }}
             />
             <Tabs.Screen

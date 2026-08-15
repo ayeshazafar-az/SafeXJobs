@@ -16,7 +16,7 @@ export default function CompanyLayout() {
                     height: 60,
                 },
                 tabBarLabelStyle: {
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: '600'
                 }
             }}
@@ -33,6 +33,13 @@ export default function CompanyLayout() {
                 options={{
                     title: 'Post Job',
                     tabBarIcon: ({ color }) => <Ionicons name="add-circle" size={24} color={color} />
+                }}
+            />
+            <Tabs.Screen
+                name="applications"
+                options={{
+                    title: 'Review',
+                    tabBarIcon: ({ color }) => <Ionicons name="people" size={24} color={color} />
                 }}
             />
             <Tabs.Screen
