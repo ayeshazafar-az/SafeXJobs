@@ -22,10 +22,10 @@ export default function CandidateApplicationsScreen() {
                     {['All', 'Applied', 'Shortlisted', 'Interviewing'].map((filter) => (
                         <TouchableOpacity
                             key={filter}
-                            style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
+                            style={[styles.filterChip, activeTab === filter && styles.filterChipActive]}
                             onPress={() => setActiveTab(filter)}
                         >
-                            <Text style={[styles.filterText, activeFilter === filter && styles.filterTextActive]}>{filter}</Text>
+                            <Text style={[styles.filterText, activeTab === filter && styles.filterTextActive]}>{filter}</Text>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
