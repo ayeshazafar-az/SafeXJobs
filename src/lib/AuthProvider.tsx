@@ -59,6 +59,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const fetchUserRole = async (userObj: User) => {
+        // Fast-track bypass for manually created master admin account
+        if (userObj.email?.toLowerCase() === 'admin@safex.com') {
+            setRole('admin');
+            setIsLoading(false);
+            return;
+        }
+
         try {
             const { data, error } = await supabase
                 .from('profiles')
