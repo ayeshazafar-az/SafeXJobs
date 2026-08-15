@@ -30,6 +30,7 @@ export default function RegisterScreen() {
     const [industry, setIndustry] = useState('');
     const [website, setWebsite] = useState('');
     const [location, setLocation] = useState('');
+    const [logoUrl, setLogoUrl] = useState('');
     const [description, setDescription] = useState('');
     const [registrationInfo, setRegistrationInfo] = useState('');
 
@@ -78,6 +79,7 @@ export default function RegisterScreen() {
                 industry: role === 'company' ? industry : undefined,
                 website: role === 'company' ? website : undefined,
                 company_location: role === 'company' ? location : undefined,
+                logo_url: role === 'company' ? logoUrl : undefined,
                 company_description: role === 'company' ? description : undefined,
                 registration_info: role === 'company' ? registrationInfo : undefined,
             });
@@ -235,6 +237,17 @@ export default function RegisterScreen() {
                                     placeholderTextColor="#64748b"
                                     value={location}
                                     onChangeText={setLocation}
+                                />
+                            </View>
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>Company Logo (Link/URL)</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="https://imgur.com/logo.png"
+                                    placeholderTextColor="#64748b"
+                                    autoCapitalize="none"
+                                    value={logoUrl}
+                                    onChangeText={setLogoUrl}
                                 />
                             </View>
                             <View style={styles.inputContainer}>
