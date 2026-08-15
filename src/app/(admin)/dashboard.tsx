@@ -55,7 +55,7 @@ export default function AdminDashboardScreen() {
                         <Ionicons name="business-outline" size={32} color="#f59e0b" />
                         <View style={{ marginLeft: 12 }}>
                             <Text style={styles.actionName}>Tech Solutions Inc.</Text>
-                            <Text style={styles.actionDesc}>Requires Company Approval</Text>
+                            <Text style={styles.actionDesc}>Status: <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>Pending</Text></Text>
                         </View>
                     </View>
                     <View style={styles.actionsBlock}>
@@ -64,6 +64,22 @@ export default function AdminDashboardScreen() {
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.btn, { backgroundColor: '#10b981', flex: 1.5 }]}>
                             <Text style={{ color: '#fff', fontWeight: 'bold' }}>Verify & Approve</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Example of a verified company that can be Suspended */}
+                <View style={[styles.actionCard, { marginTop: 16 }]}>
+                    <View style={styles.actionHeader}>
+                        <Ionicons name="business" size={32} color="#10b981" />
+                        <View style={{ marginLeft: 12 }}>
+                            <Text style={styles.actionName}>Acme Corp</Text>
+                            <Text style={styles.actionDesc}>Status: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>Verified</Text></Text>
+                        </View>
+                    </View>
+                    <View style={styles.actionsBlock}>
+                        <TouchableOpacity style={[styles.btn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+                            <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Suspend Account</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

@@ -11,6 +11,22 @@ export default function PostJobScreen() {
     const [loading, setLoading] = useState(false);
 
     const [jobType, setJobType] = useState('Full-Time');
+    const [companyStatus, setCompanyStatus] = useState('Pending'); // Mock state representing DB 'status'
+
+    if (companyStatus !== 'Verified') {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
+                <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: 24, borderRadius: 100, marginBottom: 24 }}>
+                    <Ionicons name="shield-half" size={64} color="#f59e0b" />
+                </View>
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#f8fafc', marginBottom: 12, textAlign: 'center' }}>Verification Required</Text>
+                <Text style={{ fontSize: 16, color: '#94a3b8', textAlign: 'center', lineHeight: 24 }}>
+                    Your company account is currently <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>{companyStatus}</Text>...{'\n\n'}
+                    You must be fully verified and approved by the platform administrators before you are allowed to publish jobs to the public feed.
+                </Text>
+            </View>
+        );
+    }
 
     const handlePostJob = async () => {
         if (!title || !description) {
