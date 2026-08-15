@@ -23,10 +23,15 @@ export default function RegisterScreen() {
     const [fullName, setFullName] = useState('');
     const [province, setProvince] = useState('');
     const [city, setCity] = useState('');
+    const [cnic, setCnic] = useState('');
 
     // Company Specific
     const [companyName, setCompanyName] = useState('');
     const [industry, setIndustry] = useState('');
+    const [website, setWebsite] = useState('');
+    const [location, setLocation] = useState('');
+    const [description, setDescription] = useState('');
+    const [registrationInfo, setRegistrationInfo] = useState('');
 
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
@@ -66,10 +71,15 @@ export default function RegisterScreen() {
                 email: email.trim(),
                 phone,
                 full_name: (role === 'candidate' || role === 'hiring_manager') ? fullName : undefined,
+                cnic: role === 'candidate' ? cnic : undefined,
                 company_name: (role === 'company' || role === 'hiring_manager') ? companyName : undefined,
                 province: role === 'candidate' ? province : undefined,
                 city: role === 'candidate' ? city : undefined,
                 industry: role === 'company' ? industry : undefined,
+                website: role === 'company' ? website : undefined,
+                company_location: role === 'company' ? location : undefined,
+                company_description: role === 'company' ? description : undefined,
+                registration_info: role === 'company' ? registrationInfo : undefined,
             });
 
             if (profileError) {
@@ -186,6 +196,17 @@ export default function RegisterScreen() {
                                     onChangeText={setCity}
                                 />
                             </View>
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>CNIC / Verification Number</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="XXXXX-XXXXXXX-X"
+                                    placeholderTextColor="#64748b"
+                                    value={cnic}
+                                    onChangeText={setCnic}
+                                    keyboardType="numeric"
+                                />
+                            </View>
                         </>
                     )}
 
@@ -210,6 +231,49 @@ export default function RegisterScreen() {
                                     placeholderTextColor="#64748b"
                                     value={industry}
                                     onChangeText={setIndustry}
+                                />
+                            </View>
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>Company Location</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="e.g. Islamabad, Remote"
+                                    placeholderTextColor="#64748b"
+                                    value={location}
+                                    onChangeText={setLocation}
+                                />
+                            </View>
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>Website</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="https://company.com"
+                                    placeholderTextColor="#64748b"
+                                    keyboardType="url"
+                                    autoCapitalize="none"
+                                    value={website}
+                                    onChangeText={setWebsite}
+                                />
+                            </View>
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>Business Registration #</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Optional verified info"
+                                    placeholderTextColor="#64748b"
+                                    value={registrationInfo}
+                                    onChangeText={setRegistrationInfo}
+                                />
+                            </View>
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>Company Description</Text>
+                                <TextInput
+                                    style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+                                    placeholder="Tell candidates about your mission..."
+                                    placeholderTextColor="#64748b"
+                                    multiline
+                                    value={description}
+                                    onChangeText={setDescription}
                                 />
                             </View>
                         </>
