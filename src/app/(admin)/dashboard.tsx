@@ -6,16 +6,35 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 export default function AdminDashboardScreen() {
     const [companies, setCompanies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({ companies: 0, candidates: 0, jobs: 0, apps: 0 });
+    const [selectedCompany, setSelectedCompany] = useState<any>(null);
+    const [modalVisible, setModalVisible] = useState(false);
 
-    const loadCompanies = async () => {
+    const loadData = async () => {
         setLoading(true);
-        const { data, error } = await supabase.from('profiles').select('*').eq('role', 'company');
+        // Load companies
+        const { data } = await supabase.from('profiles').select('*').eq('role', 'company');
         if (data) setCompanies(data);
+
+        // Load stats
+        const [companiesCount, candidatesCount, jobsCount] = await Promise.all([
+            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'company'),
+            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'candidate'),
+            supabase.from('jobs').select('*', { count: 'exact', head: true })
+        ]);
+
+        setStats({
+            companies: companiesCount.count || 0,
+            candidates: candidatesCount.count || 0,
+            jobs: jobsCount.count || 0,
+            apps: 0 // Placeholder until Applications table is generated
+        });
+
         setLoading(false);
     };
 
     useEffect(() => {
-        loadCompanies();
+        loadData();
     }, []);
 
     const updateCompanyStatus = async (id: string, status: string) => {
@@ -23,7 +42,8 @@ export default function AdminDashboardScreen() {
         if (error) {
             Alert.alert('Error Updating Status', error.message);
         } else {
-            loadCompanies();
+            loadData();
+            if (modalVisible) setModalVisible(false);
         }
     };
 
@@ -48,12 +68,12 @@ export default function AdminDashboardScreen() {
                 <View style={styles.statsRow}>
                     <View style={styles.statCard}>
                         <Ionicons name="business" size={28} color="#3b82f6" />
-                        <Text style={styles.statNumber}>14</Text>
+                        <Text style={styles.statNumber}>{stats.companies}</Text>
                         <Text style={styles.statLabel}>Companies</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Ionicons name="people" size={28} color="#10b981" />
-                        <Text style={styles.statNumber}>128</Text>
+                        <Text style={styles.statNumber}>{stats.candidates}</Text>
                         <Text style={styles.statLabel}>Candidates</Text>
                     </View>
                 </View>
@@ -61,12 +81,12 @@ export default function AdminDashboardScreen() {
                 <View style={styles.statsRow}>
                     <View style={styles.statCard}>
                         <Ionicons name="briefcase" size={28} color="#f59e0b" />
-                        <Text style={styles.statNumber}>45</Text>
+                        <Text style={styles.statNumber}>{stats.jobs}</Text>
                         <Text style={styles.statLabel}>Active Jobs</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Ionicons name="document-text" size={28} color="#ec4899" />
-                        <Text style={styles.statNumber}>892</Text>
+                        <Text style={styles.statNumber}>{stats.apps}</Text>
                         <Text style={styles.statLabel}>Total Apps</Text>
                     </View>
                 </View>
@@ -241,5 +261,66 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#1e293b',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        height: '80%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: '#334155',
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#f8fafc',
+    },
+    closeBtn: {
+        padding: 4,
+        backgroundColor: '#334155',
+        borderRadius: 20,
+    },
+    modalScroll: {
+        padding: 24,
+    },
+    detailsContainer: {
+        gap: 20,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    detailLabel: {
+        color: '#94a3b8',
+        fontSize: 13,
+        marginBottom: 4,
+    },
+    detailValue: {
+        color: '#f8fafc',
+        fontSize: 15,
+        lineHeight: 22,
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#334155',
+        marginLeft: 32,
+    },
+    modalFooter: {
+        padding: 24,
+        borderTopWidth: 1,
+        borderTopColor: '#334155',
+        flexDirection: 'row',
+        backgroundColor: '#0f172a',
     }
 });
