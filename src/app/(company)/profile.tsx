@@ -115,6 +115,11 @@ export default function CompanyProfileScreen() {
                         <TextInput style={styles.input} placeholder="sarah@acmecorp.com" placeholderTextColor="#64748b" />
                     </View>
 
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Phone Number</Text>
+                        <TextInput style={styles.input} placeholder="+92 3XX XXXXXXX" placeholderTextColor="#64748b" keyboardType="phone-pad" />
+                    </View>
+
                     <View style={styles.rowInputs}>
                         <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
                             <Text style={styles.label}>Designation</Text>
@@ -125,6 +130,11 @@ export default function CompanyProfileScreen() {
                             <Text style={styles.label}>Department</Text>
                             <TextInput style={styles.input} placeholder="Marketing" placeholderTextColor="#64748b" />
                         </View>
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                        <Text style={styles.label}>Assigned Jobs</Text>
+                        <TextInput style={styles.input} placeholder="e.g. Senior React Developer" placeholderTextColor="#64748b" />
                     </View>
 
                     <TouchableOpacity style={styles.inviteButton}>
