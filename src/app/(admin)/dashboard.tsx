@@ -1,8 +1,32 @@
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AdminDashboardScreen() {
+    const [companies, setCompanies] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const loadCompanies = async () => {
+        setLoading(true);
+        const { data, error } = await supabase.from('profiles').select('*').eq('role', 'company');
+        if (data) setCompanies(data);
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        loadCompanies();
+    }, []);
+
+    const updateCompanyStatus = async (id: string, status: string) => {
+        const { error } = await supabase.from('profiles').update({ status }).eq('id', id);
+        if (error) {
+            Alert.alert('Error Updating Status', error.message);
+        } else {
+            loadCompanies();
+        }
+    };
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
     };
@@ -50,39 +74,67 @@ export default function AdminDashboardScreen() {
                 {/* Verification Section */}
                 <Text style={styles.sectionTitle}>Pending Verification</Text>
 
-                <View style={styles.actionCard}>
-                    <View style={styles.actionHeader}>
-                        <Ionicons name="business-outline" size={32} color="#f59e0b" />
-                        <View style={{ marginLeft: 12 }}>
-                            <Text style={styles.actionName}>Tech Solutions Inc.</Text>
-                            <Text style={styles.actionDesc}>Status: <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>Pending</Text></Text>
-                        </View>
-                    </View>
-                    <View style={styles.actionsBlock}>
-                        <TouchableOpacity style={[styles.btn, { borderColor: '#ef4444', borderWidth: 1 }]}>
-                            <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Reject</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.btn, { backgroundColor: '#10b981', flex: 1.5 }]}>
-                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Verify & Approve</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                {loading ? (
+                    <ActivityIndicator size="large" color="#f59e0b" style={{ marginVertical: 30 }} />
+                ) : (
+                    <>
+                        {companies.filter(c => c.status === 'Pending' || c.status === 'Under Review' || !c.status).length === 0 && (
+                            <Text style={{ color: '#94a3b8', marginHorizontal: 8, fontStyle: 'italic' }}>No companies pending verification.</Text>
+                        )}
 
-                {/* Example of a verified company that can be Suspended */}
-                <View style={[styles.actionCard, { marginTop: 16 }]}>
-                    <View style={styles.actionHeader}>
-                        <Ionicons name="business" size={32} color="#10b981" />
-                        <View style={{ marginLeft: 12 }}>
-                            <Text style={styles.actionName}>Acme Corp</Text>
-                            <Text style={styles.actionDesc}>Status: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>Verified</Text></Text>
-                        </View>
-                    </View>
-                    <View style={styles.actionsBlock}>
-                        <TouchableOpacity style={[styles.btn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-                            <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Suspend Account</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                        {companies.filter(c => c.status === 'Pending' || c.status === 'Under Review' || !c.status).map(company => (
+                            <View key={company.id} style={[styles.actionCard, { marginBottom: 16 }]}>
+                                <View style={styles.actionHeader}>
+                                    <Ionicons name="business-outline" size={32} color="#f59e0b" />
+                                    <View style={{ marginLeft: 12 }}>
+                                        <Text style={styles.actionName}>{company.company_name || 'Unnamed Company'}</Text>
+                                        <Text style={styles.actionDesc}>Status: <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>{company.status || 'Pending'}</Text></Text>
+                                    </View>
+                                </View>
+                                <View style={styles.actionsBlock}>
+                                    <TouchableOpacity
+                                        style={[styles.btn, { borderColor: '#ef4444', borderWidth: 1 }]}
+                                        onPress={() => updateCompanyStatus(company.id, 'Rejected')}
+                                    >
+                                        <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Reject</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.btn, { backgroundColor: '#10b981', flex: 1.5 }]}
+                                        onPress={() => updateCompanyStatus(company.id, 'Verified')}
+                                    >
+                                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Verify & Approve</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ))}
+
+                        <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Verified Companies</Text>
+
+                        {companies.filter(c => c.status === 'Verified').length === 0 && (
+                            <Text style={{ color: '#94a3b8', marginHorizontal: 8, fontStyle: 'italic' }}>No verified companies yet.</Text>
+                        )}
+
+                        {companies.filter(c => c.status === 'Verified').map(company => (
+                            <View key={company.id} style={[styles.actionCard, { marginBottom: 16 }]}>
+                                <View style={styles.actionHeader}>
+                                    <Ionicons name="business" size={32} color="#10b981" />
+                                    <View style={{ marginLeft: 12 }}>
+                                        <Text style={styles.actionName}>{company.company_name || 'Unnamed Company'}</Text>
+                                        <Text style={styles.actionDesc}>Status: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>Verified</Text></Text>
+                                    </View>
+                                </View>
+                                <View style={styles.actionsBlock}>
+                                    <TouchableOpacity
+                                        style={[styles.btn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                                        onPress={() => updateCompanyStatus(company.id, 'Suspended')}
+                                    >
+                                        <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Suspend Account</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ))}
+                    </>
+                )}
 
             </ScrollView>
         </View>
