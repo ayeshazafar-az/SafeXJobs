@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
     Alert,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -24,18 +25,19 @@ export default function CompanyProfileScreen() {
     };
 
     const handleSignOut = () => {
-        Alert.alert(
-            "Sign Out",
-            "Are you sure you want to sign out?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Sign Out",
-                    style: "destructive",
-                    onPress: async () => await supabase.auth.signOut()
-                }
-            ]
-        );
+        if (Platform.OS === 'web') {
+            const isConfirmed = window.confirm("Are you sure you want to sign out?");
+            if (isConfirmed) supabase.auth.signOut();
+        } else {
+            Alert.alert(
+                "Sign Out",
+                "Are you sure you want to sign out?",
+                [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Sign Out", style: "destructive", onPress: async () => await supabase.auth.signOut() }
+                ]
+            );
+        }
     };
 
     return (

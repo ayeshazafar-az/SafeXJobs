@@ -18,10 +18,15 @@ export default function AdminSettingsScreen() {
     }, []);
 
     const handleSignOut = () => {
-        Alert.alert("Sign Out", "Are you sure you want to log out of the Admin Portal?", [
-            { text: "Cancel", style: "cancel" },
-            { text: "Sign Out", style: "destructive", onPress: async () => await supabase.auth.signOut() }
-        ]);
+        if (Platform.OS === 'web') {
+            const isConfirmed = window.confirm("Are you sure you want to log out of the Admin Portal?");
+            if (isConfirmed) supabase.auth.signOut();
+        } else {
+            Alert.alert("Sign Out", "Are you sure you want to log out of the Admin Portal?", [
+                { text: "Cancel", style: "cancel" },
+                { text: "Sign Out", style: "destructive", onPress: async () => await supabase.auth.signOut() }
+            ]);
+        }
     };
 
     return (
