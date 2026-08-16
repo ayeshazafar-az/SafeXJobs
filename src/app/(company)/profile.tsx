@@ -11,6 +11,7 @@ import {
     View
 } from 'react-native';
 
+import { supabase } from '@/lib/supabase';
 export default function CompanyProfileScreen() {
     const { user } = useAuth();
 
@@ -22,11 +23,31 @@ export default function CompanyProfileScreen() {
         Alert.alert('Saved', 'Company profile details updated.');
     };
 
+    const handleSignOut = () => {
+        Alert.alert(
+            "Sign Out",
+            "Are you sure you want to sign out?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Sign Out",
+                    style: "destructive",
+                    onPress: async () => await supabase.auth.signOut()
+                }
+            ]
+        );
+    };
+
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
             {/* Header Profile Summary */}
             <View style={styles.headerCard}>
+                <View style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
+                    <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
+                        <Ionicons name="log-out-outline" size={20} color="#f43f5e" />
+                    </TouchableOpacity>
+                </View>
                 <View style={styles.avatarContainer}>
                     <Ionicons name="business" size={56} color="#f59e0b" />
                 </View>
@@ -346,5 +367,12 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontWeight: 'bold',
         fontSize: 15,
+    },
+    signOutBtn: {
+        backgroundColor: 'rgba(244, 63, 94, 0.1)',
+        padding: 8,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(244, 63, 94, 0.3)'
     }
 });

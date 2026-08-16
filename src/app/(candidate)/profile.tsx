@@ -15,6 +15,7 @@ export default function CandidateProfileScreen() {
 
     // Form State
     const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
     const [location, setLocation] = useState('');
     const [careerObjective, setCareerObjective] = useState('');
     const [skills, setSkills] = useState('');
@@ -26,6 +27,7 @@ export default function CandidateProfileScreen() {
 
     const [educationStr, setEducationStr] = useState('');
     const [experienceStr, setExperienceStr] = useState('');
+    const [certificationsStr, setCertificationsStr] = useState('');
 
     useEffect(() => {
         if (!user) return;
@@ -39,7 +41,10 @@ export default function CandidateProfileScreen() {
                 if (data.skills) setSkills(Array.isArray(data.skills) ? data.skills.join(', ') : data.skills);
                 if (data.education) setEducationStr(Array.isArray(data.education) ? data.education.join('\n') : data.education);
                 if (data.experience) setExperienceStr(Array.isArray(data.experience) ? data.experience.join('\n') : data.experience);
+                // We map certifications safely if it exists on the DB, else skip without throwing error
+                if (data.certifications) setCertificationsStr(Array.isArray(data.certifications) ? data.certifications.join('\n') : data.certifications);
 
+                setPhone(data.phone || '');
                 setLanguages(data.languages || '');
                 setLinkedinUrl(data.linkedin_url || '');
                 setPortfolioUrl(data.portfolio_url || '');
@@ -58,9 +63,11 @@ export default function CandidateProfileScreen() {
         const formattedSkills = skills.split(',').map(s => s.trim()).filter(Boolean);
         const formattedEdu = educationStr.split('\n').map(s => s.trim()).filter(Boolean);
         const formattedExp = experienceStr.split('\n').map(s => s.trim()).filter(Boolean);
+        const formattedCerts = certificationsStr.split('\n').map(s => s.trim()).filter(Boolean);
 
         const updates = {
             full_name: fullName,
+            phone,
             company_location: location,
             career_objective: careerObjective,
             skills: formattedSkills,
@@ -70,7 +77,8 @@ export default function CandidateProfileScreen() {
             linkedin_url: linkedinUrl,
             portfolio_url: portfolioUrl,
             resume_url: resumeUrl,
-            video_intro_url: videoUrl
+            video_intro_url: videoUrl,
+            certifications: formattedCerts
         };
 
         const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
@@ -78,6 +86,21 @@ export default function CandidateProfileScreen() {
 
         if (error) Alert.alert('Error Saving Profile', error.message);
         else Alert.alert('Profile Saved!', 'Your professional portfolio has been updated successfully.');
+    };
+
+    const handleSignOut = () => {
+        Alert.alert(
+            "Sign Out",
+            "Are you sure you want to sign out?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Sign Out",
+                    style: "destructive",
+                    onPress: async () => await supabase.auth.signOut()
+                }
+            ]
+        );
     };
 
     const uploadToSupabase = async (uri: string, prefix: string, contentType: string) => {
@@ -175,8 +198,15 @@ export default function CandidateProfileScreen() {
     return (
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>My Portfolio</Text>
-                <Text style={styles.subtitle}>Complete your profile to attract top hiring managers.</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                        <Text style={styles.title}>My Portfolio</Text>
+                        <Text style={styles.subtitle}>Complete your profile to attract top hiring managers.</Text>
+                    </View>
+                    <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
+                        <Ionicons name="log-out-outline" size={24} color="#f43f5e" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <View style={styles.segmentedControl}>
@@ -199,6 +229,10 @@ export default function CandidateProfileScreen() {
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Full Name</Text>
                             <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="John Doe" placeholderTextColor="#64748b" />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Phone Number</Text>
+                            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+92 3XX XXXXXXX" placeholderTextColor="#64748b" keyboardType="phone-pad" />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Province & City</Text>
@@ -247,6 +281,17 @@ export default function CandidateProfileScreen() {
                                 value={experienceStr}
                                 onChangeText={setExperienceStr}
                                 placeholder="Software Eng - Acme Corp (2022-2024)"
+                                placeholderTextColor="#64748b"
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Certifications (One per line)</Text>
+                            <TextInput
+                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                multiline
+                                value={certificationsStr}
+                                onChangeText={setCertificationsStr}
+                                placeholder="AWS Solutions Architect (2023)"
                                 placeholderTextColor="#64748b"
                             />
                         </View>
@@ -327,6 +372,7 @@ const styles = StyleSheet.create({
     header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155' },
     title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
     subtitle: { fontSize: 13, color: '#94a3b8' },
+    signOutBtn: { backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(244, 63, 94, 0.3)' },
 
     segmentedControl: { flexDirection: 'row', padding: 16, gap: 8, backgroundColor: '#0f172a' },
     segmentBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 100, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155' },
