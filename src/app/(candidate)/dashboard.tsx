@@ -1,6 +1,7 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -65,8 +66,13 @@ export default function CandidateDashboardScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Dashboard</Text>
-                <Text style={styles.subtitle}>Overview of your career progress.</Text>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.title}>Dashboard</Text>
+                    <Text style={styles.subtitle}>Overview of your career progress.</Text>
+                </View>
+                <TouchableOpacity onPress={() => router.push('/(candidate)/notifications')} style={styles.bellBtn}>
+                    <Ionicons name="notifications-outline" size={24} color="#f8fafc" />
+                </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -139,7 +145,7 @@ export default function CandidateDashboardScreen() {
                     <Ionicons name="arrow-forward" size={20} color="#94a3b8" />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.taskCard, { opacity: 0.7 }]}>
+                <TouchableOpacity style={[styles.taskCard, { opacity: 0.7 }]} onPress={() => router.push('/(candidate)/notifications')}>
                     <View style={[styles.taskIconWrapper, { backgroundColor: 'rgba(167, 139, 250, 0.1)' }]}>
                         <Ionicons name="notifications" size={24} color="#a78bfa" />
                     </View>
@@ -161,6 +167,12 @@ const styles = StyleSheet.create({
         padding: 24, paddingTop: 60, paddingBottom: 20,
         backgroundColor: '#1e293b',
         borderBottomWidth: 1, borderBottomColor: '#334155',
+    },
+    bellBtn: {
+        width: 44, height: 44, borderRadius: 22,
+        backgroundColor: '#0f172a',
+        alignItems: 'center', justifyContent: 'center',
+        borderWidth: 1, borderColor: '#334155'
     },
     title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
     subtitle: { fontSize: 13, color: '#94a3b8' },

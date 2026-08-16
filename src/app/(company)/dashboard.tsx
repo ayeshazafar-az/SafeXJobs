@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CompanyDashboard() {
@@ -10,13 +11,18 @@ export default function CompanyDashboard() {
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <View style={styles.header}>
-                <View>
+                <View style={{ flex: 1 }}>
                     <Text style={styles.title}>Company Dashboard</Text>
                     <Text style={styles.subtitle}>Welcome back, Acme Corp!</Text>
                 </View>
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Ionicons name="log-out-outline" size={24} color="#ef4444" />
-                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity onPress={() => router.push('/(company)/notifications')} style={styles.bellBtn}>
+                        <Ionicons name="notifications-outline" size={22} color="#f8fafc" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                        <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {/* Overview Stats */}
@@ -89,8 +95,12 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         marginBottom: 40,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        gap: 12,
     },
     title: {
         fontSize: 28,
@@ -101,6 +111,16 @@ const styles = StyleSheet.create({
     subtitle: {
         fontSize: 16,
         color: '#94a3b8',
+    },
+    bellBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 12,
+        backgroundColor: '#1e293b',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#334155',
     },
     logoutButton: {
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
