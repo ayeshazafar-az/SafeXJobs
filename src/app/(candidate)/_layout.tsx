@@ -38,7 +38,7 @@ export default function CandidateLayout() {
             <Tabs.Screen
                 name="applications"
                 options={{
-                    title: 'Apps',
+                    title: 'Track',
                     tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={24} color={color} />,
                 }}
             />
