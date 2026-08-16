@@ -1,17 +1,48 @@
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
-// Mocked Job Data for presentation
-const MOCK_JOBS = [
-    { id: '1', title: 'Senior React Native Developer', company: 'Acme Corp', location: 'Remote', type: 'Full-Time', salary: '200k - 250k PKR', postedAt: '2 days ago' },
-    { id: '2', title: 'Product Manager', company: 'Zenith Labs', location: 'Islamabad', type: 'Full-Time', salary: '150k - 280k PKR', postedAt: '5 hours ago' },
-    { id: '3', title: 'UI/UX Designer', company: 'Creative Co.', location: 'Lahore', type: 'Contract', salary: '100k - 150k PKR', postedAt: '3 days ago' },
-];
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function FindJobsScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('All');
+    const [jobs, setJobs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchJobs = async () => {
+            const { data, error } = await supabase
+                .from('jobs')
+                .select(`
+                    *,
+                    profiles (
+                        company_name,
+                        full_name
+                    )
+                `)
+                .eq('is_active', true)
+                .order('created_at', { ascending: false });
+
+            if (data) {
+                setJobs(data);
+            } else {
+                console.error("Error fetching jobs", error);
+            }
+            setLoading(false);
+        };
+
+        fetchJobs();
+    }, []);
+
+    // Filter jobs based on search query and active filter
+    const filteredJobs = jobs.filter(job => {
+        const queryMatch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (job.profiles?.company_name || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const filterMatch = activeFilter === 'All' ||
+            job.location?.includes(activeFilter) ||
+            job.job_type === activeFilter;
+        return queryMatch && filterMatch;
+    });
 
     return (
         <View style={styles.container}>
@@ -47,30 +78,47 @@ export default function FindJobsScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.jobsList}>
-                {MOCK_JOBS.map((job) => (
-                    <TouchableOpacity key={job.id} style={styles.jobCard}>
-                        <View style={styles.jobMainInfo}>
-                            <View style={styles.jobIcon}>
-                                <Ionicons name="briefcase" size={24} color="#3b82f6" />
+                {loading ? (
+                    <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
+                ) : filteredJobs.length === 0 ? (
+                    <View style={{ alignItems: 'center', marginTop: 50 }}>
+                        <Ionicons name="search-outline" size={64} color="#334155" />
+                        <Text style={{ color: '#94a3b8', marginTop: 16 }}>No jobs found matching your search.</Text>
+                    </View>
+                ) : (
+                    filteredJobs.map((job) => (
+                        <TouchableOpacity key={job.id} style={styles.jobCard}>
+                            <View style={styles.jobMainInfo}>
+                                <View style={styles.jobIcon}>
+                                    <Ionicons name="briefcase" size={24} color="#3b82f6" />
+                                </View>
+                                <View style={{ flex: 1, paddingRight: 10 }}>
+                                    <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
+                                    <Text style={styles.jobCompany}>{job.profiles?.company_name || job.profiles?.full_name || 'Anonymous Company'}</Text>
+                                </View>
+                                <TouchableOpacity style={styles.applyBtn}>
+                                    <Text style={styles.applyBtnText}>Apply</Text>
+                                </TouchableOpacity>
                             </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.jobTitle}>{job.title}</Text>
-                                <Text style={styles.jobCompany}>{job.company}</Text>
+
+                            <View style={styles.jobTags}>
+                                {job.location && <View style={styles.tag}><Text style={styles.tagText}>{job.location}</Text></View>}
+                                {job.job_type && <View style={styles.tag}><Text style={styles.tagText}>{job.job_type}</Text></View>}
                             </View>
-                            <Ionicons name="bookmark-outline" size={24} color="#94a3b8" />
-                        </View>
 
-                        <View style={styles.jobTags}>
-                            <View style={styles.tag}><Text style={styles.tagText}>{job.location}</Text></View>
-                            <View style={styles.tag}><Text style={styles.tagText}>{job.type}</Text></View>
-                        </View>
-
-                        <View style={styles.jobFooter}>
-                            <Text style={styles.jobSalary}>{job.salary}</Text>
-                            <Text style={styles.jobTime}>{job.postedAt}</Text>
-                        </View>
-                    </TouchableOpacity>
-                ))}
+                            <View style={styles.jobFooter}>
+                                <Text style={styles.jobSalary}>
+                                    {job.salary_min && job.salary_max
+                                        ? `${job.salary_min}k - ${job.salary_max}k PKR`
+                                        : 'Salary not disclosed'}
+                                </Text>
+                                <Text style={styles.jobTime}>
+                                    {new Date(job.created_at).toLocaleDateString()}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    ))
+                )}
             </ScrollView>
         </View>
     );
@@ -209,5 +257,16 @@ const styles = StyleSheet.create({
     jobTime: {
         color: '#64748b',
         fontSize: 12,
+    },
+    applyBtn: {
+        backgroundColor: '#3b82f6',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    applyBtnText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 13,
     },
 });
