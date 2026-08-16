@@ -1,6 +1,7 @@
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AdminSettingsScreen() {
     const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -14,11 +15,25 @@ export default function AdminSettingsScreen() {
         { id: 3, type: 'User Complaint', user: 'Acme Corp', issue: 'Spam applications from bot accounts.', severity: 'High', date: '1 day ago' },
     ];
 
+    const handleSignOut = () => {
+        Alert.alert("Sign Out", "Are you sure you want to log out of the Admin Portal?", [
+            { text: "Cancel", style: "cancel" },
+            { text: "Sign Out", style: "destructive", onPress: async () => await supabase.auth.signOut() }
+        ]);
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>System Control</Text>
-                <Text style={styles.subtitle}>Platform settings, monitoring, and complaint resolutions.</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                        <Text style={styles.title}>System Control</Text>
+                        <Text style={styles.subtitle}>Platform settings, monitoring, and complaint resolutions.</Text>
+                    </View>
+                    <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
+                        <Ionicons name="log-out-outline" size={24} color="#f43f5e" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <View style={styles.tabContainer}>
@@ -145,6 +160,7 @@ const styles = StyleSheet.create({
     },
     title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4, letterSpacing: -0.5 },
     subtitle: { fontSize: 14, color: '#94a3b8', fontWeight: '500' },
+    signOutBtn: { backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(244, 63, 94, 0.3)' },
 
     tabContainer: {
         flexDirection: 'row',

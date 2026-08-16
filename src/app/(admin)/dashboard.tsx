@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -66,16 +67,16 @@ export default function AdminDashboardScreen() {
             <ScrollView contentContainerStyle={styles.content}>
                 {/* Stats Row */}
                 <View style={styles.statsRow}>
-                    <View style={styles.statCard}>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(admin)/users')}>
                         <Ionicons name="business" size={28} color="#3b82f6" />
                         <Text style={styles.statNumber}>{stats.companies}</Text>
                         <Text style={styles.statLabel}>Companies</Text>
-                    </View>
-                    <View style={styles.statCard}>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(admin)/users')}>
                         <Ionicons name="people" size={28} color="#10b981" />
                         <Text style={styles.statNumber}>{stats.candidates}</Text>
                         <Text style={styles.statLabel}>Candidates</Text>
-                    </View>
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.statsRow}>
