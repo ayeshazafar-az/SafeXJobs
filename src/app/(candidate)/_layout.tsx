@@ -38,15 +38,36 @@ export default function CandidateLayout() {
             <Tabs.Screen
                 name="applications"
                 options={{
-                    title: 'Tracker',
-                    tabBarIcon: ({ color }) => <Ionicons name="document-text" size={24} color={color} />
+                    title: 'Apps',
+                    tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="chat"
+                options={{
+                    title: 'Chat',
+                    tabBarIcon: ({ color }) => <Ionicons name="chatbubbles-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="interviews"
+                options={{
+                    title: 'Meetings',
+                    tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="tests"
+                options={{
+                    title: 'Tests',
+                    tabBarIcon: ({ color }) => <Ionicons name="create-outline" size={24} color={color} />,
                 }}
             />
             <Tabs.Screen
                 name="profile"
                 options={{
                     title: 'Profile',
-                    tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />
+                    tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={24} color={color} />,
                 }}
             />
         </Tabs>

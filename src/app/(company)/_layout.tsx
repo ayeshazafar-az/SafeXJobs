@@ -39,14 +39,35 @@ export default function CompanyLayout() {
                 name="applications"
                 options={{
                     title: 'Review',
-                    tabBarIcon: ({ color }) => <Ionicons name="people" size={24} color={color} />
+                    tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="chat"
+                options={{
+                    title: 'Messages',
+                    tabBarIcon: ({ color }) => <Ionicons name="chatbubbles-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="interviews"
+                options={{
+                    title: 'Interviews',
+                    tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="tests"
+                options={{
+                    title: 'Assess',
+                    tabBarIcon: ({ color }) => <Ionicons name="create-outline" size={24} color={color} />,
                 }}
             />
             <Tabs.Screen
                 name="profile"
                 options={{
                     title: 'Company',
-                    tabBarIcon: ({ color }) => <Ionicons name="business" size={24} color={color} />
+                    tabBarIcon: ({ color }) => <Ionicons name="business-outline" size={24} color={color} />,
                 }}
             />
         </Tabs>
