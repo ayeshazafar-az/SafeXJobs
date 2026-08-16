@@ -18,7 +18,7 @@ export default function FindJobsScreen() {
                 .from('jobs')
                 .select(`
                     *,
-                    profiles (
+                    profiles!jobs_company_id_fkey (
                         company_name,
                         full_name
                     )
