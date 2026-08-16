@@ -52,6 +52,7 @@ export default function CandidateLayout() {
             <Tabs.Screen
                 name="interviews"
                 options={{
+                    href: null,
                     title: 'Meetings',
                     tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={24} color={color} />,
                 }}
@@ -59,8 +60,15 @@ export default function CandidateLayout() {
             <Tabs.Screen
                 name="tests"
                 options={{
+                    href: null,
                     title: 'Tests',
                     tabBarIcon: ({ color }) => <Ionicons name="create-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="notifications"
+                options={{
+                    href: null,
                 }}
             />
             <Tabs.Screen
