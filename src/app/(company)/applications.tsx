@@ -1,239 +1,259 @@
+import { useAuth } from '@/lib/AuthProvider';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const MOCK_CANDIDATES = [
-    { id: '1', name: 'John Doe', role: 'Senior React Engineer', score: '98%', status: 'New', location: 'Remote' },
-    { id: '2', name: 'Sarah Ahmed', role: 'UI/UX Designer', score: '85%', status: 'Shortlisted', location: 'Islamabad' },
-    { id: '3', name: 'Ali Khan', role: 'Backend Developer', score: '72%', status: 'Reviewed', location: 'Lahore' },
-];
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CompanyApplicationsScreen() {
-    const [activeTab, setActiveTab] = useState('All');
+    const { user } = useAuth();
+    const [applications, setApplications] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+    const fetchApplications = async () => {
+        if (!user) return;
+
+        // Fetch applications matching the company's posted jobs
+        // Using !inner to only get applications for jobs that belong to THIS company
+        const { data, error } = await supabase
+            .from('applications')
+            .select(`
+                *,
+                jobs!inner (
+                    id,
+                    title,
+                    company_id
+                ),
+                profiles!applications_candidate_id_fkey (
+                    full_name,
+                    career_objective,
+                    skills,
+                    resume_url
+                )
+            `)
+            .eq('jobs.company_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Error fetching company apps:", error);
+        } else if (data) {
+            setApplications(data);
+        }
+
+        setLoading(false);
+        setRefreshing(false);
+    };
+
+    useEffect(() => {
+        fetchApplications();
+    }, [user]);
+
+    const onRefresh = () => {
+        setRefreshing(true);
+        fetchApplications();
+    };
+
+    const updateStatus = async (appId: string, newStatus: string) => {
+        setUpdatingId(appId);
+        const { error } = await supabase
+            .from('applications')
+            .update({ status: newStatus })
+            .eq('id', appId);
+
+        setUpdatingId(null);
+
+        if (error) {
+            Alert.alert('Update Failed', error.message);
+        } else {
+            // Update local state for immediate feedback
+            setApplications(apps => apps.map(app => app.id === appId ? { ...app, status: newStatus } : app));
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'Shortlisted': return '#a78bfa';
+            case 'Interview': return '#fb923c';
+            case 'Hired': return '#10b981';
+            case 'Rejected': return '#f43f5e';
+            default: return '#94a3b8'; // Pending
+        }
+    };
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Review Candidates</Text>
-                <Text style={styles.subtitle}>Manage your incoming applications efficiently.</Text>
-
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
-                    {['All', 'New', 'Shortlisted', 'Interviewing', 'Rejected'].map((filter) => (
-                        <TouchableOpacity
-                            key={filter}
-                            style={[styles.filterChip, activeTab === filter && styles.filterChipActive]}
-                            onPress={() => setActiveTab(filter)}
-                        >
-                            <Text style={[styles.filterText, activeTab === filter && styles.filterTextActive]}>{filter}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                <Text style={styles.title}>Candidate Review</Text>
+                <Text style={styles.subtitle}>Evaluate incoming applications for your active listings.</Text>
             </View>
 
-            <ScrollView contentContainerStyle={styles.listContainer}>
-                {MOCK_CANDIDATES.map((cand) => (
-                    <View key={cand.id} style={styles.candCard}>
-                        <View style={styles.candHeader}>
-                            <View style={styles.avatar}>
-                                <Ionicons name="person" size={24} color="#f8fafc" />
-                            </View>
-                            <View style={styles.candInfo}>
-                                <Text style={styles.candName}>{cand.name}</Text>
-                                <Text style={styles.candRole}>Applied: {cand.role}</Text>
-                            </View>
-                            <View style={styles.scoreBadge}>
-                                <Text style={styles.scoreText}>{cand.score}</Text>
-                                <Text style={styles.scoreLabel}>Match</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.candMeta}>
-                            <View style={styles.metaBadge}>
-                                <Ionicons name="location-outline" size={14} color="#94a3b8" />
-                                <Text style={styles.metaText}>{cand.location}</Text>
-                            </View>
-                            <View style={styles.metaBadge}>
-                                <Ionicons name="document-text-outline" size={14} color="#94a3b8" />
-                                <Text style={styles.metaText}>View CV</Text>
-                            </View>
-                            <View style={styles.metaBadge}>
-                                <Ionicons name="videocam-outline" size={14} color="#3b82f6" />
-                                <Text style={[styles.metaText, { color: '#3b82f6' }]}>Play Intro</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.actionsRow}>
-                            <TouchableOpacity style={styles.actionBtnReject}>
-                                <Text style={styles.actionBtnRejectText}>Reject</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionBtnShortlist}>
-                                <Ionicons name="star" size={16} color="#fff" style={{ marginRight: 6 }} />
-                                <Text style={styles.actionBtnShortText}>Shortlist</Text>
-                            </TouchableOpacity>
-                        </View>
+            <ScrollView
+                contentContainerStyle={styles.listContent}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}
+            >
+                {loading ? (
+                    <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
+                ) : applications.length === 0 ? (
+                    <View style={styles.emptyContainer}>
+                        <Ionicons name="folder-open-outline" size={64} color="#334155" />
+                        <Text style={styles.emptyText}>No applications received yet.</Text>
+                        <Text style={styles.emptySubText}>When a candidate applies to your jobs, they will appear here for review.</Text>
                     </View>
-                ))}
+                ) : (
+                    applications.map((app) => {
+                        const candidate = app.profiles;
+                        const job = app.jobs;
+                        const statusColor = getStatusColor(app.status);
+
+                        return (
+                            <View key={app.id} style={styles.appCard}>
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.avatarPlaceholder}>
+                                        <Text style={styles.avatarText}>
+                                            {(candidate?.full_name || 'U')[0].toUpperCase()}
+                                        </Text>
+                                    </View>
+                                    <View style={{ flex: 1, marginLeft: 12 }}>
+                                        <Text style={styles.candidateName}>{candidate?.full_name || 'Anonymous Candidate'}</Text>
+                                        <Text style={styles.jobTitleApplied}>Applied for: <Text style={{ color: '#f8fafc' }}>{job?.title}</Text></Text>
+                                        <Text style={styles.timeText}>Applied {new Date(app.created_at).toLocaleDateString()}</Text>
+                                    </View>
+
+                                    <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20`, borderColor: `${statusColor}40` }]}>
+                                        <Text style={[styles.statusText, { color: statusColor }]}>{app.status}</Text>
+                                    </View>
+                                </View>
+
+                                {candidate?.career_objective ? (
+                                    <View style={styles.bioBox}>
+                                        <Text style={styles.bioText} numberOfLines={2}>"{candidate.career_objective}"</Text>
+                                    </View>
+                                ) : null}
+
+                                <View style={styles.skillsWrapper}>
+                                    {Array.isArray(candidate?.skills) && candidate.skills.slice(0, 4).map((skill: string, index: number) => (
+                                        <View key={index} style={styles.skillTag}>
+                                            <Text style={styles.skillText}>{skill}</Text>
+                                        </View>
+                                    ))}
+                                    {(Array.isArray(candidate?.skills) && candidate.skills.length > 4) && (
+                                        <Text style={styles.moreSkillsText}>+{candidate.skills.length - 4} more</Text>
+                                    )}
+                                </View>
+
+                                <View style={styles.actionsDivider} />
+
+                                <Text style={styles.actionPrompt}>Update Application Status:</Text>
+                                <View style={styles.actionsRow}>
+                                    {updatingId === app.id ? (
+                                        <ActivityIndicator color="#3b82f6" style={{ marginVertical: 10 }} />
+                                    ) : (
+                                        <>
+                                            {app.status === 'Pending' && (
+                                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#a78bfa' }]} onPress={() => updateStatus(app.id, 'Shortlisted')}>
+                                                    <Text style={styles.actionBtnText}>Shortlist</Text>
+                                                </TouchableOpacity>
+                                            )}
+
+                                            {(app.status === 'Pending' || app.status === 'Shortlisted') && (
+                                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#fb923c' }]} onPress={() => updateStatus(app.id, 'Interview')}>
+                                                    <Text style={styles.actionBtnText}>Interview</Text>
+                                                </TouchableOpacity>
+                                            )}
+
+                                            {(app.status === 'Interview' || app.status === 'Shortlisted') && (
+                                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#10b981' }]} onPress={() => updateStatus(app.id, 'Hired')}>
+                                                    <Text style={styles.actionBtnText}>Hire</Text>
+                                                </TouchableOpacity>
+                                            )}
+
+                                            {app.status !== 'Rejected' && app.status !== 'Hired' && (
+                                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#f43f5e' }]} onPress={() => updateStatus(app.id, 'Rejected')}>
+                                                    <Text style={[styles.actionBtnText, { color: '#f43f5e' }]}>Reject</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </>
+                                    )}
+                                </View>
+                            </View>
+                        );
+                    })
+                )}
             </ScrollView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0f172a',
-    },
+    container: { flex: 1, backgroundColor: '#0f172a' },
     header: {
-        padding: 24,
-        paddingTop: 60,
+        padding: 24, paddingTop: 60, paddingBottom: 20,
         backgroundColor: '#1e293b',
-        borderBottomWidth: 1,
-        borderBottomColor: '#334155',
+        borderBottomWidth: 1, borderBottomColor: '#334155',
     },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#f8fafc',
-        marginBottom: 6,
-    },
-    subtitle: {
-        fontSize: 15,
-        color: '#94a3b8',
-        marginBottom: 20,
-        lineHeight: 22,
-    },
-    filtersScroll: {
-        flexDirection: 'row',
-    },
-    filterChip: {
-        paddingVertical: 6,
-        paddingHorizontal: 16,
-        backgroundColor: '#0f172a',
-        borderRadius: 20,
-        marginRight: 10,
-        borderWidth: 1,
-        borderColor: '#334155',
-    },
-    filterChipActive: {
-        backgroundColor: '#f59e0b',
-        borderColor: '#f59e0b',
-    },
-    filterText: {
-        color: '#94a3b8',
-        fontWeight: '600',
-        fontSize: 13,
-    },
-    filterTextActive: {
-        color: '#fff',
-    },
-    listContainer: {
-        padding: 20,
-    },
-    candCard: {
+    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
+    subtitle: { fontSize: 13, color: '#94a3b8' },
+
+    listContent: { padding: 20, paddingBottom: 100 },
+
+    emptyContainer: { alignItems: 'center', marginTop: 80, opacity: 0.6 },
+    emptyText: { color: '#e2e8f0', fontSize: 16, fontWeight: 'bold', marginTop: 16 },
+    emptySubText: { color: '#94a3b8', fontSize: 13, marginTop: 8, textAlign: 'center', paddingHorizontal: 20 },
+
+    appCard: {
         backgroundColor: '#1e293b',
         borderRadius: 16,
         padding: 20,
         marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#334155',
+        borderWidth: 1, borderColor: '#334155'
     },
-    candHeader: {
+    cardHeader: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 16,
+        alignItems: 'flex-start',
+        marginBottom: 16
     },
-    avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: '#3b82f6',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 16,
+    avatarPlaceholder: {
+        width: 48, height: 48, borderRadius: 12,
+        backgroundColor: 'rgba(56, 189, 248, 0.15)',
+        alignItems: 'center', justifyContent: 'center'
     },
-    candInfo: {
-        flex: 1,
+    avatarText: { color: '#38bdf8', fontSize: 20, fontWeight: 'bold' },
+
+    candidateName: { color: '#f8fafc', fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
+    jobTitleApplied: { color: '#64748b', fontSize: 13, fontWeight: '500', marginBottom: 2 },
+    timeText: { color: '#475569', fontSize: 11 },
+
+    statusBadge: {
+        paddingHorizontal: 10, paddingVertical: 4,
+        borderRadius: 8, borderWidth: 1,
+        position: 'absolute', right: 0, top: 0
     },
-    candName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#f8fafc',
-        marginBottom: 4,
-    },
-    candRole: {
-        fontSize: 13,
-        color: '#94a3b8',
-    },
-    scoreBadge: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        borderWidth: 1,
-        borderColor: '#10b981',
-        borderRadius: 12,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-    },
-    scoreText: {
-        color: '#10b981',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    scoreLabel: {
-        color: '#10b981',
-        fontSize: 10,
-        fontWeight: '600',
-    },
-    candMeta: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 20,
-    },
-    metaBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    statusText: { fontSize: 11, fontWeight: 'bold' },
+
+    bioBox: {
         backgroundColor: '#0f172a',
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#334155',
+        padding: 12, borderRadius: 8,
+        borderLeftWidth: 3, borderLeftColor: '#334155',
+        marginBottom: 16
     },
-    metaText: {
-        color: '#94a3b8',
-        fontSize: 12,
-        marginLeft: 6,
-        fontWeight: '500',
-    },
-    actionsRow: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    actionBtnReject: {
+    bioText: { color: '#cbd5e1', fontSize: 13, fontStyle: 'italic', lineHeight: 20 },
+
+    skillsWrapper: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+    skillTag: { backgroundColor: '#334155', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+    skillText: { color: '#e2e8f0', fontSize: 11, fontWeight: '600' },
+    moreSkillsText: { color: '#64748b', fontSize: 11, fontWeight: '600', alignSelf: 'center' },
+
+    actionsDivider: { height: 1, backgroundColor: '#334155', marginBottom: 12 },
+    actionPrompt: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginBottom: 10 },
+    actionsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    actionBtn: {
         flex: 1,
-        paddingVertical: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#ef4444',
+        minWidth: 80,
+        paddingVertical: 10,
+        borderRadius: 8,
         alignItems: 'center',
+        justifyContent: 'center'
     },
-    actionBtnRejectText: {
-        color: '#ef4444',
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    actionBtnShortlist: {
-        flex: 1.5,
-        flexDirection: 'row',
-        backgroundColor: '#f59e0b',
-        paddingVertical: 12,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    actionBtnShortText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
+    actionBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' }
 });
