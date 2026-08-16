@@ -1,9 +1,29 @@
+import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CompanyDashboard() {
+    const { user, role } = useAuth();
+    const [stats, setStats] = useState({ active: 0, closed: 0 });
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            if (!user) return;
+            const roleCol = role === 'hiring_manager' ? 'hiring_manager_id' : 'company_id';
+            const { data } = await supabase.from('jobs').select('status').eq(roleCol, user.id);
+            if (data) {
+                setStats({
+                    active: data.filter(j => j.status !== 'Closed').length,
+                    closed: data.filter(j => j.status === 'Closed').length
+                });
+            }
+        };
+        fetchStats();
+    }, [user, role]);
+
     const handleLogout = async () => {
         await supabase.auth.signOut();
     };
@@ -45,38 +65,38 @@ export default function CompanyDashboard() {
             {/* Applications Pipeline */}
             <Text style={styles.sectionHeading}>Pipeline Actions</Text>
             <View style={styles.actionList}>
-                <View style={styles.actionItem}>
+                <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/(company)/applications')}>
                     <View style={[styles.iconBox, { backgroundColor: 'rgba(168, 85, 247, 0.1)' }]}>
                         <Ionicons name="document-text-outline" size={20} color="#a855f7" />
                     </View>
                     <View style={styles.actionTextContainer}>
                         <Text style={styles.actionTitle}>Review Applications</Text>
-                        <Text style={styles.actionDesc}>You have 45 pending applications</Text>
+                        <Text style={styles.actionDesc}>Check on your pending candidate submissions</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color="#64748b" />
-                </View>
+                </TouchableOpacity>
 
-                <View style={styles.actionItem}>
+                <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/(company)/tests')}>
                     <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
                         <Ionicons name="star-outline" size={20} color="#f59e0b" />
                     </View>
                     <View style={styles.actionTextContainer}>
-                        <Text style={styles.actionTitle}>Shortlisted Candidates</Text>
-                        <Text style={styles.actionDesc}>12 candidates waiting for tests</Text>
+                        <Text style={styles.actionTitle}>Candidate Assessments</Text>
+                        <Text style={styles.actionDesc}>Assign and review technical tests</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color="#64748b" />
-                </View>
+                </TouchableOpacity>
 
-                <View style={styles.actionItem}>
+                <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/(company)/interviews')}>
                     <View style={[styles.iconBox, { backgroundColor: 'rgba(56, 189, 248, 0.1)' }]}>
                         <Ionicons name="videocam-outline" size={20} color="#38bdf8" />
                     </View>
                     <View style={styles.actionTextContainer}>
-                        <Text style={styles.actionTitle}>Upcoming Interviews</Text>
-                        <Text style={styles.actionDesc}>3 interviews scheduled this week</Text>
+                        <Text style={styles.actionTitle}>Interviews & Meetings</Text>
+                        <Text style={styles.actionDesc}>Schedule and view upcoming candidate video calls</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color="#64748b" />
-                </View>
+                </TouchableOpacity>
             </View>
         </ScrollView>
     );

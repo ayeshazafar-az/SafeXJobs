@@ -122,7 +122,7 @@ export default function CandidateDashboardScreen() {
                 <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Upcoming Tasks & Action Items</Text>
 
                 {stats.interviews > 0 ? (
-                    <TouchableOpacity style={styles.taskCard}>
+                    <TouchableOpacity style={styles.taskCard} onPress={() => router.push('/(candidate)/interviews')}>
                         <View style={[styles.taskIconWrapper, { backgroundColor: 'rgba(251, 146, 60, 0.1)' }]}>
                             <Ionicons name="calendar" size={24} color="#fb923c" />
                         </View>
@@ -134,7 +134,7 @@ export default function CandidateDashboardScreen() {
                     </TouchableOpacity>
                 ) : null}
 
-                <TouchableOpacity style={styles.taskCard}>
+                <TouchableOpacity style={styles.taskCard} onPress={() => router.push('/(candidate)/tests')}>
                     <View style={[styles.taskIconWrapper, { backgroundColor: 'rgba(56, 189, 248, 0.1)' }]}>
                         <Ionicons name="document-text" size={24} color="#38bdf8" />
                     </View>
