@@ -19,11 +19,13 @@ const InitialLayout = () => {
     // because Expo Router sometimes throws if navigated synchronously during render
     setTimeout(() => {
       SplashScreen.hideAsync();
-      const inAuthGroup = segments[0] === '(auth)';
+      const currentSegments = segments as string[];
+      const inAuthGroup = currentSegments[0] === '(auth)';
+      const atRoot = currentSegments.length === 0 || currentSegments[0] === 'index';
 
       if (!session && !inAuthGroup) {
         router.replace('/(auth)/login');
-      } else if (session && inAuthGroup) {
+      } else if (session && (inAuthGroup || atRoot)) {
         if (!role) return; // Wait until role is fetched!
 
         if (role === 'company' || role === 'hiring_manager') {
