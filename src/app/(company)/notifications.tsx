@@ -49,15 +49,7 @@ export default function CompanyNotificationsScreen() {
         await supabase.from('notifications').update({ is_read: true }).eq('id', id);
     };
 
-    const generateMockAlert = async () => {
-        if (!user) return;
-        await supabase.from('notifications').insert({
-            user_id: user.id,
-            title: 'New Candidate Applied',
-            message: 'Aisha just applied for the Senior React Developer position. Review their profile now!',
-            is_read: false
-        });
-    };
+
 
     if (loading) return <ActivityIndicator size="large" color="#3b82f6" style={{ flex: 1, backgroundColor: '#0f172a' }} />;
 
@@ -82,10 +74,6 @@ export default function CompanyNotificationsScreen() {
                         <Ionicons name="notifications-off-outline" size={64} color="#334155" />
                         <Text style={styles.emptyText}>Inbox Zero!</Text>
                         <Text style={styles.emptySubText}>You will receive alerts here when candidates apply to your jobs or submit skill assessments.</Text>
-
-                        <TouchableOpacity style={styles.demoBtn} onPress={generateMockAlert}>
-                            <Text style={styles.demoBtnText}>Generate Demo Alert</Text>
-                        </TouchableOpacity>
                     </View>
                 ) : (
                     notifications.map(note => (
@@ -127,8 +115,6 @@ const styles = StyleSheet.create({
     emptyContainer: { alignItems: 'center', marginTop: 100 },
     emptyText: { color: '#f8fafc', fontSize: 18, fontWeight: 'bold', marginTop: 16 },
     emptySubText: { color: '#94a3b8', fontSize: 14, marginTop: 8, textAlign: 'center' },
-    demoBtn: { marginTop: 24, backgroundColor: '#3b82f6', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10 },
-    demoBtnText: { color: '#fff', fontWeight: 'bold' },
 
     noteCard: {
         flexDirection: 'row', alignItems: 'center',

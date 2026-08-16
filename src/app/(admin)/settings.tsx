@@ -1,19 +1,21 @@
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AdminSettingsScreen() {
     const [maintenanceMode, setMaintenanceMode] = useState(false);
     const [autoVerify, setAutoVerify] = useState(false);
     const [activeTab, setActiveTab] = useState<'Monitoring' | 'Settings'>('Monitoring');
+    const [complaints, setComplaints] = useState<any[]>([]);
 
-    // MOCK DATA for Admin Complaints / Chat Reports
-    const complaints = [
-        { id: 1, type: 'Chat Report', user: 'Tech Solutions Inc.', issue: 'Inappropriate language in messages.', severity: 'High', date: 'Just now' },
-        { id: 2, type: 'Suspicious Activity', user: 'Anonymous Candidate', issue: 'Multiple failed login attempts detected.', severity: 'Medium', date: '2 hours ago' },
-        { id: 3, type: 'User Complaint', user: 'Acme Corp', issue: 'Spam applications from bot accounts.', severity: 'High', date: '1 day ago' },
-    ];
+    useEffect(() => {
+        const fetchComplaints = async () => {
+            const { data } = await supabase.from('complaints').select('*').order('created_at', { ascending: false });
+            if (data) setComplaints(data);
+        };
+        fetchComplaints();
+    }, []);
 
     const handleSignOut = () => {
         Alert.alert("Sign Out", "Are you sure you want to log out of the Admin Portal?", [
@@ -115,36 +117,43 @@ export default function AdminSettingsScreen() {
 
                         <Text style={styles.sectionTitle}>Active Complaints & Chat Reports</Text>
 
-                        {complaints.map((item) => (
-                            <View key={item.id} style={styles.complaintCard}>
-                                <View style={styles.complaintHeader}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                        <Ionicons
-                                            name={item.type === 'Suspicious Activity' ? 'warning' : 'chatbubble-ellipses'}
-                                            size={18}
-                                            color="#f43f5e"
-                                        />
-                                        <Text style={styles.complaintType}>{item.type}</Text>
-                                    </View>
-                                    <View style={styles.severityBadge}>
-                                        <Text style={styles.severityText}>{item.severity}</Text>
-                                    </View>
-                                </View>
-
-                                <Text style={styles.complaintUser}>Target: {item.user}</Text>
-                                <Text style={styles.complaintIssue}>{item.issue}</Text>
-                                <Text style={styles.complaintDate}>{item.date}</Text>
-
-                                <View style={styles.complaintActions}>
-                                    <TouchableOpacity style={[styles.actionBtn, { borderColor: '#334155', borderWidth: 1 }]}>
-                                        <Text style={{ color: '#94a3b8', fontWeight: 'bold' }}>Dismiss</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6', flex: 1.5 }]}>
-                                        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Review Evidence</Text>
-                                    </TouchableOpacity>
-                                </View>
+                        {complaints.length === 0 ? (
+                            <View style={{ alignItems: 'center', marginTop: 40, opacity: 0.5 }}>
+                                <Ionicons name="checkmark-circle-outline" size={48} color="#10b981" />
+                                <Text style={{ color: '#94a3b8', marginTop: 12 }}>Inbox Zero - No active complaints.</Text>
                             </View>
-                        ))}
+                        ) : (
+                            complaints.map((item) => (
+                                <View key={item.id} style={styles.complaintCard}>
+                                    <View style={styles.complaintHeader}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                            <Ionicons
+                                                name={item.type === 'Suspicious Activity' ? 'warning' : 'chatbubble-ellipses'}
+                                                size={18}
+                                                color="#f43f5e"
+                                            />
+                                            <Text style={styles.complaintType}>{item.type}</Text>
+                                        </View>
+                                        <View style={styles.severityBadge}>
+                                            <Text style={styles.severityText}>{item.severity}</Text>
+                                        </View>
+                                    </View>
+
+                                    <Text style={styles.complaintUser}>Target: {item.user_name || 'Anonymous'}</Text>
+                                    <Text style={styles.complaintIssue}>{item.issue}</Text>
+                                    <Text style={styles.complaintDate}>{new Date(item.created_at).toLocaleString()}</Text>
+
+                                    <View style={styles.complaintActions}>
+                                        <TouchableOpacity style={[styles.actionBtn, { borderColor: '#334155', borderWidth: 1 }]}>
+                                            <Text style={{ color: '#94a3b8', fontWeight: 'bold' }}>Dismiss</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6', flex: 1.5 }]}>
+                                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Review Evidence</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ))
+                        )}
                     </View>
                 )}
             </ScrollView>

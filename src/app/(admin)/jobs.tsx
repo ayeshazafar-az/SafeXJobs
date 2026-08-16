@@ -5,15 +5,26 @@ import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpa
 
 export default function AdminJobsScreen() {
     const [jobs, setJobs] = useState<any[]>([]);
+    const [appStats, setAppStats] = useState({ total: 0, shortlisted: 0, tests: 0, interviews: 0, hired: 0, rejected: 0 });
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'Jobs' | 'Applications'>('Jobs');
 
     const loadData = async () => {
         setLoading(true);
-        // Supabase query for jobs
         const { data: jobData } = await supabase.from('jobs').select('*');
         if (jobData) setJobs(jobData);
-        // Applications table does not fully exist with statuses yet, so we mock the array for now
+
+        const { data: appData } = await supabase.from('applications').select('status');
+        if (appData) {
+            setAppStats({
+                total: appData.length,
+                shortlisted: appData.filter(a => a.status === 'Shortlisted').length,
+                tests: appData.filter(a => a.status === 'Test Assigned').length,
+                interviews: appData.filter(a => a.status === 'Interview').length,
+                hired: appData.filter(a => a.status === 'Hired').length,
+                rejected: appData.filter(a => a.status === 'Rejected').length,
+            });
+        }
         setLoading(false);
     };
 
@@ -21,21 +32,11 @@ export default function AdminJobsScreen() {
         loadData();
     }, []);
 
-    // Derived Statistics
     const jobStats = {
         total: jobs.length,
         active: jobs.filter(j => j.status !== 'Closed').length,
         closed: jobs.filter(j => j.status === 'Closed').length,
         pending: jobs.filter(j => j.status === 'Pending Approval').length,
-    };
-
-    const appStats = {
-        total: 1420, // Mocked pending DB integration for applications
-        shortlisted: 310,
-        tests: 145,
-        interviews: 89,
-        hired: 42,
-        rejected: 834,
     };
 
     return (
