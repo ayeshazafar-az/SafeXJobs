@@ -1,284 +1,295 @@
 import { useAuth } from '@/lib/AuthProvider';
+import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
-} from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function CandidateProfileScreen() {
     const { user } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [activeSection, setActiveSection] = useState<'Personal' | 'Professional' | 'Media'>('Personal');
 
-    // Basic State
-    const [objective, setObjective] = useState('');
-    const [hasVideo, setHasVideo] = useState(false);
-    const [hasCv, setHasCv] = useState(false);
+    // Form State
+    const [fullName, setFullName] = useState('');
+    const [location, setLocation] = useState('');
+    const [careerObjective, setCareerObjective] = useState('');
+    const [skills, setSkills] = useState('');
+    const [languages, setLanguages] = useState('');
+    const [linkedinUrl, setLinkedinUrl] = useState('');
+    const [portfolioUrl, setPortfolioUrl] = useState('');
 
-    // Example placeholder saves
-    const handleSaveObjective = () => {
-        Alert.alert('Saved', 'Career objective updated successfully.');
+    // (Education and Experience would optimally have dynamic array builders, using strings here for fast prototype representation)
+    const [educationStr, setEducationStr] = useState('');
+    const [experienceStr, setExperienceStr] = useState('');
+
+    useEffect(() => {
+        if (!user) return;
+        const loadProfile = async () => {
+            const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (data) {
+                setFullName(data.full_name || '');
+                setLocation(data.company_location || ''); // sharing the location column for now
+                setCareerObjective(data.career_objective || '');
+
+                // Parse JSONB arrays into comma strings for the form if they exist
+                if (data.skills) setSkills(Array.isArray(data.skills) ? data.skills.join(', ') : data.skills);
+                if (data.education) setEducationStr(Array.isArray(data.education) ? data.education.join('\n') : data.education);
+                if (data.experience) setExperienceStr(Array.isArray(data.experience) ? data.experience.join('\n') : data.experience);
+
+                setLanguages(data.languages || '');
+                setLinkedinUrl(data.linkedin_url || '');
+                setPortfolioUrl(data.portfolio_url || '');
+            }
+            setLoading(false);
+        };
+        loadProfile();
+    }, [user]);
+
+    const handleSave = async () => {
+        if (!user) return;
+        setSaving(true);
+
+        // Convert comma strings back to simple arrays for JSONB
+        const formattedSkills = skills.split(',').map(s => s.trim()).filter(Boolean);
+        const formattedEdu = educationStr.split('\n').map(s => s.trim()).filter(Boolean);
+        const formattedExp = experienceStr.split('\n').map(s => s.trim()).filter(Boolean);
+
+        const updates = {
+            full_name: fullName,
+            company_location: location,
+            career_objective: careerObjective,
+            skills: formattedSkills,
+            education: formattedEdu,
+            experience: formattedExp,
+            languages,
+            linkedin_url: linkedinUrl,
+            portfolio_url: portfolioUrl
+        };
+
+        const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+        setSaving(false);
+
+        if (error) Alert.alert('Error Saving Profile', error.message);
+        else Alert.alert('Profile Saved!', 'Your professional portfolio has been updated successfully.');
     };
 
-    const handleUploadCv = () => {
-        Alert.alert('Upload CV', 'Feature to select and upload document will launch here.');
-        setHasCv(true); // dummy status
-    };
-
-    const handleUploadVideo = () => {
-        Alert.alert('Video Intro', 'Feature to record or pick a short elevator pitch video.');
-        setHasVideo(true); // dummy status
-    };
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#3b82f6" />
+            </View>
+        );
+    }
 
     return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-
-            {/* Header Profile Summary */}
-            <View style={styles.headerCard}>
-                <View style={styles.avatarContainer}>
-                    <Ionicons name="person" size={56} color="#3b82f6" />
-                </View>
-                <Text style={styles.userName}>Candidate Name</Text>
-                <Text style={styles.userLocation}>Lahore, Punjab</Text>
-                <Text style={styles.userEmail}>{user?.email}</Text>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.title}>My Portfolio</Text>
+                <Text style={styles.subtitle}>Complete your profile to attract top hiring managers.</Text>
             </View>
 
-            {/* Career Objective */}
-            <View style={styles.sectionCard}>
-                <View style={styles.sectionHeader}>
-                    <Ionicons name="bulb-outline" size={20} color="#38bdf8" />
-                    <Text style={styles.sectionTitle}>Career Objective</Text>
-                </View>
-                <TextInput
-                    style={styles.textArea}
-                    multiline
-                    numberOfLines={4}
-                    placeholder="I am a software engineer looking for..."
-                    placeholderTextColor="#64748b"
-                    value={objective}
-                    onChangeText={setObjective}
-                />
-                <TouchableOpacity style={styles.saveButton} onPress={handleSaveObjective}>
-                    <Text style={styles.saveButtonText}>Save Objective</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* Media & Documents (CV & Video) */}
-            <View style={styles.sectionCard}>
-                <View style={styles.sectionHeader}>
-                    <Ionicons name="document-text-outline" size={20} color="#a855f7" />
-                    <Text style={styles.sectionTitle}>Resume & Video Intro</Text>
-                </View>
-
-                <View style={styles.mediaRow}>
+            {/* Segmented Controller */}
+            <View style={styles.segmentedControl}>
+                {['Personal', 'Professional', 'Media'].map((section) => (
                     <TouchableOpacity
-                        style={[styles.mediaBox, hasCv && styles.mediaBoxSuccess]}
-                        onPress={handleUploadCv}
+                        key={section}
+                        style={[styles.segmentBtn, activeSection === section && styles.segmentBtnActive]}
+                        onPress={() => setActiveSection(section as any)}
                     >
-                        <Ionicons name={hasCv ? "checkmark-circle" : "cloud-upload-outline"} size={32} color={hasCv ? "#22c55e" : "#94a3b8"} />
-                        <Text style={styles.mediaText}>{hasCv ? "CV Uploaded" : "Upload CV (PDF)"}</Text>
+                        <Text style={[styles.segmentBtnText, activeSection === section && styles.segmentBtnTextActive]}>
+                            {section}
+                        </Text>
                     </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[styles.mediaBox, hasVideo && styles.mediaBoxSuccess]}
-                        onPress={handleUploadVideo}
-                    >
-                        <Ionicons name={hasVideo ? "checkmark-circle" : "videocam-outline"} size={32} color={hasVideo ? "#22c55e" : "#94a3b8"} />
-                        <Text style={styles.mediaText}>{hasVideo ? "Video Ready" : "Record Intro"}</Text>
-                    </TouchableOpacity>
-                </View>
+                ))}
             </View>
 
-            {/* Experience Section */}
-            <View style={styles.sectionCard}>
-                <View style={styles.sectionHeaderLine}>
-                    <View style={styles.sectionHeader}>
-                        <Ionicons name="briefcase-outline" size={20} color="#f59e0b" />
-                        <Text style={styles.sectionTitle}>Experience</Text>
+            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                {activeSection === 'Personal' && (
+                    <View style={styles.formSection}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Full Name</Text>
+                            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="John Doe" placeholderTextColor="#64748b" />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Province & City</Text>
+                            <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="Islamabad, Capital Territory" placeholderTextColor="#64748b" />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Career Objective</Text>
+                            <TextInput
+                                style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+                                multiline
+                                value={careerObjective}
+                                onChangeText={setCareerObjective}
+                                placeholder="Write a short summary about your goals..."
+                                placeholderTextColor="#64748b"
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Languages</Text>
+                            <TextInput style={styles.input} value={languages} onChangeText={setLanguages} placeholder="English, Urdu, etc." placeholderTextColor="#64748b" />
+                        </View>
                     </View>
-                    <TouchableOpacity>
-                        <Ionicons name="add-circle" size={28} color="#3b82f6" />
-                    </TouchableOpacity>
-                </View>
+                )}
 
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>No work experience added yet.</Text>
-                </View>
-            </View>
-
-            {/* Education Section */}
-            <View style={styles.sectionCard}>
-                <View style={styles.sectionHeaderLine}>
-                    <View style={styles.sectionHeader}>
-                        <Ionicons name="school-outline" size={20} color="#10b981" />
-                        <Text style={styles.sectionTitle}>Education</Text>
+                {activeSection === 'Professional' && (
+                    <View style={styles.formSection}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Skills (Comma Separated)</Text>
+                            <TextInput style={styles.input} value={skills} onChangeText={setSkills} placeholder="React, Node.js, Design" placeholderTextColor="#64748b" />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Education History (One per line)</Text>
+                            <TextInput
+                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                multiline
+                                value={educationStr}
+                                onChangeText={setEducationStr}
+                                placeholder="BS Computer Science - XYZ Univ"
+                                placeholderTextColor="#64748b"
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Work Experience (One per line)</Text>
+                            <TextInput
+                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                multiline
+                                value={experienceStr}
+                                onChangeText={setExperienceStr}
+                                placeholder="Software Eng - Acme Corp (2022-2024)"
+                                placeholderTextColor="#64748b"
+                            />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>LinkedIn Profile URL</Text>
+                            <TextInput style={styles.input} value={linkedinUrl} onChangeText={setLinkedinUrl} placeholder="https://linkedin.com/in/..." placeholderTextColor="#64748b" />
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Portfolio / Website</Text>
+                            <TextInput style={styles.input} value={portfolioUrl} onChangeText={setPortfolioUrl} placeholder="https://github.com/..." placeholderTextColor="#64748b" />
+                        </View>
                     </View>
-                    <TouchableOpacity>
-                        <Ionicons name="add-circle" size={28} color="#3b82f6" />
-                    </TouchableOpacity>
-                </View>
+                )}
 
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>No education records added yet.</Text>
-                </View>
-            </View>
+                {activeSection === 'Media' && (
+                    <View style={styles.formSection}>
+                        <View style={styles.mediaCard}>
+                            <View style={styles.mediaIconWrapper}>
+                                <Ionicons name="document-text" size={32} color="#3b82f6" />
+                            </View>
+                            <View style={{ flex: 1, marginLeft: 16 }}>
+                                <Text style={styles.mediaTitle}>Upload CV / Resume</Text>
+                                <Text style={styles.mediaDesc}>PDF or DOCX (Max 5MB)</Text>
+                            </View>
+                            <TouchableOpacity style={styles.uploadBtn}>
+                                <Text style={styles.uploadBtnText}>Select File</Text>
+                            </TouchableOpacity>
+                        </View>
 
-            {/* Skills Section */}
-            <View style={styles.sectionCard}>
-                <View style={styles.sectionHeaderLine}>
-                    <View style={styles.sectionHeader}>
-                        <Ionicons name="code-slash-outline" size={20} color="#ef4444" />
-                        <Text style={styles.sectionTitle}>Skills</Text>
+                        <View style={[styles.mediaCard, { marginTop: 16 }]}>
+                            <View style={[styles.mediaIconWrapper, { backgroundColor: 'rgba(244, 63, 94, 0.1)' }]}>
+                                <Ionicons name="videocam" size={32} color="#f43f5e" />
+                            </View>
+                            <View style={{ flex: 1, marginLeft: 16 }}>
+                                <Text style={styles.mediaTitle}>Mandatory Video Intro</Text>
+                                <Text style={styles.mediaDesc}>Record a 60-second introduction.</Text>
+                            </View>
+                            <TouchableOpacity style={[styles.uploadBtn, { backgroundColor: '#f43f5e' }]}>
+                                <Text style={styles.uploadBtnText}>Record</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.mediaInfoText}>
+                            * Media files are securely stored on our servers and only visible to verified Hiring Managers during your application process. Storage integration is pending backend storage bucket links.
+                        </Text>
                     </View>
-                    <TouchableOpacity>
-                        <Ionicons name="add-circle" size={28} color="#3b82f6" />
+                )}
+
+            </ScrollView>
+
+            {activeSection !== 'Media' && (
+                <View style={styles.footer}>
+                    <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+                        {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save Profile Changes</Text>}
                     </TouchableOpacity>
                 </View>
-
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>No skills added yet.</Text>
-                </View>
-            </View>
-
-        </ScrollView>
+            )}
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0f172a',
-    },
-    content: {
-        padding: 20,
-        paddingTop: 60,
-        paddingBottom: 40,
-    },
-    headerCard: {
+    container: { flex: 1, backgroundColor: '#0f172a' },
+    header: {
+        padding: 24, paddingTop: 60, paddingBottom: 20,
         backgroundColor: '#1e293b',
-        borderRadius: 20,
-        padding: 24,
-        alignItems: 'center',
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#334155',
+        borderBottomWidth: 1, borderBottomColor: '#334155'
     },
-    avatarContainer: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: '#0f172a',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: '#3b82f6',
-        marginBottom: 16,
-    },
-    userName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#f8fafc',
-        marginBottom: 4,
-    },
-    userLocation: {
-        fontSize: 16,
-        color: '#94a3b8',
-        marginBottom: 4,
-    },
-    userEmail: {
-        fontSize: 14,
-        color: '#38bdf8',
-    },
-    sectionCard: {
-        backgroundColor: '#1e293b',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#334155',
-    },
-    sectionHeader: {
+    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
+    subtitle: { fontSize: 13, color: '#94a3b8' },
+
+    segmentedControl: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    sectionHeaderLine: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#f8fafc',
-        marginLeft: 8,
-    },
-    textArea: {
-        backgroundColor: '#0f172a',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#334155',
-        color: '#f8fafc',
         padding: 16,
-        textAlignVertical: 'top',
+        gap: 8,
+        backgroundColor: '#0f172a',
+    },
+    segmentBtn: {
+        flex: 1, paddingVertical: 10,
+        alignItems: 'center', borderRadius: 100,
+        backgroundColor: '#1e293b',
+        borderWidth: 1, borderColor: '#334155'
+    },
+    segmentBtnActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
+    segmentBtnText: { color: '#94a3b8', fontSize: 13, fontWeight: '700' },
+    segmentBtnTextActive: { color: '#ffffff' },
+
+    content: { padding: 20 },
+    formSection: { gap: 16 },
+    inputGroup: { marginBottom: 6 },
+    label: { color: '#cbd5e1', fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
+    input: {
+        backgroundColor: '#1e293b',
+        color: '#f8fafc',
+        borderRadius: 12,
+        padding: 14,
         fontSize: 15,
-        minHeight: 100,
+        borderWidth: 1,
+        borderColor: '#334155'
     },
-    saveButton: {
+
+    mediaCard: {
+        backgroundColor: '#1e293b',
+        borderRadius: 16, padding: 16,
+        flexDirection: 'row', alignItems: 'center',
+        borderWidth: 1, borderColor: '#334155'
+    },
+    mediaIconWrapper: {
+        width: 60, height: 60, borderRadius: 16,
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        alignItems: 'center', justifyContent: 'center'
+    },
+    mediaTitle: { color: '#f8fafc', fontSize: 16, fontWeight: 'bold' },
+    mediaDesc: { color: '#94a3b8', fontSize: 12, marginTop: 4 },
+    uploadBtn: {
         backgroundColor: '#3b82f6',
+        paddingHorizontal: 16, paddingVertical: 10,
         borderRadius: 8,
-        paddingVertical: 10,
-        alignItems: 'center',
-        marginTop: 12,
     },
-    saveButtonText: {
-        color: '#ffffff',
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    mediaRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    mediaBox: {
-        flex: 1,
-        backgroundColor: '#0f172a',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#334155',
-        borderStyle: 'dashed',
+    uploadBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+    mediaInfoText: { color: '#64748b', fontSize: 12, lineHeight: 18, marginTop: 24, textAlign: 'center', paddingHorizontal: 10 },
+
+    footer: {
         padding: 20,
-        alignItems: 'center',
-        marginHorizontal: 5,
+        backgroundColor: '#1e293b',
+        borderTopWidth: 1, borderTopColor: '#334155',
     },
-    mediaBoxSuccess: {
-        borderColor: '#22c55e',
-        borderStyle: 'solid',
-        backgroundColor: 'rgba(34, 197, 94, 0.05)',
-    },
-    mediaText: {
-        color: '#94a3b8',
-        marginTop: 10,
-        fontSize: 13,
-        fontWeight: '600',
-        textAlign: 'center',
-    },
-    emptyState: {
-        backgroundColor: '#0f172a',
+    saveBtn: {
+        backgroundColor: '#10b981',
+        paddingVertical: 16,
         borderRadius: 12,
-        padding: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: '#1e293b',
+        alignItems: 'center'
     },
-    emptyStateText: {
-        color: '#64748b',
-        fontStyle: 'italic',
-    },
+    saveBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });

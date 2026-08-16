@@ -1,13 +1,16 @@
+import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function FindJobsScreen() {
+    const { user } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('All');
     const [jobs, setJobs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [applyingTo, setApplyingTo] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchJobs = async () => {
@@ -33,6 +36,42 @@ export default function FindJobsScreen() {
 
         fetchJobs();
     }, []);
+
+    const handleApply = async (jobId: string, jobTitle: string, companyName: string) => {
+        if (!user) return;
+        setApplyingTo(jobId);
+
+        // Basic check if application already exists (to prevent duplicates)
+        const { data: existingApp } = await supabase
+            .from('applications')
+            .select('id')
+            .eq('job_id', jobId)
+            .eq('candidate_id', user.id)
+            .single();
+
+        if (existingApp) {
+            Alert.alert('Already Applied', 'You have already submitted an application for this job.');
+            setApplyingTo(null);
+            return;
+        }
+
+        const { error } = await supabase.from('applications').insert({
+            job_id: jobId,
+            candidate_id: user.id,
+            status: 'Applied'
+        });
+
+        setApplyingTo(null);
+
+        if (error) {
+            Alert.alert('Application Failed', error.message);
+        } else {
+            Alert.alert(
+                'Application Submitted',
+                `Your profile has been successfully sent to ${companyName} for the ${jobTitle} position! Check your Application Tracker for updates.`
+            );
+        }
+    };
 
     // Filter jobs based on search query and active filter
     const filteredJobs = jobs.filter(job => {
@@ -96,8 +135,16 @@ export default function FindJobsScreen() {
                                     <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
                                     <Text style={styles.jobCompany}>{job.profiles?.company_name || job.profiles?.full_name || 'Anonymous Company'}</Text>
                                 </View>
-                                <TouchableOpacity style={styles.applyBtn}>
-                                    <Text style={styles.applyBtnText}>Apply</Text>
+                                <TouchableOpacity
+                                    style={styles.applyBtn}
+                                    onPress={() => handleApply(job.id, job.title, job.profiles?.company_name || 'the company')}
+                                    disabled={applyingTo === job.id}
+                                >
+                                    {applyingTo === job.id ? (
+                                        <ActivityIndicator color="#fff" size="small" />
+                                    ) : (
+                                        <Text style={styles.applyBtnText}>Apply</Text>
+                                    )}
                                 </TouchableOpacity>
                             </View>
 
