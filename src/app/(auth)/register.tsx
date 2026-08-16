@@ -12,7 +12,7 @@ import {
 import { supabase } from '@/lib/supabase';
 
 export default function RegisterScreen() {
-    const [role, setRole] = useState<'candidate' | 'company'>('candidate');
+    const [role, setRole] = useState<'candidate' | 'company' | 'hiring_manager'>('candidate');
 
     // Shared fields
     const [email, setEmail] = useState('');
@@ -82,6 +82,9 @@ export default function RegisterScreen() {
                 logo_url: role === 'company' ? logoUrl : undefined,
                 company_description: role === 'company' ? description : undefined,
                 registration_info: role === 'company' ? registrationInfo : undefined,
+                // Hiring Manager mapping
+                department: role === 'hiring_manager' ? industry : undefined, // reusing industry input map
+                designation: role === 'hiring_manager' ? companyName : undefined, // reusing companyName input map
             });
 
             if (profileError) {
@@ -115,6 +118,12 @@ export default function RegisterScreen() {
                         onPress={() => setRole('company')}
                     >
                         <Text style={[styles.roleButtonText, role === 'company' && styles.roleButtonTextActive]}>Company</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.roleButton, role === 'hiring_manager' && styles.roleButtonActive]}
+                        onPress={() => setRole('hiring_manager')}
+                    >
+                        <Text style={[styles.roleButtonText, role === 'hiring_manager' && styles.roleButtonTextActive]}>HM/Recruiter</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -282,6 +291,24 @@ export default function RegisterScreen() {
                                     value={description}
                                     onChangeText={setDescription}
                                 />
+                            </View>
+                        </>
+                    )}
+
+                    {/* Hiring Manager Fields */}
+                    {role === 'hiring_manager' && (
+                        <>
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>Full Name</Text>
+                                <TextInput style={styles.input} placeholder="John Manager" placeholderTextColor="#64748b" value={fullName} onChangeText={setFullName} />
+                            </View>
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>Designation Title</Text>
+                                <TextInput style={styles.input} placeholder="Technical Recruiter" placeholderTextColor="#64748b" value={companyName} onChangeText={setCompanyName} />
+                            </View>
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>Department</Text>
+                                <TextInput style={styles.input} placeholder="Human Resources" placeholderTextColor="#64748b" value={industry} onChangeText={setIndustry} />
                             </View>
                         </>
                     )}

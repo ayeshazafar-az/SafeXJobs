@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CompanyApplicationsScreen() {
-    const { user } = useAuth();
+    const { user, role } = useAuth();
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -13,26 +13,22 @@ export default function CompanyApplicationsScreen() {
 
     const fetchApplications = async () => {
         if (!user) return;
+        setLoading(true);
 
-        // Fetch applications matching the company's posted jobs
-        // Using !inner to only get applications for jobs that belong to THIS company
+        const roleColumn = role === 'hiring_manager' ? 'hiring_manager_id' : 'company_id';
+
         const { data, error } = await supabase
             .from('applications')
             .select(`
                 *,
                 jobs!inner (
-                    id,
-                    title,
-                    company_id
+                    title, company_id, hiring_manager_id
                 ),
                 profiles!applications_candidate_id_fkey (
-                    full_name,
-                    career_objective,
-                    skills,
-                    resume_url
+                    full_name, company_location, skills, education, experience, linkedin_url, portfolio_url, resume_url, video_intro_url
                 )
             `)
-            .eq('jobs.company_id', user.id)
+            .eq(`jobs.${roleColumn}`, user.id)
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -125,23 +121,6 @@ export default function CompanyApplicationsScreen() {
                                     </View>
                                 </View>
 
-                                {candidate?.career_objective ? (
-                                    <View style={styles.bioBox}>
-                                        <Text style={styles.bioText} numberOfLines={2}>"{candidate.career_objective}"</Text>
-                                    </View>
-                                ) : null}
-
-                                <View style={styles.skillsWrapper}>
-                                    {Array.isArray(candidate?.skills) && candidate.skills.slice(0, 4).map((skill: string, index: number) => (
-                                        <View key={index} style={styles.skillTag}>
-                                            <Text style={styles.skillText}>{skill}</Text>
-                                        </View>
-                                    ))}
-                                    {(Array.isArray(candidate?.skills) && candidate.skills.length > 4) && (
-                                        <Text style={styles.moreSkillsText}>+{candidate.skills.length - 4} more</Text>
-                                    )}
-                                </View>
-
                                 <View style={styles.actionsDivider} />
 
                                 <Text style={styles.actionPrompt}>Update Application Status:</Text>
@@ -150,23 +129,6 @@ export default function CompanyApplicationsScreen() {
                                         <ActivityIndicator color="#3b82f6" style={{ marginVertical: 10 }} />
                                     ) : (
                                         <>
-                                            {app.status === 'Pending' && (
-                                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#a78bfa' }]} onPress={() => updateStatus(app.id, 'Shortlisted')}>
-                                                    <Text style={styles.actionBtnText}>Shortlist</Text>
-                                                </TouchableOpacity>
-                                            )}
-
-                                            {(app.status === 'Pending' || app.status === 'Shortlisted') && (
-                                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#fb923c' }]} onPress={() => updateStatus(app.id, 'Interview')}>
-                                                    <Text style={styles.actionBtnText}>Interview</Text>
-                                                </TouchableOpacity>
-                                            )}
-
-                                            {(app.status === 'Interview' || app.status === 'Shortlisted') && (
-                                                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#10b981' }]} onPress={() => updateStatus(app.id, 'Hired')}>
-                                                    <Text style={styles.actionBtnText}>Hire</Text>
-                                                </TouchableOpacity>
-                                            )}
 
                                             {app.status !== 'Rejected' && app.status !== 'Hired' && (
                                                 <TouchableOpacity style={[styles.actionBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#f43f5e' }]} onPress={() => updateStatus(app.id, 'Rejected')}>

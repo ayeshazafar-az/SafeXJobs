@@ -15,6 +15,8 @@ export default function PostJobScreen() {
     const [loading, setLoading] = useState(false);
     const [jobType, setJobType] = useState('Full-Time');
     const [companyStatus, setCompanyStatus] = useState('Pending');
+    const [hiringManagers, setHiringManagers] = useState<any[]>([]);
+    const [selectedManager, setSelectedManager] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user) return;
@@ -24,6 +26,12 @@ export default function PostJobScreen() {
                 if (data?.status) {
                     setCompanyStatus(data.status);
                 }
+            });
+
+        // Fetch hiring managers
+        supabase.from('profiles').select('id, full_name').eq('role', 'hiring_manager')
+            .then(({ data }) => {
+                if (data) setHiringManagers(data);
             });
     }, [user]);
 
@@ -59,6 +67,7 @@ export default function PostJobScreen() {
             job_type: jobType,
             salary_min: parseInt(salaryMin) || null,
             salary_max: parseInt(salaryMax) || null,
+            hiring_manager_id: selectedManager,
             is_active: true
         });
 
@@ -119,6 +128,31 @@ export default function PostJobScreen() {
                             value={location}
                             onChangeText={setLocation}
                         />
+                    </View>
+
+                    <View style={styles.inputGroup}>
+                        <Text style={styles.label}>Assign Hiring Manager (Optional)</Text>
+                        {hiringManagers.length === 0 ? (
+                            <Text style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>No hiring managers registered in the system yet.</Text>
+                        ) : (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row' }}>
+                                <TouchableOpacity
+                                    style={[styles.chip, !selectedManager && styles.chipActive, { marginRight: 8 }]}
+                                    onPress={() => setSelectedManager(null)}
+                                >
+                                    <Text style={[styles.chipText, !selectedManager && styles.chipTextActive]}>None (Self-Managed)</Text>
+                                </TouchableOpacity>
+                                {hiringManagers.map(hm => (
+                                    <TouchableOpacity
+                                        key={hm.id}
+                                        style={[styles.chip, selectedManager === hm.id && styles.chipActive, { marginRight: 8 }]}
+                                        onPress={() => setSelectedManager(hm.id)}
+                                    >
+                                        <Text style={[styles.chipText, selectedManager === hm.id && styles.chipTextActive]}>{hm.full_name || 'Unnamed Manager'}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        )}
                     </View>
 
                     <View style={styles.inputGroup}>

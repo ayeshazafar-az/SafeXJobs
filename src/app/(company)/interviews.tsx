@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function CompanyInterviewsScreen() {
-    const { user } = useAuth();
+    const { user, role } = useAuth();
     const [interviews, setInterviews] = useState<any[]>([]);
     const [shortlistedApps, setShortlistedApps] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -21,17 +21,19 @@ export default function CompanyInterviewsScreen() {
         const fetchData = async () => {
             if (!user) return;
 
+            const roleColumn = role === 'hiring_manager' ? 'hiring_manager_id' : 'company_id';
+
             // 1. Fetch previously scheduled interviews
             const { data: activeInterviews } = await supabase
                 .from('interviews')
                 .select(`
                     *,
                     applications!inner (
-                        jobs!inner (company_id, title),
+                        jobs!inner (company_id, hiring_manager_id, title),
                         profiles!applications_candidate_id_fkey (full_name)
                     )
                 `)
-                .eq('applications.jobs.company_id', user.id)
+                .eq(`applications.jobs.${roleColumn}`, user.id)
                 .order('interview_date', { ascending: true });
 
             if (activeInterviews) setInterviews(activeInterviews);
@@ -42,10 +44,10 @@ export default function CompanyInterviewsScreen() {
                 .select(`
                     id, 
                     status,
-                    jobs!inner (company_id, title),
+                    jobs!inner (company_id, hiring_manager_id, title),
                     profiles!applications_candidate_id_fkey (full_name)
                 `)
-                .eq('jobs.company_id', user.id)
+                .eq(`jobs.${roleColumn}`, user.id)
                 .in('status', ['Shortlisted', 'Interview']); // Candidates in interviewing pipeline
 
             if (shortlisted) setShortlistedApps(shortlisted);

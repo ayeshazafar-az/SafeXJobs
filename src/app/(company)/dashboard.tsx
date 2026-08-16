@@ -33,11 +33,11 @@ export default function CompanyDashboard() {
                     <Text style={styles.statLabel}>Total Jobs</Text>
                 </View>
                 <View style={[styles.statCard, { borderLeftColor: '#10b981', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>8</Text>
+                    <Text style={styles.statValue}>{stats.active}</Text>
                     <Text style={styles.statLabel}>Active Jobs</Text>
                 </View>
                 <View style={[styles.statCard, { borderLeftColor: '#64748b', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>7</Text>
+                    <Text style={styles.statValue}>{stats.closed}</Text>
                     <Text style={styles.statLabel}>Closed Jobs</Text>
                 </View>
             </View>

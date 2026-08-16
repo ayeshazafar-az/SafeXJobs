@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function CompanyTestsScreen() {
-    const { user } = useAuth();
+    const { user, role } = useAuth();
     const [tests, setTests] = useState<any[]>([]);
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -19,17 +19,19 @@ export default function CompanyTestsScreen() {
     const fetchData = async () => {
         if (!user) return;
 
+        const roleColumn = role === 'hiring_manager' ? 'hiring_manager_id' : 'company_id';
+
         // 1. Fetch assigned tests
         const { data: activeTests } = await supabase
             .from('tests')
             .select(`
                 *,
                 applications!inner (
-                    jobs!inner (company_id, title),
+                    jobs!inner (company_id, hiring_manager_id, title),
                     profiles!applications_candidate_id_fkey (full_name)
                 )
             `)
-            .eq('applications.jobs.company_id', user.id)
+            .eq(`applications.jobs.${roleColumn}`, user.id)
             .order('created_at', { ascending: false });
 
         if (activeTests) setTests(activeTests);
@@ -40,10 +42,10 @@ export default function CompanyTestsScreen() {
             .select(`
                 id, 
                 status,
-                jobs!inner (company_id, title),
+                jobs!inner (company_id, hiring_manager_id, title),
                 profiles!applications_candidate_id_fkey (full_name)
             `)
-            .eq('jobs.company_id', user.id)
+            .eq(`jobs.${roleColumn}`, user.id)
             .neq('status', 'Rejected')
             .neq('status', 'Hired');
 
@@ -76,6 +78,15 @@ export default function CompanyTestsScreen() {
             setTestTitle('');
             setTestDesc('');
             Alert.alert('Assessment Assigned', 'The candidate has been notified to complete the test.');
+        }
+    };
+
+    const handleEval = async (testId: string, newStatus: string) => {
+        const { error } = await supabase.from('tests').update({ status: newStatus }).eq('id', testId);
+        if (!error) {
+            setTests(tests.map(t => t.id === testId ? { ...t, status: newStatus } : t));
+        } else {
+            Alert.alert('Update Failed', error.message);
         }
     };
 
@@ -122,10 +133,21 @@ export default function CompanyTestsScreen() {
                                 </View>
 
                                 {isSubmitted && test.submission_url && (
-                                    <TouchableOpacity style={styles.reviewBtn} onPress={() => openSubmission(test.submission_url)}>
-                                        <Ionicons name="link" size={18} color="#3b82f6" style={{ marginRight: 6 }} />
-                                        <Text style={styles.reviewBtnText}>Review Submission Link</Text>
-                                    </TouchableOpacity>
+                                    <View>
+                                        <TouchableOpacity style={styles.reviewBtn} onPress={() => openSubmission(test.submission_url)}>
+                                            <Ionicons name="link" size={18} color="#3b82f6" style={{ marginRight: 6 }} />
+                                            <Text style={styles.reviewBtnText}>Review Submission Link</Text>
+                                        </TouchableOpacity>
+
+                                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                                            <TouchableOpacity style={[styles.evalBtn, { backgroundColor: '#10b981' }]} onPress={() => handleEval(test.id, 'Passed')}>
+                                                <Text style={styles.evalText}>Pass Candidate</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity style={[styles.evalBtn, { backgroundColor: '#ef4444' }]} onPress={() => handleEval(test.id, 'Failed')}>
+                                                <Text style={styles.evalText}>Fail Candidate</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
                                 )}
                             </View>
                         );
@@ -207,6 +229,9 @@ const styles = StyleSheet.create({
 
     reviewBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, marginTop: 12 },
     reviewBtnText: { color: '#3b82f6', fontSize: 13, fontWeight: 'bold' },
+
+    evalBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+    evalText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
