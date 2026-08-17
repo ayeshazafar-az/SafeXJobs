@@ -49,7 +49,7 @@ export default function CompanyDashboard() {
             <Text style={styles.sectionHeading}>Jobs Overview</Text>
             <View style={styles.statsGrid}>
                 <View style={[styles.statCard, { borderLeftColor: '#3b82f6', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>15</Text>
+                    <Text style={styles.statValue}>{stats.active + stats.closed}</Text>
                     <Text style={styles.statLabel}>Total Jobs</Text>
                 </View>
                 <View style={[styles.statCard, { borderLeftColor: '#10b981', borderLeftWidth: 4 }]}>
