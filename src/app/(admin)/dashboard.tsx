@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AdminDashboardScreen() {
     const [companies, setCompanies] = useState<any[]>([]);
@@ -104,13 +104,14 @@ export default function AdminDashboardScreen() {
                         )}
 
                         {companies.filter(c => c.status === 'Pending' || c.status === 'Under Review' || !c.status).map(company => (
-                            <View key={company.id} style={[styles.actionCard, { marginBottom: 16 }]}>
+                            <TouchableOpacity activeOpacity={0.7} onPress={() => { setSelectedCompany(company); setModalVisible(true); }} key={company.id} style={[styles.actionCard, { marginBottom: 16 }]}>
                                 <View style={styles.actionHeader}>
                                     <Ionicons name="business-outline" size={32} color="#f59e0b" />
-                                    <View style={{ marginLeft: 12 }}>
+                                    <View style={{ marginLeft: 12, flex: 1 }}>
                                         <Text style={styles.actionName}>{company.company_name || 'Unnamed Company'}</Text>
                                         <Text style={styles.actionDesc}>Status: <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>{company.status || 'Pending'}</Text></Text>
                                     </View>
+                                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
                                 </View>
                                 <View style={styles.actionsBlock}>
                                     <TouchableOpacity
@@ -126,7 +127,7 @@ export default function AdminDashboardScreen() {
                                         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Verify & Approve</Text>
                                     </TouchableOpacity>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                         ))}
 
                         <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Verified Companies</Text>
@@ -136,13 +137,14 @@ export default function AdminDashboardScreen() {
                         )}
 
                         {companies.filter(c => c.status === 'Verified').map(company => (
-                            <View key={company.id} style={[styles.actionCard, { marginBottom: 16 }]}>
+                            <TouchableOpacity activeOpacity={0.7} onPress={() => { setSelectedCompany(company); setModalVisible(true); }} key={company.id} style={[styles.actionCard, { marginBottom: 16 }]}>
                                 <View style={styles.actionHeader}>
                                     <Ionicons name="business" size={32} color="#10b981" />
-                                    <View style={{ marginLeft: 12 }}>
+                                    <View style={{ marginLeft: 12, flex: 1 }}>
                                         <Text style={styles.actionName}>{company.company_name || 'Unnamed Company'}</Text>
                                         <Text style={styles.actionDesc}>Status: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>Verified</Text></Text>
                                     </View>
+                                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
                                 </View>
                                 <View style={styles.actionsBlock}>
                                     <TouchableOpacity
@@ -152,12 +154,115 @@ export default function AdminDashboardScreen() {
                                         <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Suspend Account</Text>
                                     </TouchableOpacity>
                                 </View>
-                            </View>
+                            </TouchableOpacity>
                         ))}
                     </>
                 )}
-
             </ScrollView>
+
+            <Modal visible={modalVisible} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Company Profile Details</Text>
+                            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+                                <Ionicons name="close" size={24} color="#f8fafc" />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView contentContainerStyle={styles.modalScroll}>
+                            {selectedCompany && (
+                                <View style={styles.detailsContainer}>
+                                    {selectedCompany.logo_url && (
+                                        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                                            <Image source={{ uri: selectedCompany.logo_url }} style={{ width: 100, height: 100, borderRadius: 12, borderWidth: 1, borderColor: '#334155' }} />
+                                        </View>
+                                    )}
+
+                                    <View style={styles.detailRow}>
+                                        <Ionicons name="business-outline" size={20} color="#3b82f6" />
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <Text style={styles.detailLabel}>Company Name</Text>
+                                            <Text style={styles.detailValue}>{selectedCompany.company_name}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.divider} />
+
+                                    <View style={styles.detailRow}>
+                                        <Ionicons name="pricetag-outline" size={20} color="#10b981" />
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <Text style={styles.detailLabel}>Industry</Text>
+                                            <Text style={styles.detailValue}>{selectedCompany.industry || 'N/A'}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.divider} />
+
+                                    <View style={styles.detailRow}>
+                                        <Ionicons name="location-outline" size={20} color="#f59e0b" />
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <Text style={styles.detailLabel}>Location</Text>
+                                            <Text style={styles.detailValue}>{selectedCompany.company_location || 'N/A'}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.divider} />
+
+                                    <View style={styles.detailRow}>
+                                        <Ionicons name="globe-outline" size={20} color="#8b5cf6" />
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <Text style={styles.detailLabel}>Website</Text>
+                                            <Text style={styles.detailValue}>{selectedCompany.website_url || selectedCompany.website || 'N/A'}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.divider} />
+
+                                    <View style={styles.detailRow}>
+                                        <Ionicons name="document-text-outline" size={20} color="#ec4899" />
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <Text style={styles.detailLabel}>Registration Number / Info</Text>
+                                            <Text style={styles.detailValue}>{selectedCompany.registration_info || 'N/A'}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.divider} />
+
+                                    <View style={styles.detailRow}>
+                                        <Ionicons name="information-circle-outline" size={20} color="#06b6d4" />
+                                        <View style={{ marginLeft: 12, flex: 1 }}>
+                                            <Text style={styles.detailLabel}>About the Company</Text>
+                                            <Text style={styles.detailValue}>{selectedCompany.company_description || 'N/A'}</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+                        </ScrollView>
+
+                        {selectedCompany && (!selectedCompany.status || selectedCompany.status === 'Pending' || selectedCompany.status === 'Under Review') && (
+                            <View style={styles.modalFooter}>
+                                <TouchableOpacity
+                                    style={[styles.btn, { borderColor: '#ef4444', borderWidth: 1, marginRight: 12 }]}
+                                    onPress={() => updateCompanyStatus(selectedCompany.id, 'Rejected')}
+                                >
+                                    <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Reject</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.btn, { backgroundColor: '#10b981', flex: 1.5 }]}
+                                    onPress={() => updateCompanyStatus(selectedCompany.id, 'Verified')}
+                                >
+                                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Verify & Approve</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                        {selectedCompany && selectedCompany.status === 'Verified' && (
+                            <View style={styles.modalFooter}>
+                                <TouchableOpacity
+                                    style={[styles.btn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                                    onPress={() => updateCompanyStatus(selectedCompany.id, 'Suspended')}
+                                >
+                                    <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Suspend Account</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
