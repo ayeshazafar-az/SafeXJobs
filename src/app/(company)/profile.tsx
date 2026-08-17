@@ -31,11 +31,11 @@ export default function CompanyProfileScreen() {
     useEffect(() => {
         const fetchProfile = async () => {
             if (!user) return;
-            const { data, error } = await supabase.from('profiles').select('company_name, company_description, website_url, logo_url, status').eq('id', user.id).single();
+            const { data, error } = await supabase.from('profiles').select('company_name, company_description, website, logo_url, status').eq('id', user.id).single();
             if (data) {
                 setCompanyName(data.company_name || 'Your Company');
                 setDescription(data.company_description || '');
-                setWebsite(data.website_url || '');
+                setWebsite(data.website || '');
                 setLogoUrl(data.logo_url || null);
                 setStatus(data.status || 'Pending');
             }
@@ -87,7 +87,7 @@ export default function CompanyProfileScreen() {
         setSaving(true);
         const { error } = await supabase.from('profiles').update({
             company_description: description,
-            website_url: website,
+            website: website,
         }).eq('id', user?.id);
 
         setSaving(false);
