@@ -2,7 +2,7 @@ import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const TYPE_FILTERS = ['All', 'Full-Time', 'Part-Time', 'Contract', 'Internship', 'Remote'];
 
@@ -21,6 +21,12 @@ export default function FindJobsScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [applyingTo, setApplyingTo] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    // Complaint State
+    const [reportModalVisible, setReportModalVisible] = useState(false);
+    const [reportedJob, setReportedJob] = useState<any>(null);
+    const [complaintDesc, setComplaintDesc] = useState('');
+    const [complaintSaving, setComplaintSaving] = useState(false);
 
     const fetchJobs = async () => {
         const { data, error } = await supabase
@@ -64,6 +70,36 @@ export default function FindJobsScreen() {
         } else {
             if (Platform.OS === 'web') alert(`Application submitted to ${companyName} for ${jobTitle}!`);
             else Alert.alert('Application Submitted', `Your profile has been sent to ${companyName} for the ${jobTitle} position!`);
+        }
+    };
+
+    const handleReportSubmit = async () => {
+        if (!reportedJob || !complaintDesc.trim()) {
+            if (Platform.OS === 'web') alert('Please provide a description for the report.');
+            else Alert.alert('Required', 'Please provide a description for the report.');
+            return;
+        }
+
+        setComplaintSaving(true);
+        const { error } = await supabase.from('complaints').insert({
+            reported_by: user?.id,
+            reported_user_id: reportedJob.company_id, // We report the company/HM
+            job_id: reportedJob.id,
+            description: complaintDesc,
+            status: 'Pending'
+        });
+
+        setComplaintSaving(false);
+
+        if (error) {
+            if (Platform.OS === 'web') alert('Failed to submit report.');
+            else Alert.alert('Error', error.message);
+        } else {
+            setReportModalVisible(false);
+            setComplaintDesc('');
+            setReportedJob(null);
+            if (Platform.OS === 'web') alert('Report submitted successfully.');
+            else Alert.alert('Report Submitted', 'Your report has been sent to the moderation team.');
         }
     };
 
@@ -226,6 +262,16 @@ export default function FindJobsScreen() {
                                                 <Text style={styles.deadlineText}>Deadline: {new Date(job.application_deadline).toLocaleDateString()}</Text>
                                             </View>
                                         )}
+
+                                        <View style={{ marginTop: 16, alignItems: 'flex-end' }}>
+                                            <TouchableOpacity
+                                                style={{ flexDirection: 'row', alignItems: 'center' }}
+                                                onPress={() => { setReportedJob(job); setReportModalVisible(true); }}
+                                            >
+                                                <Ionicons name="warning-outline" size={14} color="#f43f5e" />
+                                                <Text style={{ color: '#f43f5e', fontSize: 12, marginLeft: 4 }}>Report Job</Text>
+                                            </TouchableOpacity>
+                                        </View>
                                     </View>
                                 )}
 
@@ -243,6 +289,41 @@ export default function FindJobsScreen() {
                     })
                 )}
             </ScrollView>
+
+            {/* Report Job Modal */}
+            <Modal visible={reportModalVisible} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <Text style={styles.modalTitle}>Report Job Posting</Text>
+                            <TouchableOpacity onPress={() => setReportModalVisible(false)}>
+                                <Ionicons name="close" size={24} color="#94a3b8" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={{ color: '#94a3b8', marginBottom: 16 }}>
+                            If you believe this job posting is fraudulent, offensive, or violates SafeX terms, please report it below.
+                        </Text>
+
+                        <TextInput
+                            style={[styles.advInput, { height: 100, textAlignVertical: 'top' }]}
+                            placeholder="Describe the issue with this job or company..."
+                            placeholderTextColor="#64748b"
+                            multiline
+                            value={complaintDesc}
+                            onChangeText={setComplaintDesc}
+                        />
+
+                        <TouchableOpacity
+                            style={[styles.applyBtn, { backgroundColor: '#f43f5e', marginTop: 16, alignItems: 'center' }]}
+                            onPress={handleReportSubmit}
+                            disabled={complaintSaving}
+                        >
+                            {complaintSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.applyBtnText}>Submit Report</Text>}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -332,4 +413,8 @@ const styles = StyleSheet.create({
     jobTime: { color: '#64748b', fontSize: 12 },
     applyBtn: { backgroundColor: '#3b82f6', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
     applyBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+    modalTitle: { color: '#f8fafc', fontSize: 20, fontWeight: 'bold' }
 });

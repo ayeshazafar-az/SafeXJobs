@@ -1,32 +1,25 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function CandidateTestsScreen() {
     const { user } = useAuth();
     const [tests, setTests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Submission State
     const [submittingId, setSubmittingId] = useState<string | null>(null);
     const [submissionUrl, setSubmissionUrl] = useState('');
+    const [submissionText, setSubmissionText] = useState('');
+    const [uploadingFile, setUploadingFile] = useState(false);
 
     const fetchTests = async () => {
         if (!user) return;
         const { data } = await supabase
             .from('tests')
-            .select(`
-                *,
-                applications!inner (
-                    candidate_id,
-                    jobs (
-                        title,
-                        profiles!jobs_company_id_fkey (company_name)
-                    )
-                )
-            `)
+            .select(`*, applications!inner ( candidate_id, jobs ( title, profiles!jobs_company_id_fkey (company_name) ) )`)
             .eq('applications.candidate_id', user.id)
             .order('created_at', { ascending: false });
 
@@ -34,29 +27,105 @@ export default function CandidateTestsScreen() {
         setLoading(false);
     };
 
-    useEffect(() => {
-        fetchTests();
-    }, [user]);
+    useEffect(() => { fetchTests(); }, [user]);
+
+    const handleFileUpload = async (testId: string) => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: '*/*',
+                copyToCacheDirectory: true,
+            });
+
+            if (result.canceled || !result.assets[0]) return;
+
+            const file = result.assets[0];
+            if (file.size && file.size > 10 * 1024 * 1024) {
+                if (Platform.OS === 'web') alert('File too large (max 10MB)');
+                else Alert.alert('File too large', 'Please select a file under 10MB.');
+                return;
+            }
+
+            setUploadingFile(true);
+            const fileExt = file.name.split('.').pop() || 'tmp';
+            const fileName = `test_submissions/${user?.id}/${testId}_${Date.now()}.${fileExt}`;
+
+            // Handle Web vs Native upload
+            let fileBody;
+            if (Platform.OS === 'web') {
+                const res = await fetch(file.uri);
+                fileBody = await res.blob();
+            } else {
+                const base64 = await import('expo-file-system').then(fs => fs.readAsStringAsync(file.uri, { encoding: fs.EncodingType.Base64 }));
+                fileBody = Buffer.from(base64, 'base64');
+            }
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('attachments')
+                .upload(fileName, fileBody, {
+                    contentType: file.mimeType || 'application/octet-stream',
+                    upsert: true
+                });
+
+            if (uploadError) throw new Error(uploadError.message);
+
+            const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(fileName);
+
+            setSubmissionUrl(urlData.publicUrl);
+            setUploadingFile(false);
+        } catch (err: any) {
+            setUploadingFile(false);
+            if (Platform.OS === 'web') alert('Upload failed: ' + err.message);
+            else Alert.alert('Upload Failed', err.message);
+        }
+    };
 
     const handleSubmit = async (testId: string) => {
-        if (!submissionUrl.trim()) {
-            Alert.alert('Required', 'Please provide a valid URL for your test submission (e.g. GitHub repo, Google Drive folder).');
+        if (!submissionUrl.trim() && !submissionText.trim()) {
+            if (Platform.OS === 'web') alert('Please provide either a submission link/file or a written answer.');
+            else Alert.alert('Required', 'Please provide either a submission link/file or a written answer.');
             return;
         }
 
         const { error } = await supabase
             .from('tests')
-            .update({ status: 'Submitted', submission_url: submissionUrl })
+            .update({
+                status: 'Submitted',
+                submission_url: submissionUrl || null,
+                submission_text: submissionText || null
+            })
             .eq('id', testId);
 
+        // Update application status to Test Submitted
+        if (!error) {
+            const test = tests.find(t => t.id === testId);
+            if (test) {
+                await supabase.from('applications').update({ status: 'Test Submitted' }).eq('id', test.application_id);
+
+                // Notify HM
+                await supabase.from('notifications').insert({
+                    user_id: test.assigned_by,
+                    title: 'Test Submitted',
+                    body: `A candidate has submitted their assessment for "${test.title}". Ready for your evaluation.`,
+                    type: 'test_submitted',
+                });
+            }
+        }
+
         if (error) {
-            Alert.alert('Submission Failed', error.message);
+            if (Platform.OS === 'web') alert('Submission failed: ' + error.message);
+            else Alert.alert('Submission Failed', error.message);
         } else {
-            Alert.alert('Success', 'Your assessment has been submitted to the company for review!');
-            setSubmissionUrl('');
-            fetchTests(); // Refresh the list
+            if (Platform.OS === 'web') alert('Your assessment has been submitted for review!');
+            else Alert.alert('Success', 'Your assessment has been submitted to the company for review!');
+            setSubmissionUrl(''); setSubmissionText('');
+            fetchTests();
         }
         setSubmittingId(null);
+    };
+
+    const isPastDeadline = (deadlineStr: string) => {
+        if (!deadlineStr) return false;
+        return new Date(deadlineStr).getTime() < new Date().getTime();
     };
 
     if (loading) return <ActivityIndicator size="large" color="#3b82f6" style={{ flex: 1, backgroundColor: '#0f172a' }} />;
@@ -79,6 +148,16 @@ export default function CandidateTestsScreen() {
                     tests.map(test => {
                         const job = test.applications?.jobs;
                         const isPending = test.status === 'Pending';
+                        const pastDeadline = isPending && isPastDeadline(test.deadline);
+                        const isActiveSubmit = submittingId === test.id;
+
+                        // determine styling
+                        let statusColor = '#94a3b8';
+                        let bg = 'rgba(148, 163, 184, 0.1)';
+                        if (isPending) { statusColor = pastDeadline ? '#f43f5e' : '#fb923c'; bg = pastDeadline ? 'rgba(244, 63, 94, 0.1)' : 'rgba(251, 146, 60, 0.1)'; }
+                        else if (test.status === 'Submitted') { statusColor = '#3b82f6'; bg = 'rgba(59, 130, 246, 0.1)'; }
+                        else if (test.status === 'Passed') { statusColor = '#10b981'; bg = 'rgba(16, 185, 129, 0.1)'; }
+                        else if (test.status === 'Failed') { statusColor = '#f43f5e'; bg = 'rgba(244, 63, 94, 0.1)'; }
 
                         return (
                             <View key={test.id} style={styles.testCard}>
@@ -87,10 +166,28 @@ export default function CandidateTestsScreen() {
                                         <Text style={styles.testTitle}>{test.title}</Text>
                                         <Text style={styles.companyRefs}>{job?.title} at {job?.profiles?.company_name}</Text>
                                     </View>
-                                    <View style={[styles.statusBadge, { backgroundColor: isPending ? 'rgba(251, 146, 60, 0.1)' : 'rgba(16, 185, 129, 0.1)' }]}>
-                                        <Text style={[styles.statusText, { color: isPending ? '#fb923c' : '#10b981' }]}>{test.status}</Text>
+                                    <View style={[styles.statusBadge, { backgroundColor: bg }]}>
+                                        <Text style={[styles.statusText, { color: statusColor }]}>{test.status}</Text>
                                     </View>
                                 </View>
+
+                                {test.deadline && (
+                                    <View style={styles.deadlineBanner}>
+                                        <Ionicons name="time-outline" size={14} color={pastDeadline ? "#f43f5e" : "#f59e0b"} />
+                                        <Text style={[styles.deadlineText, { color: pastDeadline ? "#f43f5e" : "#f59e0b" }]}>
+                                            {pastDeadline ? 'Deadline Passed: ' : 'Deadline: '}{new Date(test.deadline).toLocaleDateString()}
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {test.max_marks && (
+                                    <View style={styles.marksBanner}>
+                                        <Text style={styles.marksText}>Total: {test.max_marks} marks • Passing: {test.passing_marks} marks</Text>
+                                        {(test.status === 'Passed' || test.status === 'Failed') && test.obtained_marks != null && (
+                                            <Text style={styles.scoredText}>You Scored: {test.obtained_marks}</Text>
+                                        )}
+                                    </View>
+                                )}
 
                                 {test.description ? (
                                     <View style={styles.descBox}>
@@ -98,38 +195,71 @@ export default function CandidateTestsScreen() {
                                     </View>
                                 ) : null}
 
-                                {isPending ? (
-                                    <View style={styles.submitArea}>
-                                        <Text style={styles.submitLabel}>Submit your work (URL):</Text>
-                                        {submittingId === test.id ? (
-                                            <View style={styles.submitActionGroup}>
-                                                <TextInput
-                                                    style={styles.urlInput}
-                                                    placeholder="https://github.com/..."
-                                                    placeholderTextColor="#64748b"
-                                                    value={submissionUrl}
-                                                    onChangeText={setSubmissionUrl}
-                                                />
-                                                <TouchableOpacity style={styles.confirmBtn} onPress={() => handleSubmit(test.id)}>
-                                                    <Ionicons name="checkmark" size={20} color="#fff" />
-                                                </TouchableOpacity>
-                                                <TouchableOpacity style={styles.cancelBtn} onPress={() => setSubmittingId(null)}>
-                                                    <Ionicons name="close" size={20} color="#f43f5e" />
-                                                </TouchableOpacity>
-                                            </View>
-                                        ) : (
-                                            <TouchableOpacity style={styles.startBtn} onPress={() => setSubmittingId(test.id)}>
-                                                <Ionicons name="cloud-upload-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                                                <Text style={styles.startBtnText}>Upload Submission Link</Text>
-                                            </TouchableOpacity>
-                                        )}
-                                    </View>
-                                ) : (
-                                    <View style={styles.submittedBox}>
-                                        <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                                        <Text style={styles.submittedText}>Assessement submitted and under review!</Text>
+                                {/* Status Result Block */}
+                                {(test.status === 'Passed' || test.status === 'Failed') && test.evaluator_comments && (
+                                    <View style={[styles.feedbackBox, test.status === 'Passed' ? { borderLeftColor: '#10b981' } : { borderLeftColor: '#f43f5e' }]}>
+                                        <Text style={[styles.feedbackLabel, test.status === 'Passed' ? { color: '#10b981' } : { color: '#f43f5e' }]}>Evaluator Feedback:</Text>
+                                        <Text style={styles.descText}>{test.evaluator_comments}</Text>
                                     </View>
                                 )}
+
+                                {isPending ? (
+                                    pastDeadline ? (
+                                        <View style={styles.expiredBox}>
+                                            <Ionicons name="warning-outline" size={16} color="#f43f5e" />
+                                            <Text style={styles.expiredText}>The deadline for this assessment has passed. You can no longer submit.</Text>
+                                        </View>
+                                    ) : (
+                                        <View style={styles.submitArea}>
+                                            {isActiveSubmit ? (
+                                                <View style={styles.submitForm}>
+                                                    <Text style={styles.submitLabel}>Submit your work</Text>
+
+                                                    <View style={styles.uploadRow}>
+                                                        <TextInput
+                                                            style={styles.urlInput}
+                                                            placeholder="URL (e.g. GitHub repo)..."
+                                                            placeholderTextColor="#64748b"
+                                                            value={submissionUrl}
+                                                            onChangeText={setSubmissionUrl}
+                                                        />
+                                                        <TouchableOpacity style={styles.uploadBtn} onPress={() => handleFileUpload(test.id)} disabled={uploadingFile}>
+                                                            {uploadingFile ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="document-attach" size={20} color="#fff" />}
+                                                        </TouchableOpacity>
+                                                    </View>
+
+                                                    <TextInput
+                                                        style={[styles.urlInput, { height: 100, textAlignVertical: 'top', marginTop: 10 }]}
+                                                        placeholder="Or paste your written answer here..."
+                                                        placeholderTextColor="#64748b"
+                                                        multiline
+                                                        value={submissionText}
+                                                        onChangeText={setSubmissionText}
+                                                    />
+
+                                                    <View style={styles.submitActionGroup}>
+                                                        <TouchableOpacity style={styles.confirmBtn} onPress={() => handleSubmit(test.id)}>
+                                                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Submit Assessment</Text>
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={styles.cancelBtn} onPress={() => setSubmittingId(null)}>
+                                                            <Text style={{ color: '#f43f5e', fontWeight: 'bold' }}>Cancel</Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+                                                </View>
+                                            ) : (
+                                                <TouchableOpacity style={styles.startBtn} onPress={() => setSubmittingId(test.id)}>
+                                                    <Ionicons name="cloud-upload-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                                    <Text style={styles.startBtnText}>Start Submission</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                    )
+                                ) : test.status === 'Submitted' ? (
+                                    <View style={styles.submittedBox}>
+                                        <Ionicons name="checkmark-circle" size={16} color="#3b82f6" />
+                                        <Text style={styles.submittedText}>Assessement submitted and under review by the hiring team.</Text>
+                                    </View>
+                                ) : null}
                             </View>
                         );
                     })
@@ -141,34 +271,33 @@ export default function CandidateTestsScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f172a' },
-    header: {
-        padding: 24, paddingTop: 60, paddingBottom: 20,
-        backgroundColor: '#1e293b',
-        borderBottomWidth: 1, borderBottomColor: '#334155',
-    },
+    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155' },
     title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
     subtitle: { fontSize: 13, color: '#94a3b8' },
-
-    listContent: { padding: 20 },
+    listContent: { padding: 20, paddingBottom: 100 },
     emptyContainer: { alignItems: 'center', marginTop: 100, opacity: 0.6 },
     emptyText: { color: '#e2e8f0', fontSize: 16, fontWeight: 'bold', marginTop: 16 },
     emptySubText: { color: '#94a3b8', fontSize: 13, marginTop: 8, textAlign: 'center', paddingHorizontal: 20, lineHeight: 20 },
 
-    testCard: {
-        backgroundColor: '#1e293b',
-        borderRadius: 16, padding: 20,
-        marginBottom: 16,
-        borderWidth: 1, borderColor: '#334155'
-    },
-    cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
+    testCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#334155' },
+    cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
     testTitle: { color: '#f8fafc', fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
     companyRefs: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
-
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     statusText: { fontSize: 12, fontWeight: 'bold' },
 
+    deadlineBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
+    deadlineText: { fontSize: 12, fontWeight: '600' },
+
+    marksBanner: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'rgba(96, 165, 250, 0.1)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 12 },
+    marksText: { color: '#60a5fa', fontSize: 12, fontWeight: '600' },
+    scoredText: { color: '#f8fafc', fontSize: 12, fontWeight: 'bold' },
+
     descBox: { backgroundColor: '#0f172a', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: '#475569' },
     descText: { color: '#cbd5e1', fontSize: 13, lineHeight: 20 },
+
+    feedbackBox: { backgroundColor: '#0f172a', padding: 12, borderRadius: 8, marginTop: 8, borderLeftWidth: 3 },
+    feedbackLabel: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
 
     submitArea: { marginTop: 8 },
     submitLabel: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginBottom: 8 },
@@ -176,11 +305,18 @@ const styles = StyleSheet.create({
     startBtn: { backgroundColor: '#3b82f6', flexDirection: 'row', paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
     startBtnText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
 
-    submitActionGroup: { flexDirection: 'row', gap: 8 },
-    urlInput: { flex: 1, backgroundColor: '#0f172a', color: '#fff', borderRadius: 8, paddingHorizontal: 16, borderWidth: 1, borderColor: '#334155', fontSize: 13 },
-    confirmBtn: { backgroundColor: '#10b981', width: 44, height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-    cancelBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#f43f5e', width: 44, height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    submitForm: { backgroundColor: '#0f172a', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#334155' },
+    uploadRow: { flexDirection: 'row', gap: 10 },
+    urlInput: { flex: 1, backgroundColor: '#1e293b', color: '#fff', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: '#334155', fontSize: 13 },
+    uploadBtn: { backgroundColor: '#6366f1', width: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 
-    submittedBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10 },
-    submittedText: { color: '#10b981', fontSize: 13, fontWeight: 'bold' }
+    submitActionGroup: { flexDirection: 'row', gap: 10, marginTop: 16 },
+    confirmBtn: { flex: 1, backgroundColor: '#10b981', paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    cancelBtn: { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#f43f5e', paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+
+    submittedBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, marginTop: 8 },
+    submittedText: { color: '#3b82f6', fontSize: 13, fontWeight: 'bold' },
+
+    expiredBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, marginTop: 8 },
+    expiredText: { color: '#f43f5e', fontSize: 13, fontWeight: 'bold', flex: 1, lineHeight: 18 }
 });
