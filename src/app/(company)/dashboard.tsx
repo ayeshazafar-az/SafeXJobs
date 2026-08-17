@@ -9,6 +9,7 @@ export default function CompanyDashboard() {
     const { user, role } = useAuth();
     const [loading, setLoading] = useState(true);
     const [companyName, setCompanyName] = useState('');
+    const [status, setStatus] = useState('Pending');
     const [stats, setStats] = useState({
         totalJobs: 0, activeJobs: 0, closedJobs: 0,
         totalApps: 0, shortlisted: 0, pendingTests: 0,
@@ -20,9 +21,12 @@ export default function CompanyDashboard() {
             if (!user) return;
             const roleCol = role === 'hiring_manager' ? 'hiring_manager_id' : 'company_id';
 
-            // 1. Fetch profile name
-            const { data: profile } = await supabase.from('profiles').select('company_name, full_name').eq('id', user.id).single();
-            if (profile) setCompanyName(profile.company_name || profile.full_name || 'Your Company');
+            // 1. Fetch profile name and status
+            const { data: profile } = await supabase.from('profiles').select('company_name, full_name, status').eq('id', user.id).single();
+            if (profile) {
+                setCompanyName(profile.company_name || profile.full_name || 'Your Company');
+                setStatus(profile.status || 'Pending');
+            }
 
             // 2. Fetch jobs
             const { data: jobs } = await supabase.from('jobs').select('id, status').eq(roleCol, user.id);
@@ -103,6 +107,19 @@ export default function CompanyDashboard() {
                     </TouchableOpacity>
                 </View>
             </View>
+
+            {/* Pending Verification Banner */}
+            {status !== 'Verified' && (
+                <View style={styles.warningBanner}>
+                    <Ionicons name="warning-outline" size={24} color="#f59e0b" />
+                    <View style={{ marginLeft: 12, flex: 1 }}>
+                        <Text style={styles.warningTitle}>Pending Verification</Text>
+                        <Text style={styles.warningText}>
+                            Your organization is currently pending approval from an administrator. You may browse the dashboard, but you cannot post active public jobs until verified.
+                        </Text>
+                    </View>
+                </View>
+            )}
 
             {/* Jobs Overview */}
             <Text style={styles.sectionHeading}>Jobs Overview</Text>
@@ -210,6 +227,16 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: '#334155',
     },
     logoutButton: { backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: 10, borderRadius: 12 },
+
+    warningBanner: {
+        backgroundColor: 'rgba(245, 158, 11, 0.15)',
+        borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.3)',
+        borderRadius: 12, padding: 16, marginBottom: 28,
+        flexDirection: 'row', alignItems: 'flex-start'
+    },
+    warningTitle: { color: '#f59e0b', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+    warningText: { color: '#fbbf24', fontSize: 13, lineHeight: 20 },
+
     sectionHeading: { fontSize: 18, fontWeight: '600', color: '#f8fafc', marginBottom: 16 },
     statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
     statCard: {

@@ -26,16 +26,18 @@ export default function CompanyProfileScreen() {
     const [description, setDescription] = useState('');
     const [website, setWebsite] = useState('');
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [status, setStatus] = useState('Pending'); // Add status
 
     useEffect(() => {
         const fetchProfile = async () => {
             if (!user) return;
-            const { data, error } = await supabase.from('profiles').select('company_name, company_description, website_url, logo_url').eq('id', user.id).single();
+            const { data, error } = await supabase.from('profiles').select('company_name, company_description, website_url, logo_url, status').eq('id', user.id).single();
             if (data) {
                 setCompanyName(data.company_name || 'Your Company');
                 setDescription(data.company_description || '');
                 setWebsite(data.website_url || '');
                 setLogoUrl(data.logo_url || null);
+                setStatus(data.status || 'Pending');
             }
             setLoading(false);
         };
@@ -135,9 +137,11 @@ export default function CompanyProfileScreen() {
                 </TouchableOpacity>
 
                 <Text style={styles.companyName}>{companyName}</Text>
-                <View style={styles.badgeContainer}>
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                    <Text style={styles.badgeText}>Verified Company</Text>
+                <View style={[styles.badgeContainer, status === 'Verified' ? undefined : { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                    <Ionicons name={status === 'Verified' ? "checkmark-circle" : "time"} size={16} color={status === 'Verified' ? "#10b981" : "#f59e0b"} />
+                    <Text style={[styles.badgeText, status === 'Verified' ? undefined : { color: '#f59e0b' }]}>
+                        {status === 'Verified' ? 'Verified Company' : (status === 'Suspended' ? 'Account Suspended' : 'Pending Verification')}
+                    </Text>
                 </View>
                 <Text style={styles.userEmail}>{user?.email}</Text>
             </View>
