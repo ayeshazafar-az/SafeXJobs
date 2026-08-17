@@ -3,37 +3,96 @@ import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CompanyDashboard() {
     const { user, role } = useAuth();
-    const [stats, setStats] = useState({ active: 0, closed: 0 });
+    const [loading, setLoading] = useState(true);
+    const [companyName, setCompanyName] = useState('');
+    const [stats, setStats] = useState({
+        totalJobs: 0, activeJobs: 0, closedJobs: 0,
+        totalApps: 0, shortlisted: 0, pendingTests: 0,
+        upcomingInterviews: 0, hired: 0,
+    });
 
     useEffect(() => {
-        const fetchStats = async () => {
+        const fetchDashboardData = async () => {
             if (!user) return;
             const roleCol = role === 'hiring_manager' ? 'hiring_manager_id' : 'company_id';
-            const { data } = await supabase.from('jobs').select('status').eq(roleCol, user.id);
-            if (data) {
-                setStats({
-                    active: data.filter(j => j.status !== 'Closed').length,
-                    closed: data.filter(j => j.status === 'Closed').length
-                });
+
+            // 1. Fetch profile name
+            const { data: profile } = await supabase.from('profiles').select('company_name, full_name').eq('id', user.id).single();
+            if (profile) setCompanyName(profile.company_name || profile.full_name || 'Your Company');
+
+            // 2. Fetch jobs
+            const { data: jobs } = await supabase.from('jobs').select('id, status').eq(roleCol, user.id);
+            const jobIds = jobs?.map(j => j.id) || [];
+            const activeJobs = jobs?.filter(j => j.status !== 'Closed').length || 0;
+            const closedJobs = jobs?.filter(j => j.status === 'Closed').length || 0;
+
+            // 3. Fetch applications for those jobs
+            let totalApps = 0, shortlisted = 0, hired = 0;
+            if (jobIds.length > 0) {
+                const { data: apps } = await supabase.from('applications').select('status').in('job_id', jobIds);
+                if (apps) {
+                    totalApps = apps.length;
+                    shortlisted = apps.filter(a => a.status === 'Shortlisted').length;
+                    hired = apps.filter(a => a.status === 'Hired').length;
+                }
             }
+
+            // 4. Fetch pending tests
+            const { count: pendingTests } = await supabase
+                .from('tests').select('*', { count: 'exact', head: true })
+                .eq('assigned_by', user.id).eq('status', 'Pending');
+
+            // 5. Fetch upcoming interviews
+            const { count: upcomingInterviews } = await supabase
+                .from('interviews').select('*', { count: 'exact', head: true })
+                .eq('scheduled_by', user.id).eq('status', 'Scheduled');
+
+            setStats({
+                totalJobs: (jobs?.length || 0),
+                activeJobs, closedJobs,
+                totalApps, shortlisted,
+                pendingTests: pendingTests || 0,
+                upcomingInterviews: upcomingInterviews || 0,
+                hired,
+            });
+
+            setLoading(false);
         };
-        fetchStats();
+        fetchDashboardData();
     }, [user, role]);
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
+        if (Platform.OS === 'web') {
+            if (window.confirm('Are you sure you want to sign out?')) {
+                await supabase.auth.signOut();
+            }
+        } else {
+            const { Alert } = require('react-native');
+            Alert.alert('Sign Out', 'Are you sure?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Sign Out', style: 'destructive', onPress: () => supabase.auth.signOut() },
+            ]);
+        }
     };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#3b82f6" />
+            </View>
+        );
+    }
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <View style={styles.header}>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.title}>Company Dashboard</Text>
-                    <Text style={styles.subtitle}>Welcome back, Acme Corp!</Text>
+                    <Text style={styles.subtitle}>Welcome back, {companyName}!</Text>
                 </View>
                 <View style={styles.headerActions}>
                     <TouchableOpacity onPress={() => router.push('/(company)/notifications')} style={styles.bellBtn}>
@@ -45,24 +104,49 @@ export default function CompanyDashboard() {
                 </View>
             </View>
 
-            {/* Overview Stats */}
+            {/* Jobs Overview */}
             <Text style={styles.sectionHeading}>Jobs Overview</Text>
             <View style={styles.statsGrid}>
                 <View style={[styles.statCard, { borderLeftColor: '#3b82f6', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>{stats.active + stats.closed}</Text>
+                    <Text style={styles.statValue}>{stats.totalJobs}</Text>
                     <Text style={styles.statLabel}>Total Jobs</Text>
                 </View>
                 <View style={[styles.statCard, { borderLeftColor: '#10b981', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>{stats.active}</Text>
+                    <Text style={styles.statValue}>{stats.activeJobs}</Text>
                     <Text style={styles.statLabel}>Active Jobs</Text>
                 </View>
                 <View style={[styles.statCard, { borderLeftColor: '#64748b', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>{stats.closed}</Text>
+                    <Text style={styles.statValue}>{stats.closedJobs}</Text>
                     <Text style={styles.statLabel}>Closed Jobs</Text>
                 </View>
             </View>
 
-            {/* Applications Pipeline */}
+            {/* Recruitment Pipeline */}
+            <Text style={styles.sectionHeading}>Recruitment Pipeline</Text>
+            <View style={styles.statsGrid}>
+                <View style={[styles.statCard, { borderLeftColor: '#a855f7', borderLeftWidth: 4 }]}>
+                    <Text style={styles.statValue}>{stats.totalApps}</Text>
+                    <Text style={styles.statLabel}>Total Apps</Text>
+                </View>
+                <View style={[styles.statCard, { borderLeftColor: '#f59e0b', borderLeftWidth: 4 }]}>
+                    <Text style={styles.statValue}>{stats.shortlisted}</Text>
+                    <Text style={styles.statLabel}>Shortlisted</Text>
+                </View>
+                <View style={[styles.statCard, { borderLeftColor: '#38bdf8', borderLeftWidth: 4 }]}>
+                    <Text style={styles.statValue}>{stats.pendingTests}</Text>
+                    <Text style={styles.statLabel}>Pending Tests</Text>
+                </View>
+                <View style={[styles.statCard, { borderLeftColor: '#fb923c', borderLeftWidth: 4 }]}>
+                    <Text style={styles.statValue}>{stats.upcomingInterviews}</Text>
+                    <Text style={styles.statLabel}>Interviews</Text>
+                </View>
+                <View style={[styles.statCard, { borderLeftColor: '#10b981', borderLeftWidth: 4 }]}>
+                    <Text style={styles.statValue}>{stats.hired}</Text>
+                    <Text style={styles.statLabel}>Hired</Text>
+                </View>
+            </View>
+
+            {/* Pipeline Actions */}
             <Text style={styles.sectionHeading}>Pipeline Actions</Text>
             <View style={styles.actionList}>
                 <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/(company)/applications')}>
@@ -71,7 +155,7 @@ export default function CompanyDashboard() {
                     </View>
                     <View style={styles.actionTextContainer}>
                         <Text style={styles.actionTitle}>Review Applications</Text>
-                        <Text style={styles.actionDesc}>Check on your pending candidate submissions</Text>
+                        <Text style={styles.actionDesc}>{stats.totalApps} total applications received</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color="#64748b" />
                 </TouchableOpacity>
@@ -82,7 +166,7 @@ export default function CompanyDashboard() {
                     </View>
                     <View style={styles.actionTextContainer}>
                         <Text style={styles.actionTitle}>Candidate Assessments</Text>
-                        <Text style={styles.actionDesc}>Assign and review technical tests</Text>
+                        <Text style={styles.actionDesc}>{stats.pendingTests} pending test submissions</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color="#64748b" />
                 </TouchableOpacity>
@@ -93,7 +177,18 @@ export default function CompanyDashboard() {
                     </View>
                     <View style={styles.actionTextContainer}>
                         <Text style={styles.actionTitle}>Interviews & Meetings</Text>
-                        <Text style={styles.actionDesc}>Schedule and view upcoming candidate video calls</Text>
+                        <Text style={styles.actionDesc}>{stats.upcomingInterviews} upcoming interviews</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.actionItem, { borderBottomWidth: 0 }]} onPress={() => router.push('/(company)/chat')}>
+                    <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+                        <Ionicons name="chatbubbles-outline" size={20} color="#10b981" />
+                    </View>
+                    <View style={styles.actionTextContainer}>
+                        <Text style={styles.actionTitle}>Messages</Text>
+                        <Text style={styles.actionDesc}>Chat with shortlisted candidates</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={20} color="#64748b" />
                 </TouchableOpacity>
@@ -103,114 +198,40 @@ export default function CompanyDashboard() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0f172a',
-    },
-    content: {
-        padding: 24,
-        paddingTop: 60,
-        paddingBottom: 40,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 40,
-    },
-    headerActions: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: '#f8fafc',
-        marginBottom: 6,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: '#94a3b8',
-    },
+    container: { flex: 1, backgroundColor: '#0f172a' },
+    content: { padding: 24, paddingTop: 60, paddingBottom: 40 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 },
+    headerActions: { flexDirection: 'row', gap: 12 },
+    title: { fontSize: 28, fontWeight: '800', color: '#f8fafc', marginBottom: 6 },
+    subtitle: { fontSize: 15, color: '#94a3b8' },
     bellBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: '#1e293b',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: '#334155',
+        width: 44, height: 44, borderRadius: 12,
+        backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center',
+        borderWidth: 1, borderColor: '#334155',
     },
-    logoutButton: {
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        padding: 10,
-        borderRadius: 12,
-    },
-    sectionHeading: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#f8fafc',
-        marginBottom: 16,
-    },
-    statsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-        marginBottom: 36,
-    },
+    logoutButton: { backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: 10, borderRadius: 12 },
+    sectionHeading: { fontSize: 18, fontWeight: '600', color: '#f8fafc', marginBottom: 16 },
+    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
     statCard: {
-        backgroundColor: '#1e293b',
-        flex: 1,
-        minWidth: '45%',
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#334155',
+        backgroundColor: '#1e293b', flex: 1, minWidth: '28%',
+        padding: 16, borderRadius: 12,
+        borderWidth: 1, borderColor: '#334155',
     },
-    statValue: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#f8fafc',
-        marginBottom: 4,
-    },
-    statLabel: {
-        fontSize: 13,
-        color: '#94a3b8',
-    },
+    statValue: { fontSize: 26, fontWeight: 'bold', color: '#f8fafc', marginBottom: 4 },
+    statLabel: { fontSize: 12, color: '#94a3b8' },
     actionList: {
-        backgroundColor: '#1e293b',
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#334155',
-        overflow: 'hidden',
+        backgroundColor: '#1e293b', borderRadius: 16,
+        borderWidth: 1, borderColor: '#334155', overflow: 'hidden',
     },
     actionItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#334155',
+        flexDirection: 'row', alignItems: 'center',
+        padding: 16, borderBottomWidth: 1, borderBottomColor: '#334155',
     },
     iconBox: {
-        width: 40,
-        height: 40,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 16,
+        width: 40, height: 40, borderRadius: 10,
+        alignItems: 'center', justifyContent: 'center', marginRight: 16,
     },
-    actionTextContainer: {
-        flex: 1,
-    },
-    actionTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#f8fafc',
-        marginBottom: 4,
-    },
-    actionDesc: {
-        fontSize: 13,
-        color: '#94a3b8',
-    },
+    actionTextContainer: { flex: 1 },
+    actionTitle: { fontSize: 15, fontWeight: '600', color: '#f8fafc', marginBottom: 4 },
+    actionDesc: { fontSize: 13, color: '#94a3b8' },
 });
