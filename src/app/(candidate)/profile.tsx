@@ -104,13 +104,13 @@ export default function CandidateProfileScreen() {
         }
     };
 
-    const uploadToSupabase = async (uri: string, prefix: string, contentType: string) => {
+    const uploadToSupabase = async (uri: string, prefix: string, contentType: string, extension: string) => {
         if (!user) return null;
         try {
             const response = await fetch(uri);
             const blob = await response.blob();
             // unique file name to avoid cache issues
-            const fileName = `${prefix}/${user.id}_${Date.now()}`;
+            const fileName = `${prefix}/${user.id}_${Date.now()}.${extension}`;
 
             const { data, error } = await supabase.storage
                 .from('candidate_media')
@@ -142,7 +142,7 @@ export default function CandidateProfileScreen() {
 
             setUploadingMedia('resume');
             const file = result.assets[0];
-            const url = await uploadToSupabase(file.uri, 'resumes', 'application/pdf');
+            const url = await uploadToSupabase(file.uri, 'resumes', 'application/pdf', 'pdf');
             if (url) {
                 setResumeUrl(url);
                 // Auto save the link to profile immediately
@@ -156,26 +156,52 @@ export default function CandidateProfileScreen() {
         }
     };
 
-    const handleRecordVideo = async () => {
-        try {
-            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-            if (permissionResult.granted === false) {
-                Alert.alert("Permission Required", "Please allow camera access to record your intro.");
-                return;
-            }
+    const handleRecordVideo = () => {
+        // Ask user if they want to record or pick from gallery
+        Alert.alert(
+            "Upload Video Intro",
+            "Choose a video source (Max 60 seconds)",
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Gallery", onPress: () => processVideoUpload(false) },
+                { text: "Camera", onPress: () => processVideoUpload(true) }
+            ]
+        );
+    };
 
-            const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-                allowsEditing: true,
-                quality: 1,
-                videoMaxDuration: 60, // 60-second limit as per PRD
-            });
+    const processVideoUpload = async (useCamera: boolean) => {
+        try {
+            let result;
+            if (useCamera) {
+                const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+                if (permissionResult.granted === false) {
+                    Alert.alert("Permission Required", "Please allow camera access to record your intro.");
+                    return;
+                }
+                result = await ImagePicker.launchCameraAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+                    allowsEditing: true,
+                    quality: 1,
+                    videoMaxDuration: 60,
+                });
+            } else {
+                const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (permissionResult.granted === false) {
+                    Alert.alert("Permission Required", "Please allow gallery access to select your intro.");
+                    return;
+                }
+                result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+                    allowsEditing: true,
+                    quality: 1,
+                });
+            }
 
             if (result.canceled || !result.assets[0]) return;
 
             setUploadingMedia('video');
             const file = result.assets[0];
-            const url = await uploadToSupabase(file.uri, 'videos', 'video/mp4');
+            const url = await uploadToSupabase(file.uri, 'videos', 'video/mp4', 'mp4');
             if (url) {
                 setVideoUrl(url);
                 await supabase.from('profiles').update({ video_intro_url: url }).eq('id', user?.id);

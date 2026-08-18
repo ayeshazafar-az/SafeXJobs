@@ -1,8 +1,8 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CandidateDashboardScreen() {
@@ -11,62 +11,64 @@ export default function CandidateDashboardScreen() {
     const [profileCompletion, setProfileCompletion] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            if (!user) return;
+    useFocusEffect(
+        useCallback(() => {
+            const fetchDashboardData = async () => {
+                if (!user) return;
 
-            // 1. Fetch Application Analytics
-            const { data: apps } = await supabase
-                .from('applications')
-                .select('status')
-                .eq('candidate_id', user.id);
+                // 1. Fetch Application Analytics
+                const { data: apps } = await supabase
+                    .from('applications')
+                    .select('status')
+                    .eq('candidate_id', user.id);
 
-            if (apps) {
+                if (apps) {
+                    setStats(prev => ({
+                        ...prev,
+                        total: apps.length,
+                        shortlisted: apps.filter(a => a.status === 'Shortlisted').length,
+                        interviews: apps.filter(a => a.status === 'Interview').length,
+                        hired: apps.filter(a => a.status === 'Hired').length,
+                        rejected: apps.filter(a => a.status === 'Rejected').length,
+                    }));
+                }
+
+                // 1.5 Fetch Tests & Notifications Counts
+                const [testsRes, notesRes] = await Promise.all([
+                    supabase.from('tests').select('*', { count: 'exact', head: true }).eq('candidate_id', user.id).eq('status', 'Pending'),
+                    supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false)
+                ]);
+
                 setStats(prev => ({
                     ...prev,
-                    total: apps.length,
-                    shortlisted: apps.filter(a => a.status === 'Shortlisted').length,
-                    interviews: apps.filter(a => a.status === 'Interview').length,
-                    hired: apps.filter(a => a.status === 'Hired').length,
-                    rejected: apps.filter(a => a.status === 'Rejected').length,
+                    pendingTests: testsRes.count || 0,
+                    unreadNotes: notesRes.count || 0
                 }));
-            }
 
-            // 1.5 Fetch Tests & Notifications Counts
-            const [testsRes, notesRes] = await Promise.all([
-                supabase.from('tests').select('*', { count: 'exact', head: true }).eq('candidate_id', user.id).eq('status', 'Pending'),
-                supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false)
-            ]);
+                // 2. Fetch Profile Completion Logic
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
 
-            setStats(prev => ({
-                ...prev,
-                pendingTests: testsRes.count || 0,
-                unreadNotes: notesRes.count || 0
-            }));
+                if (profile) {
+                    let score = 20; // Base score for making an account
+                    if (profile.full_name) score += 10;
+                    if (profile.career_objective) score += 20;
+                    if (profile.skills && profile.skills.length > 0) score += 15;
+                    if (profile.education && profile.education.length > 0) score += 15;
+                    if (profile.experience && profile.experience.length > 0) score += 10;
+                    if (profile.resume_url || profile.linkedin_url) score += 10;
+                    setProfileCompletion(score);
+                }
 
-            // 2. Fetch Profile Completion Logic
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
+                setLoading(false);
+            };
 
-            if (profile) {
-                let score = 20; // Base score for making an account
-                if (profile.full_name) score += 10;
-                if (profile.career_objective) score += 20;
-                if (profile.skills && profile.skills.length > 0) score += 15;
-                if (profile.education && profile.education.length > 0) score += 15;
-                if (profile.experience && profile.experience.length > 0) score += 10;
-                if (profile.resume_url || profile.linkedin_url) score += 10;
-                setProfileCompletion(score);
-            }
-
-            setLoading(false);
-        };
-
-        fetchDashboardData();
-    }, [user]);
+            fetchDashboardData();
+        }, [user])
+    );
 
     if (loading) {
         return (

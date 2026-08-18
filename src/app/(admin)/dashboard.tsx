@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AdminDashboardScreen() {
@@ -34,9 +34,11 @@ export default function AdminDashboardScreen() {
         setLoading(false);
     };
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            loadData();
+        }, [])
+    );
 
     const updateCompanyStatus = async (id: string, status: string) => {
         const { error } = await supabase.from('profiles').update({ status }).eq('id', id);
