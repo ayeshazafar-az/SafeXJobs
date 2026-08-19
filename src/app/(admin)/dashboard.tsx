@@ -13,9 +13,24 @@ export default function AdminDashboardScreen() {
 
     const loadData = async () => {
         setLoading(true);
-        // Load companies
-        const { data } = await supabase.from('profiles').select('*').eq('role', 'company');
-        if (data) setCompanies(data);
+
+        try {
+            // Aggressive Debug: Catch any silent network/RLS issues
+            const { data, error } = await supabase.from('profiles').select('*').eq('role', 'company');
+
+            if (error) {
+                Alert.alert('Supabase Error', error.message);
+            } else if (data) {
+                if (data.length === 0) {
+                    Alert.alert('Empty Fetch', 'The database returned 0 companies. RLS is likely still blocking the query or no companies exist.');
+                }
+                setCompanies(data);
+            } else {
+                Alert.alert('Null Data', 'Data payload was entirely undefined.');
+            }
+        } catch (e: any) {
+            Alert.alert('Fatal Exception', e.message || String(e));
+        }
 
         // Load stats
         const [companiesCount, candidatesCount, jobsCount] = await Promise.all([
