@@ -72,20 +72,20 @@ export default function RegisterScreen() {
                 role,
                 email: email.trim(),
                 phone,
-                full_name: role === 'candidate' ? fullName : undefined,
-                cnic: role === 'candidate' ? cnic : undefined,
-                company_name: role === 'company' ? companyName : undefined,
-                province: role === 'candidate' ? province : undefined,
-                city: role === 'candidate' ? city : undefined,
-                industry: role === 'company' ? industry : undefined,
-                website: role === 'company' ? website : undefined,
-                company_location: role === 'company' ? location : undefined,
-                logo_url: role === 'company' ? logoUrl : undefined,
-                company_description: role === 'company' ? description : undefined,
-                registration_info: role === 'company' ? registrationInfo : undefined,
+                full_name: (role === 'candidate' && fullName) ? fullName : undefined,
+                cnic: (role === 'candidate' && cnic) ? cnic : undefined,
+                company_name: (role === 'company' && companyName) ? companyName : undefined,
+                province: (role === 'candidate' && province) ? province : undefined,
+                city: (role === 'candidate' && city) ? city : undefined,
+                industry: (role === 'company' && industry) ? industry : undefined,
+                website: (role === 'company' && website) ? website : undefined,
+                company_location: (role === 'company' && location) ? location : undefined,
+                logo_url: (role === 'company' && logoUrl) ? logoUrl : undefined,
+                company_description: (role === 'company' && description) ? description : undefined,
+                registration_info: (role === 'company' && registrationInfo) ? registrationInfo : undefined,
                 // Hiring Manager mapping
-                department: role === 'hiring_manager' ? industry : undefined, // reusing industry input map
-                designation: role === 'hiring_manager' ? companyName : undefined, // reusing companyName input map
+                department: (role === 'hiring_manager' && industry) ? industry : undefined, // reusing industry input map
+                designation: (role === 'hiring_manager' && companyName) ? companyName : undefined, // reusing companyName input map
             });
 
             if (profileError) {
@@ -469,3 +469,4 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
 });
+
