@@ -2,6 +2,7 @@ import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     KeyboardAvoidingView, Platform,
     ScrollView,
     StyleSheet,
@@ -88,8 +89,14 @@ export default function RegisterScreen() {
             });
 
             if (profileError) {
-                console.warn('Could not insert profile (is your schema configured?):', profileError);
+                Alert.alert('Registration DB Crash', profileError.message || JSON.stringify(profileError));
+                // Optional: Force a complete logout so the stale auth user doesn't stick around, masking the failure
+                await supabase.auth.signOut();
+                setLoading(false);
+                return;
             }
+
+            Alert.alert('Success', 'Your account has been fully verified & created in the database database!');
         }
 
         setLoading(false);
