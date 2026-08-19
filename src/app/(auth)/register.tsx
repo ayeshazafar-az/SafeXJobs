@@ -89,14 +89,17 @@ export default function RegisterScreen() {
             });
 
             if (profileError) {
-                Alert.alert('Registration DB Crash', profileError.message || JSON.stringify(profileError));
-                // Optional: Force a complete logout so the stale auth user doesn't stick around, masking the failure
+                const debugStr = profileError.message || JSON.stringify(profileError);
+                setErrorMsg(`DB CRASH: ${debugStr}`);
+
+                // Force a complete logout so the stale auth user doesn't stick around, masking the failure
                 await supabase.auth.signOut();
                 setLoading(false);
                 return;
             }
 
             Alert.alert('Success', 'Your account has been fully verified & created in the database database!');
+            router.replace('/(auth)/login');
         }
 
         setLoading(false);
