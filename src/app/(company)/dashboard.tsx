@@ -43,24 +43,33 @@ export default function CompanyDashboard() {
 
             // 3. Fetch applications for those jobs
             let totalApps = 0, shortlisted = 0, hired = 0;
+            let pendingTests = 0;
+            let upcomingInterviews = 0;
+
             if (jobIds.length > 0) {
-                const { data: apps } = await supabase.from('applications').select('status').in('job_id', jobIds);
-                if (apps) {
+                const { data: apps } = await supabase.from('applications').select('status, id').in('job_id', jobIds);
+                if (apps && apps.length > 0) {
                     totalApps = apps.length;
                     shortlisted = apps.filter(a => a.status === 'Shortlisted').length;
                     hired = apps.filter(a => a.status === 'Hired').length;
+
+                    const appIds = apps.map(a => a.id);
+
+                    // 4. Fetch pending tests for these applications
+                    const { count } = await supabase
+                        .from('tests').select('*', { count: 'exact', head: true })
+                        .in('application_id', appIds).eq('status', 'Pending');
+
+                    pendingTests = count || 0;
+
+                    // 5. Fetch upcoming interviews for these applications
+                    const { count: iCount } = await supabase
+                        .from('interviews').select('*', { count: 'exact', head: true })
+                        .in('application_id', appIds).eq('status', 'Scheduled');
+
+                    upcomingInterviews = iCount || 0;
                 }
             }
-
-            // 4. Fetch pending tests
-            const { count: pendingTests } = await supabase
-                .from('tests').select('*', { count: 'exact', head: true })
-                .eq('assigned_by', user.id).eq('status', 'Pending');
-
-            // 5. Fetch upcoming interviews
-            const { count: upcomingInterviews } = await supabase
-                .from('interviews').select('*', { count: 'exact', head: true })
-                .eq('scheduled_by', user.id).eq('status', 'Scheduled');
 
             setStats({
                 totalJobs: (jobs?.length || 0),

@@ -18,10 +18,10 @@ async function run() {
         });
         const data = await response.json();
 
-        if (data && data.definitions && data.definitions.applications && data.definitions.applications.properties) {
-            console.log('\nACTUAL APPLICATIONS COLUMNS:\n', data.definitions.applications.properties);
+        if (data && data.definitions && data.definitions.tests && data.definitions.tests.properties) {
+            console.log('\nACTUAL TESTS COLUMNS:\n', data.definitions.tests.properties);
         } else {
-            console.log('\nCould not find applications definitions in OpenAPI spec.', Object.keys(data.definitions || {}));
+            console.log('\nCould not find tests definitions in OpenAPI spec.', Object.keys(data.definitions || {}));
         }
     } catch (e) {
         console.error('Fetch error:', e);
