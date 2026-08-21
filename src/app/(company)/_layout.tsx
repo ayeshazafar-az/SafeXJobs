@@ -58,6 +58,13 @@ export default function CompanyLayout() {
                 }}
             />
             <Tabs.Screen
+                name="managers"
+                options={{
+                    title: 'Managers',
+                    tabBarIcon: ({ color }) => <Ionicons name="people" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
                 name="tests"
                 options={{
                     href: null,
