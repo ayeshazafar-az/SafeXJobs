@@ -17,11 +17,10 @@ async function run() {
             }
         });
         const data = await response.json();
-
-        if (data && data.definitions && data.definitions.tests && data.definitions.tests.properties) {
-            console.log('\nACTUAL TESTS COLUMNS:\n', data.definitions.tests.properties);
+        if (data && data.definitions && data.definitions.profiles && data.definitions.profiles.properties) {
+            console.log('\nACTUAL PROFILES COLUMNS:\n', data.definitions.profiles.properties);
         } else {
-            console.log('\nCould not find tests definitions in OpenAPI spec.', Object.keys(data.definitions || {}));
+            console.log('\nCould not find profiles definitions in OpenAPI spec.', Object.keys(data.definitions || {}));
         }
     } catch (e) {
         console.error('Fetch error:', e);
