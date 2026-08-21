@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { adminSupabase } from '@/lib/adminSupabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -10,7 +10,7 @@ export default function AdminUsersScreen() {
 
     const loadUsers = async () => {
         setLoading(true);
-        const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+        const { data, error } = await adminSupabase.from('profiles').select('*').order('created_at', { ascending: false });
         if (data) setUsers(data);
         setLoading(false);
     };
@@ -21,7 +21,7 @@ export default function AdminUsersScreen() {
 
     const toggleSuspendStatus = async (userId: string, currentStatus: string) => {
         const newStatus = currentStatus === 'Suspended' ? 'Verified' : 'Suspended';
-        const { error } = await supabase.from('profiles').update({ status: newStatus }).eq('id', userId);
+        const { error } = await adminSupabase.from('profiles').update({ status: newStatus }).eq('id', userId);
         if (error) {
             Alert.alert('Error', error.message);
         } else {

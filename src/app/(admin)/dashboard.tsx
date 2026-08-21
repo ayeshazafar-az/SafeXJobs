@@ -1,3 +1,4 @@
+import { adminSupabase } from '@/lib/adminSupabase';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -15,14 +16,17 @@ export default function AdminDashboardScreen() {
         setLoading(true);
 
         try {
-            // Aggressive Debug: Catch any silent network/RLS issues
-            const { data, error } = await supabase.from('profiles').select('*').eq('role', 'company');
+            // Use adminSupabase (service role key) to bypass RLS
+            const { data, error } = await adminSupabase.from('profiles').select('*').eq('role', 'company');
+            console.log('[ADMIN] Companies fetched:', data?.length, 'Error:', error?.message || 'none');
 
             if (error) {
                 Alert.alert('Supabase Error', error.message);
             } else if (data) {
+                // Dump every company's status so we can see exactly what's in the DB
+                data.forEach((c, i) => console.log(`[ADMIN] Company #${i + 1}: name=${c.company_name}, status='${c.status}', email=${c.email}, id=${c.id}`));
                 if (data.length === 0) {
-                    Alert.alert('Empty Fetch', 'The database returned 0 companies. RLS is likely still blocking the query or no companies exist.');
+                    Alert.alert('Empty Fetch', 'No companies found in the database.');
                 }
                 setCompanies(data);
             } else {
@@ -34,9 +38,9 @@ export default function AdminDashboardScreen() {
 
         // Load stats
         const [companiesCount, candidatesCount, jobsCount] = await Promise.all([
-            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'company'),
-            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'candidate'),
-            supabase.from('jobs').select('*', { count: 'exact', head: true })
+            adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'company'),
+            adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'candidate'),
+            adminSupabase.from('jobs').select('*', { count: 'exact', head: true })
         ]);
 
         setStats({
@@ -56,7 +60,7 @@ export default function AdminDashboardScreen() {
     );
 
     const updateCompanyStatus = async (id: string, status: string) => {
-        const { error } = await supabase.from('profiles').update({ status }).eq('id', id);
+        const { error } = await adminSupabase.from('profiles').update({ status }).eq('id', id);
         if (error) {
             Alert.alert('Error Updating Status', error.message);
         } else {
@@ -173,6 +177,39 @@ export default function AdminDashboardScreen() {
                                 </View>
                             </TouchableOpacity>
                         ))}
+
+                        {/* Rejected / Other Status Companies */}
+                        {companies.filter(c => c.status && c.status !== 'Pending' && c.status !== 'Under Review' && c.status !== 'Verified').length > 0 && (
+                            <>
+                                <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Rejected / Other</Text>
+                                {companies.filter(c => c.status && c.status !== 'Pending' && c.status !== 'Under Review' && c.status !== 'Verified').map(company => (
+                                    <TouchableOpacity activeOpacity={0.7} onPress={() => { setSelectedCompany(company); setModalVisible(true); }} key={company.id} style={[styles.actionCard, { marginBottom: 16 }]}>
+                                        <View style={styles.actionHeader}>
+                                            <Ionicons name="alert-circle-outline" size={32} color="#ef4444" />
+                                            <View style={{ marginLeft: 12, flex: 1 }}>
+                                                <Text style={styles.actionName}>{company.company_name || 'Unnamed Company'}</Text>
+                                                <Text style={styles.actionDesc}>Status: <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>{company.status}</Text></Text>
+                                            </View>
+                                            <Ionicons name="chevron-forward" size={20} color="#64748b" />
+                                        </View>
+                                        <View style={styles.actionsBlock}>
+                                            <TouchableOpacity
+                                                style={[styles.btn, { borderColor: '#f59e0b', borderWidth: 1 }]}
+                                                onPress={() => updateCompanyStatus(company.id, 'Pending')}
+                                            >
+                                                <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>Move to Pending</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[styles.btn, { backgroundColor: '#10b981', flex: 1.5 }]}
+                                                onPress={() => updateCompanyStatus(company.id, 'Verified')}
+                                            >
+                                                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Verify & Approve</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </>
+                        )}
                     </>
                 )}
             </ScrollView>

@@ -10,6 +10,7 @@ import {
     View
 } from 'react-native';
 
+import { adminSupabase } from '@/lib/adminSupabase';
 import { supabase } from '@/lib/supabase';
 
 export default function RegisterScreen() {
@@ -67,26 +68,36 @@ export default function RegisterScreen() {
 
         // Attempt to create a profile (Requires profiles table on Supabase)
         if (data.user) {
-            const { error: profileError } = await supabase.from('profiles').insert({
+            // Build payload dynamically — only include fields with actual values.
+            // This prevents 400 errors from columns that may not exist in the DB schema.
+            const profilePayload: Record<string, any> = {
                 id: data.user.id,
                 role,
                 email: email.trim(),
-                phone,
-                full_name: (role === 'candidate' && fullName) ? fullName : undefined,
-                cnic: (role === 'candidate' && cnic) ? cnic : undefined,
-                company_name: (role === 'company' && companyName) ? companyName : undefined,
-                province: (role === 'candidate' && province) ? province : undefined,
-                city: (role === 'candidate' && city) ? city : undefined,
-                industry: (role === 'company' && industry) ? industry : undefined,
-                website: (role === 'company' && website) ? website : undefined,
-                company_location: (role === 'company' && location) ? location : undefined,
-                logo_url: (role === 'company' && logoUrl) ? logoUrl : undefined,
-                company_description: (role === 'company' && description) ? description : undefined,
-                registration_info: (role === 'company' && registrationInfo) ? registrationInfo : undefined,
-                // Hiring Manager mapping
-                department: (role === 'hiring_manager' && industry) ? industry : undefined, // reusing industry input map
-                designation: (role === 'hiring_manager' && companyName) ? companyName : undefined, // reusing companyName input map
-            });
+            };
+
+            // Only add fields that have actual values (avoids sending non-existent columns)
+            if (phone) profilePayload.phone = phone;
+            if (role === 'company') {
+                profilePayload.status = 'Pending';
+                if (companyName) profilePayload.company_name = companyName;
+                if (industry) profilePayload.industry = industry;
+                if (website) profilePayload.website = website;
+                if (location) profilePayload.company_location = location;
+                if (description) profilePayload.company_description = description;
+                if (registrationInfo) profilePayload.registration_info = registrationInfo;
+            } else if (role === 'candidate') {
+                if (fullName) profilePayload.full_name = fullName;
+                if (cnic) profilePayload.cnic = cnic;
+                if (province) profilePayload.province = province;
+                if (city) profilePayload.city = city;
+            } else if (role === 'hiring_manager') {
+                if (fullName) profilePayload.full_name = fullName;
+                // Note: DB doesn't have department/designation columns currently
+            }
+
+            console.log('[REGISTER] Inserting profile with keys:', Object.keys(profilePayload));
+            const { error: profileError } = await adminSupabase.from('profiles').insert(profilePayload);
 
             if (profileError) {
                 const debugStr = profileError.message || JSON.stringify(profileError);
