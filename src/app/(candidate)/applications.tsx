@@ -59,7 +59,7 @@ export default function CandidateApplicationsScreen() {
             .select(`
                 *,
                 jobs (
-                    title, company_id, employment_type, location
+                    title, company_id, job_type, location
                 ),
                 profiles!applications_candidate_id_fkey (
                     company_name
@@ -125,7 +125,7 @@ export default function CandidateApplicationsScreen() {
                                         <Text style={styles.jobTitle}>{job?.title || 'Untitled Job'}</Text>
                                         {companyName && <Text style={styles.companyText}>{companyName}</Text>}
                                         <Text style={styles.metaText}>
-                                            {job?.location || ''}{job?.employment_type ? ` • ${job.employment_type}` : ''}
+                                            {job?.location || ''}{job?.job_type ? ` • ${job.job_type}` : ''}
                                         </Text>
                                     </View>
                                     <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20`, borderColor: `${statusColor}40` }]}>

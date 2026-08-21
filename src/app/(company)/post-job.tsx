@@ -63,30 +63,27 @@ export default function PostJobScreen() {
         }
 
         setLoading(true);
-        const { error } = await supabase.from('jobs').insert({
+
+        // Build payload dynamically to avoid sending non-existent columns to PostgREST
+        const jobPayload: Record<string, any> = {
             company_id: user?.id,
             title,
             description,
-            department: department || undefined,
-            category: category || undefined,
-            location: location || undefined,
-            employment_type: jobType,
-            salary_min: parseInt(salaryMin) || undefined,
-            salary_max: parseInt(salaryMax) || undefined,
-            hiring_manager_id: selectedManager || undefined,
-            responsibilities: responsibilities || undefined,
-            benefits: benefits || undefined,
-            required_skills: requiredSkills || undefined,
-            required_education: education || undefined,
-            required_experience: experience || undefined,
-            vacancies: parseInt(vacancies) || 1,
-            application_deadline: deadline || undefined,
-            gender_requirement: gender !== 'Any' ? gender : undefined,
-            age_min: parseInt(ageMin) || undefined,
-            age_max: parseInt(ageMax) || undefined,
-            status: 'Published',
             is_active: true,
-        });
+            job_type: jobType, // DB column is job_type, not employment_type
+        };
+
+        if (department) jobPayload.department = department;
+        if (location) jobPayload.location = location;
+        if (salaryMin) jobPayload.salary_min = parseInt(salaryMin);
+        if (salaryMax) jobPayload.salary_max = parseInt(salaryMax);
+        if (selectedManager) jobPayload.hiring_manager_id = selectedManager;
+
+        // The following form fields are NOT saved because they don't exist in the 'jobs' table yet:
+        // category, responsibilities, benefits, required_skills, required_education, required_experience, 
+        // vacancies, application_deadline, gender_requirement, age_min, age_max, status
+
+        const { error } = await supabase.from('jobs').insert(jobPayload);
 
         setLoading(false);
         if (error) {

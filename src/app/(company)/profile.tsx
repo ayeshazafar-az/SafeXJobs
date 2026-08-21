@@ -31,12 +31,14 @@ export default function CompanyProfileScreen() {
     useEffect(() => {
         const fetchProfile = async () => {
             if (!user) return;
-            const { data, error } = await supabase.from('profiles').select('company_name, company_description, website, logo_url, status').eq('id', user.id).single();
+            // 1. Fetch only columns that actually exist in the DB schema
+            const { data, error } = await supabase.from('profiles').select('company_name, website, status').eq('id', user.id).single();
+            if (error) {
+                console.error('[PROFILE] Error fetching:', error);
+            }
             if (data) {
                 setCompanyName(data.company_name || 'Your Company');
-                setDescription(data.company_description || '');
                 setWebsite(data.website || '');
-                setLogoUrl(data.logo_url || null);
                 setStatus(data.status || 'Pending');
             }
             setLoading(false);
@@ -86,7 +88,7 @@ export default function CompanyProfileScreen() {
     const handleSaveProfile = async () => {
         setSaving(true);
         const { error } = await supabase.from('profiles').update({
-            company_description: description,
+            // company_description: description, // Column doesn't exist yet
             website: website,
         }).eq('id', user?.id);
 

@@ -60,7 +60,7 @@ export default function FindJobsScreen() {
         }
 
         const { error } = await supabase.from('applications').insert({
-            job_id: jobId, candidate_id: user.id, status: 'Applied',
+            job_id: jobId, candidate_id: user.id, status: 'Pending',
         });
         setApplyingTo(null);
 
@@ -110,7 +110,7 @@ export default function FindJobsScreen() {
             (job.profiles?.company_name || '').toLowerCase().includes(q) ||
             (job.category || '').toLowerCase().includes(q) ||
             (job.required_skills || '').toLowerCase().includes(q);
-        const typeMatch = activeType === 'All' || job.employment_type === activeType || job.job_type === activeType;
+        const typeMatch = activeType === 'All' || job.job_type === activeType;
         const locationMatch = !filterProvince || (job.location || '').toLowerCase().includes(filterProvince.toLowerCase());
         const cityMatch = !filterCity || (job.location || '').toLowerCase().includes(filterCity.toLowerCase());
         const salaryMatch = !filterSalaryMin || (job.salary_min && job.salary_min >= parseInt(filterSalaryMin));
@@ -213,7 +213,7 @@ export default function FindJobsScreen() {
                                 {/* Tags */}
                                 <View style={styles.jobTags}>
                                     {job.location && <View style={styles.tag}><Text style={styles.tagText}>{job.location}</Text></View>}
-                                    {(job.employment_type || job.job_type) && <View style={styles.tag}><Text style={styles.tagText}>{job.employment_type || job.job_type}</Text></View>}
+                                    {job.job_type && <View style={styles.tag}><Text style={styles.tagText}>{job.job_type}</Text></View>}
                                     {job.category && <View style={styles.tag}><Text style={styles.tagText}>{job.category}</Text></View>}
                                     {job.vacancies && job.vacancies > 1 && <View style={styles.tag}><Text style={styles.tagText}>{job.vacancies} positions</Text></View>}
                                 </View>
