@@ -22,10 +22,17 @@ export default function CompanyDashboard() {
             const roleCol = role === 'hiring_manager' ? 'hiring_manager_id' : 'company_id';
 
             // 1. Fetch profile name and status
-            const { data: profile } = await supabase.from('profiles').select('company_name, full_name, status').eq('id', user.id).single();
+            const { data: profile, error: profileError } = await supabase.from('profiles').select('company_name, full_name, status').eq('id', user.id).single();
+            if (profileError) {
+                console.error('[COMPANY] Error fetching profile:', profileError);
+                // Don't alert here to avoid annoying user, but we log it
+            }
             if (profile) {
+                console.log('[COMPANY] Fetched own profile:', profile);
                 setCompanyName(profile.company_name || profile.full_name || 'Your Company');
                 setStatus(profile.status || 'Pending');
+            } else {
+                console.log('[COMPANY] Profile not found or blocked by RLS');
             }
 
             // 2. Fetch jobs
