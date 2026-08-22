@@ -2,6 +2,7 @@ import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -185,6 +186,26 @@ export default function CompanyProfileScreen() {
 
                 <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile} disabled={saving}>
                     {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save Details</Text>}
+                </TouchableOpacity>
+            </View>
+
+            {/* Team Management */}
+            <View style={styles.sectionCard}>
+                <View style={styles.sectionHeader}>
+                    <Ionicons name="people-outline" size={20} color="#10b981" />
+                    <Text style={styles.sectionTitle}>Team Management</Text>
+                </View>
+
+                <Text style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>
+                    Manage your hiring managers, recruiters, and HR staff who can post jobs and review applications on behalf of your company.
+                </Text>
+
+                <TouchableOpacity
+                    style={[styles.saveButton, { backgroundColor: '#10b981', flexDirection: 'row', justifyContent: 'center' }]}
+                    onPress={() => router.push('/(company)/managers' as any)}
+                >
+                    <Ionicons name="settings-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.saveButtonText}>Manage Hiring Team</Text>
                 </TouchableOpacity>
             </View>
 
