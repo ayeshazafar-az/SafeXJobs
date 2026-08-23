@@ -1,6 +1,7 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -32,12 +33,23 @@ export default function PostJobScreen() {
     const [hiringManagers, setHiringManagers] = useState<any[]>([]);
     const [selectedManager, setSelectedManager] = useState<string | null>(null);
 
+    const [adminCategories, setAdminCategories] = useState<string[]>([]);
+    const [adminLocations, setAdminLocations] = useState<string[]>([]);
+
     useEffect(() => {
         if (!user) return;
         supabase.from('profiles').select('status').eq('id', user.id).single()
             .then(({ data }) => { if (data?.status) setCompanyStatus(data.status); });
         supabase.from('profiles').select('id, full_name').eq('role', 'hiring_manager')
             .then(({ data }) => { if (data) setHiringManagers(data); });
+
+        // Load admin presets
+        AsyncStorage.getItem('admin_setup_categories').then(data => {
+            if (data) setAdminCategories(JSON.parse(data));
+        });
+        AsyncStorage.getItem('admin_setup_locations').then(data => {
+            if (data) setAdminLocations(JSON.parse(data));
+        });
     }, [user]);
 
     if (companyStatus !== 'Verified') {
@@ -127,12 +139,32 @@ export default function PostJobScreen() {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Job Category</Text>
-                        <TextInput style={styles.input} placeholder="e.g. Software Development, Design" placeholderTextColor="#64748b" value={category} onChangeText={setCategory} />
+                        {adminCategories.length > 0 ? (
+                            <View style={styles.chipsContainer}>
+                                {adminCategories.map(cat => (
+                                    <TouchableOpacity key={cat} style={[styles.chip, category === cat && styles.chipActive]} onPress={() => setCategory(cat)}>
+                                        <Text style={[styles.chipText, category === cat && styles.chipTextActive]}>{cat}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        ) : (
+                            <TextInput style={styles.input} placeholder="e.g. Software Development, Design" placeholderTextColor="#64748b" value={category} onChangeText={setCategory} />
+                        )}
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Location</Text>
-                        <TextInput style={styles.input} placeholder="e.g. Remote, Islamabad, Lahore" placeholderTextColor="#64748b" value={location} onChangeText={setLocation} />
+                        {adminLocations.length > 0 ? (
+                            <View style={styles.chipsContainer}>
+                                {adminLocations.map(loc => (
+                                    <TouchableOpacity key={loc} style={[styles.chip, location === loc && styles.chipActive]} onPress={() => setLocation(loc)}>
+                                        <Text style={[styles.chipText, location === loc && styles.chipTextActive]}>{loc}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        ) : (
+                            <TextInput style={styles.input} placeholder="e.g. Remote, Islamabad, Lahore" placeholderTextColor="#64748b" value={location} onChangeText={setLocation} />
+                        )}
                     </View>
 
                     {/* Employment Type */}

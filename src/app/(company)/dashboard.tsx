@@ -15,6 +15,7 @@ export default function CompanyDashboard() {
         totalApps: 0, shortlisted: 0, pendingTests: 0,
         upcomingInterviews: 0, hired: 0,
     });
+    const [jobAppStats, setJobAppStats] = useState<{ title: string, count: number }[]>([]);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -36,7 +37,7 @@ export default function CompanyDashboard() {
             }
 
             // 2. Fetch jobs
-            const { data: jobs } = await supabase.from('jobs').select('id, status').eq(roleCol, user.id);
+            const { data: jobs } = await supabase.from('jobs').select('id, title, status').eq(roleCol, user.id);
             const jobIds = jobs?.map(j => j.id) || [];
             const activeJobs = jobs?.filter(j => j.status !== 'Closed').length || 0;
             const closedJobs = jobs?.filter(j => j.status === 'Closed').length || 0;
@@ -46,12 +47,25 @@ export default function CompanyDashboard() {
             let pendingTests = 0;
             let upcomingInterviews = 0;
 
+            let appStats: { title: string, count: number }[] = [];
+
             if (jobIds.length > 0) {
-                const { data: apps } = await supabase.from('applications').select('status, id').in('job_id', jobIds);
+                const { data: apps } = await supabase.from('applications').select('status, id, job_id').in('job_id', jobIds);
                 if (apps && apps.length > 0) {
                     totalApps = apps.length;
                     shortlisted = apps.filter(a => a.status === 'Shortlisted').length;
                     hired = apps.filter(a => a.status === 'Hired').length;
+
+                    // Group apps by job
+                    const countMap = apps.reduce((acc: any, app: any) => {
+                        acc[app.job_id] = (acc[app.job_id] || 0) + 1;
+                        return acc;
+                    }, {});
+
+                    appStats = Object.keys(countMap).map(jId => {
+                        const job = jobs?.find(j => j.id === jId);
+                        return { title: job?.title || 'Unknown Job', count: countMap[jId] };
+                    }).sort((a, b) => b.count - a.count).slice(0, 5); // top 5
 
                     const appIds = apps.map(a => a.id);
 
@@ -79,6 +93,8 @@ export default function CompanyDashboard() {
                 upcomingInterviews: upcomingInterviews || 0,
                 hired,
             });
+
+            setJobAppStats(appStats);
 
             setLoading(false);
         };
@@ -182,6 +198,29 @@ export default function CompanyDashboard() {
                     );
                 })()}
             </View>
+
+            {/* Applications per Job Chart */}
+            {jobAppStats.length > 0 && (
+                <>
+                    <Text style={styles.sectionHeading}>Top Jobs by Applications</Text>
+                    <View style={styles.chartContainer}>
+                        {(() => {
+                            const maxVal = Math.max(...jobAppStats.map(j => j.count), 1);
+                            return jobAppStats.map((item, idx) => (
+                                <View style={{ marginBottom: 16 }} key={idx}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                                        <Text style={{ color: '#e2e8f0', fontSize: 13, fontWeight: '500', flex: 1 }} numberOfLines={1}>{item.title}</Text>
+                                        <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold', marginLeft: 10 }}>{item.count}</Text>
+                                    </View>
+                                    <View style={{ height: 10, backgroundColor: '#334155', borderRadius: 5, overflow: 'hidden' }}>
+                                        <View style={{ height: '100%', width: `${(item.count / maxVal) * 100}%`, backgroundColor: '#eab308', borderRadius: 5 }} />
+                                    </View>
+                                </View>
+                            ));
+                        })()}
+                    </View>
+                </>
+            )}
 
             {/* Pipeline Actions */}
             <Text style={styles.sectionHeading}>Pipeline Actions</Text>
