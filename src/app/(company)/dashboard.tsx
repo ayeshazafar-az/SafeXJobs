@@ -155,28 +155,32 @@ export default function CompanyDashboard() {
             </View>
 
             {/* Recruitment Pipeline */}
-            <Text style={styles.sectionHeading}>Recruitment Pipeline</Text>
-            <View style={styles.statsGrid}>
-                <View style={[styles.statCard, { borderLeftColor: '#a855f7', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>{stats.totalApps}</Text>
-                    <Text style={styles.statLabel}>Total Apps</Text>
-                </View>
-                <View style={[styles.statCard, { borderLeftColor: '#f59e0b', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>{stats.shortlisted}</Text>
-                    <Text style={styles.statLabel}>Shortlisted</Text>
-                </View>
-                <View style={[styles.statCard, { borderLeftColor: '#38bdf8', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>{stats.pendingTests}</Text>
-                    <Text style={styles.statLabel}>Pending Tests</Text>
-                </View>
-                <View style={[styles.statCard, { borderLeftColor: '#fb923c', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>{stats.upcomingInterviews}</Text>
-                    <Text style={styles.statLabel}>Interviews</Text>
-                </View>
-                <View style={[styles.statCard, { borderLeftColor: '#10b981', borderLeftWidth: 4 }]}>
-                    <Text style={styles.statValue}>{stats.hired}</Text>
-                    <Text style={styles.statLabel}>Hired</Text>
-                </View>
+            <Text style={styles.sectionHeading}>Recruitment Pipeline Analytics</Text>
+            <View style={styles.chartContainer}>
+                {(() => {
+                    const maxVal = Math.max(stats.totalApps, stats.shortlisted, stats.pendingTests, stats.upcomingInterviews, stats.hired, 1);
+                    const renderBar = (label: string, value: number, color: string) => (
+                        <View style={{ marginBottom: 16 }} key={label}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                                <Text style={{ color: '#e2e8f0', fontSize: 14, fontWeight: '500' }}>{label}</Text>
+                                <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>{value}</Text>
+                            </View>
+                            <View style={{ height: 10, backgroundColor: '#334155', borderRadius: 5, overflow: 'hidden' }}>
+                                <View style={{ height: '100%', width: `${(value / maxVal) * 100}%`, backgroundColor: color, borderRadius: 5 }} />
+                            </View>
+                        </View>
+                    );
+
+                    return (
+                        <>
+                            {renderBar('Total Apps', stats.totalApps, '#a855f7')}
+                            {renderBar('Shortlisted', stats.shortlisted, '#f59e0b')}
+                            {renderBar('Pending Tests', stats.pendingTests, '#38bdf8')}
+                            {renderBar('Interviews', stats.upcomingInterviews, '#fb923c')}
+                            {renderBar('Hired', stats.hired, '#10b981')}
+                        </>
+                    );
+                })()}
             </View>
 
             {/* Pipeline Actions */}
@@ -262,6 +266,10 @@ const styles = StyleSheet.create({
     },
     statValue: { fontSize: 26, fontWeight: 'bold', color: '#f8fafc', marginBottom: 4 },
     statLabel: { fontSize: 12, color: '#94a3b8' },
+    chartContainer: {
+        backgroundColor: '#1e293b', padding: 20, borderRadius: 16,
+        borderWidth: 1, borderColor: '#334155', marginBottom: 28,
+    },
     actionList: {
         backgroundColor: '#1e293b', borderRadius: 16,
         borderWidth: 1, borderColor: '#334155', overflow: 'hidden',

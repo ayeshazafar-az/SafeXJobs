@@ -1,4 +1,5 @@
 import { useAuth } from '@/lib/AuthProvider';
+import { triggerExternalNotification } from '@/lib/notificationService';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
@@ -168,6 +169,14 @@ export default function CompanyApplicationsScreen() {
                 body: offerMessage,
                 type: 'job_offer'
             });
+
+            // Feature 4: Fire External Email stub
+            triggerExternalNotification(
+                selectedOfferApp.candidate_id,
+                '🎉 Job Offer Received!',
+                offerMessage,
+                'email'
+            );
 
             setApplications(apps => apps.map(app => app.id === selectedOfferApp.id ? { ...app, status: 'Offer Sent', offer_salary: offerSalary, offer_start_date: offerStartDate, offer_terms: offerTerms } : app));
             setOfferModalVisible(false);

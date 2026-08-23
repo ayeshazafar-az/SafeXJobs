@@ -1,6 +1,7 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -126,6 +127,39 @@ export default function FindJobsScreen() {
         return queryMatch && typeMatch && locationMatch && cityMatch && salaryMatch && salaryMaxMatch && expMatch && eduMatch && workModeMatch;
     });
 
+    const handleCreateAlert = async () => {
+        if (!user) return;
+        if (!filterProvince && !filterCity && !filterExperience && filterEducation === 'Any' && filterWorkMode === 'All' && !filterSalaryMin) {
+            Alert.alert('Too Broad', 'Please apply some specific filters (like City or Experience) to create a meaningful job alert.');
+            return;
+        }
+
+        try {
+            const alertData = {
+                id: Date.now().toString(),
+                province: filterProvince,
+                city: filterCity,
+                salaryMin: filterSalaryMin,
+                experience: filterExperience,
+                education: filterEducation,
+                workMode: filterWorkMode,
+                createdAt: new Date().toISOString()
+            };
+
+            const key = `job_alerts_${user.id}`;
+            const existingAlertsStr = await AsyncStorage.getItem(key);
+            const existingAlerts = existingAlertsStr ? JSON.parse(existingAlertsStr) : [];
+
+            existingAlerts.push(alertData);
+            await AsyncStorage.setItem(key, JSON.stringify(existingAlerts));
+
+            Alert.alert('Job Alert Created!', 'You will be notified when new jobs match these exact filters.');
+        } catch (error) {
+            console.error('Error saving job alert:', error);
+            Alert.alert('Error', 'Failed to create job alert.');
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -195,12 +229,22 @@ export default function FindJobsScreen() {
                             ))}
                         </ScrollView>
 
-                        <TouchableOpacity
-                            style={styles.clearBtn}
-                            onPress={() => { setFilterProvince(''); setFilterCity(''); setFilterSalaryMin(''); setFilterSalaryMax(''); setFilterExperience(''); setFilterEducation('Any'); setFilterWorkMode('All'); }}
-                        >
-                            <Text style={styles.clearBtnText}>Clear All Filters</Text>
-                        </TouchableOpacity>
+                        <View style={styles.filterActionsRow}>
+                            <TouchableOpacity
+                                style={styles.clearBtn}
+                                onPress={() => { setFilterProvince(''); setFilterCity(''); setFilterSalaryMin(''); setFilterSalaryMax(''); setFilterExperience(''); setFilterEducation('Any'); setFilterWorkMode('All'); }}
+                            >
+                                <Text style={styles.clearBtnText}>Clear All Filters</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.createAlertBtn}
+                                onPress={handleCreateAlert}
+                            >
+                                <Ionicons name="notifications" size={16} color="#fff" />
+                                <Text style={styles.createAlertBtnText}>Create Job Alert</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 )}
             </View>
@@ -397,7 +441,13 @@ const styles = StyleSheet.create({
         borderWidth: 1, borderColor: '#334155',
     },
     clearBtn: { alignSelf: 'flex-end', marginTop: 4 },
-    clearBtnText: { color: '#f43f5e', fontSize: 12, fontWeight: '600' },
+    clearBtnText: { color: '#f43f5e', fontSize: 13, fontWeight: '600' },
+    filterActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
+    createAlertBtn: {
+        backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center',
+        gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12
+    },
+    createAlertBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
     advLabel: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginBottom: 6, marginTop: 4 },
 
     jobsList: { padding: 20, paddingBottom: 100 },

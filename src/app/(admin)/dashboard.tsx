@@ -100,17 +100,31 @@ export default function AdminDashboardScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <View style={styles.statsRow}>
-                    <View style={styles.statCard}>
-                        <Ionicons name="briefcase" size={28} color="#f59e0b" />
-                        <Text style={styles.statNumber}>{stats.jobs}</Text>
-                        <Text style={styles.statLabel}>Active Jobs</Text>
-                    </View>
-                    <View style={styles.statCard}>
-                        <Ionicons name="document-text" size={28} color="#ec4899" />
-                        <Text style={styles.statNumber}>{stats.apps}</Text>
-                        <Text style={styles.statLabel}>Total Apps</Text>
-                    </View>
+                {/* Platform Growth Analytics */}
+                <Text style={styles.sectionTitle}>Platform Growth Analytics</Text>
+                <View style={styles.chartContainer}>
+                    {(() => {
+                        const maxVal = Math.max(stats.companies, stats.candidates, stats.jobs, stats.apps, 1);
+                        const renderBar = (label: string, value: number, color: string) => (
+                            <View style={{ marginBottom: 16 }} key={label}>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                                    <Text style={{ color: '#e2e8f0', fontSize: 14, fontWeight: '500' }}>{label}</Text>
+                                    <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>{value}</Text>
+                                </View>
+                                <View style={{ height: 10, backgroundColor: '#334155', borderRadius: 5, overflow: 'hidden' }}>
+                                    <View style={{ height: '100%', width: `${(value / maxVal) * 100}%`, backgroundColor: color, borderRadius: 5 }} />
+                                </View>
+                            </View>
+                        );
+                        return (
+                            <>
+                                {renderBar('Registered Companies', stats.companies, '#3b82f6')}
+                                {renderBar('Registered Candidates', stats.candidates, '#10b981')}
+                                {renderBar('Active Jobs', stats.jobs, '#f59e0b')}
+                                {renderBar('Applications Submitted', stats.apps, '#ec4899')}
+                            </>
+                        );
+                    })()}
                 </View>
 
                 {/* Verification Section */}
@@ -379,6 +393,10 @@ const styles = StyleSheet.create({
     statLabel: {
         color: '#94a3b8',
         fontSize: 13,
+    },
+    chartContainer: {
+        backgroundColor: '#1e293b', padding: 20, borderRadius: 16,
+        borderWidth: 1, borderColor: '#334155', marginBottom: 28, marginHorizontal: 8,
     },
     sectionTitle: {
         fontSize: 20,

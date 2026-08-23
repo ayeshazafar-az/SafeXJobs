@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
@@ -97,13 +98,13 @@ export default function AdminSettingsScreen() {
 
                         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Category & Location Data</Text>
 
-                        <TouchableOpacity style={styles.managementBtn}>
+                        <TouchableOpacity style={styles.managementBtn} onPress={() => router.push('/(admin)/categories' as any)}>
                             <Ionicons name="pricetags" size={22} color="#3b82f6" />
                             <Text style={styles.managementBtnText}>Manage Job Categories & Skills</Text>
                             <Ionicons name="chevron-forward" size={20} color="#64748b" style={{ marginLeft: 'auto' }} />
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.managementBtn}>
+                        <TouchableOpacity style={styles.managementBtn} onPress={() => router.push('/(admin)/locations' as any)}>
                             <Ionicons name="map" size={22} color="#8b5cf6" />
                             <Text style={styles.managementBtnText}>Manage Platform Locations</Text>
                             <Ionicons name="chevron-forward" size={20} color="#64748b" style={{ marginLeft: 'auto' }} />

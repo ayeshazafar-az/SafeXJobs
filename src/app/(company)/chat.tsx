@@ -1,8 +1,9 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function CompanyChatScreen() {
     const { user } = useAuth();
@@ -11,6 +12,7 @@ export default function CompanyChatScreen() {
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
 
     // Fetch applications for this company's jobs that are active chats
     useEffect(() => {
@@ -42,7 +44,7 @@ export default function CompanyChatScreen() {
 
     // Fetch messages when a chat is selected
     useEffect(() => {
-        if (!activeChat) return;
+        if (!activeChat || !user) return;
         const fetchMessages = async () => {
             const { data } = await supabase
                 .from('messages')
@@ -50,19 +52,38 @@ export default function CompanyChatScreen() {
                 .eq('application_id', activeChat.id)
                 .order('created_at', { ascending: true });
 
-            if (data) setMessages(data);
+            if (data) {
+                setMessages(data);
+
+                // Mark unread messages from candidate as read
+                const unread = data.filter(m => m.sender_id !== user.id && !m.content.endsWith('[READ]'));
+                for (const msg of unread) {
+                    await supabase.from('messages').update({ content: msg.content + '[READ]' }).eq('id', msg.id);
+                }
+            }
         };
         fetchMessages();
 
         // Subscribe to real-time incoming messages
         const channel = supabase.channel(`company_chat_${activeChat.id}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `application_id=eq.${activeChat.id}` },
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `application_id=eq.${activeChat.id}` },
                 (payload) => {
-                    setMessages(prev => [...prev, payload.new]);
-                }).subscribe();
+                    if (payload.eventType === 'INSERT') {
+                        setMessages(prev => {
+                            if (prev.find(m => m.id === payload.new.id)) return prev;
+                            return [...prev, payload.new];
+                        });
 
+                        // Mark new unread messages as read
+                        if (payload.new.sender_id !== user.id && !payload.new.content.endsWith('[READ]')) {
+                            supabase.from('messages').update({ content: payload.new.content + '[READ]' }).eq('id', payload.new.id);
+                        }
+                    } else if (payload.eventType === 'UPDATE') {
+                        setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
+                    }
+                }).subscribe();
         return () => { supabase.removeChannel(channel); };
-    }, [activeChat]);
+    }, [activeChat, user]);
 
     const sendMessage = async () => {
         if (!inputText.trim() || !user || !activeChat) return;
@@ -78,6 +99,49 @@ export default function CompanyChatScreen() {
         setInputText('');
 
         await supabase.from('messages').insert(newMessage);
+    };
+
+    const handleAttach = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['image/*', 'application/pdf'],
+                copyToCacheDirectory: true,
+            });
+            if (result.canceled || !result.assets[0]) return;
+
+            setIsUploading(true);
+            const asset = result.assets[0];
+            const ext = asset.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+
+            const formData = new FormData();
+            formData.append('file', { uri: asset.uri, name: fileName, type: asset.mimeType } as any);
+
+            const { data, error } = await supabase.storage
+                .from('candidate_media')
+                .upload(`chat_attachments/${fileName}`, formData);
+
+            if (error) {
+                console.warn('Supabase storage error:', error);
+                Alert.alert('Upload Failed', 'Storage backend is not configured for chat attachments.');
+            } else {
+                const { data: { publicUrl } } = supabase.storage.from('candidate_media').getPublicUrl(`chat_attachments/${fileName}`);
+
+                const newMessage = {
+                    application_id: activeChat.id,
+                    sender_id: user?.id,
+                    content: `[ATTACHMENT]${publicUrl}`
+                };
+
+                const tempMsg = { ...newMessage, id: Date.now().toString(), created_at: new Date().toISOString() };
+                setMessages(prev => [...prev, tempMsg]);
+                await supabase.from('messages').insert(newMessage);
+            }
+        } catch (e) {
+            console.error('Attachment error', e);
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     if (loading) {
@@ -144,12 +208,43 @@ export default function CompanyChatScreen() {
                 ) : (
                     messages.map(msg => {
                         const isMe = msg.sender_id === user?.id; // If HR sent it, they are 'sender'
+                        const isRead = msg.content.endsWith('[READ]');
+                        const rawContent = msg.content.replace('[READ]', '');
+                        const isAttachment = rawContent.startsWith('[ATTACHMENT]');
+
+                        let displayContent = rawContent;
+                        let attachmentUrl = '';
+                        if (isAttachment) {
+                            attachmentUrl = rawContent.replace('[ATTACHMENT]', '');
+                            displayContent = attachmentUrl.includes('.pdf') ? '📄 PDF Document' : '🖼️ Image Attachment';
+                        }
+
                         return (
                             <View key={msg.id} style={[styles.messageBubble, isMe ? styles.messageMe : styles.messageThem]}>
-                                <Text style={[styles.messageText, isMe ? { color: '#fff' } : { color: '#f8fafc' }]}>{msg.content}</Text>
-                                <Text style={[styles.timeText, isMe ? { color: 'rgba(255,255,255,0.7)' } : { color: '#64748b' }]}>
-                                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </Text>
+                                {isAttachment ? (
+                                    <TouchableOpacity onPress={() => Linking.openURL(attachmentUrl)}>
+                                        {attachmentUrl.match(/\.(jpeg|jpg|gif|png)$/i) != null ? (
+                                            <Image source={{ uri: attachmentUrl }} style={{ width: 200, height: 150, borderRadius: 8, marginBottom: 4 }} />
+                                        ) : (
+                                            <Text style={[styles.messageText, isMe ? { color: '#fff', textDecorationLine: 'underline' } : { color: '#3b82f6', textDecorationLine: 'underline' }]}>{displayContent}</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                ) : (
+                                    <Text style={[styles.messageText, isMe ? { color: '#fff' } : { color: '#f8fafc' }]}>{displayContent}</Text>
+                                )}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
+                                    <Text style={[styles.timeText, { marginTop: 0 }, isMe ? { color: 'rgba(255,255,255,0.7)' } : { color: '#64748b' }]}>
+                                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </Text>
+                                    {isMe && (
+                                        <Ionicons
+                                            name="checkmark-done"
+                                            size={14}
+                                            color={isRead ? "#38bdf8" : "rgba(255,255,255,0.5)"}
+                                            style={{ marginLeft: 4 }}
+                                        />
+                                    )}
+                                </View>
                             </View>
                         );
                     })
@@ -157,8 +252,8 @@ export default function CompanyChatScreen() {
             </ScrollView>
 
             <View style={styles.inputArea}>
-                <TouchableOpacity style={styles.attachBtn}>
-                    <Ionicons name="document-attach" size={24} color="#94a3b8" />
+                <TouchableOpacity style={styles.attachBtn} onPress={handleAttach} disabled={isUploading}>
+                    {isUploading ? <ActivityIndicator size="small" color="#94a3b8" /> : <Ionicons name="document-attach" size={24} color="#94a3b8" />}
                 </TouchableOpacity>
                 <TextInput
                     style={styles.textInput}
