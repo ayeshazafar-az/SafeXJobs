@@ -19,10 +19,13 @@ export default function CompanyTestsScreen() {
     const [testDeadline, setTestDeadline] = useState('');
     const [saving, setSaving] = useState(false);
 
-    // Evaluation state
     const [evalTestId, setEvalTestId] = useState<string | null>(null);
     const [evalMarks, setEvalMarks] = useState('');
     const [evalComments, setEvalComments] = useState('');
+
+    // MCQ State
+    const [isMCQ, setIsMCQ] = useState(false);
+    const [mcqQuestions, setMcqQuestions] = useState([{ question: '', options: ['', '', '', ''], correctIndex: 0 }]);
 
     const fetchData = async () => {
         if (!user) return;
@@ -56,11 +59,17 @@ export default function CompanyTestsScreen() {
         }
         setSaving(true);
 
+        let finalDesc = testDesc;
+        if (isMCQ) {
+            const mcqPayload = { isMCQ: true, questions: mcqQuestions };
+            finalDesc = `[MCQ_JSON]${JSON.stringify(mcqPayload)}`;
+        }
+
         const { error } = await supabase.from('tests').insert({
             application_id: selectedApp.id,
             assigned_by: user?.id,
             title: testTitle,
-            description: testDesc,
+            description: finalDesc,
             max_marks: parseInt(maxMarks) || 100,
             passing_marks: parseInt(passingMarks) || 50,
             deadline: testDeadline || null,
@@ -86,6 +95,7 @@ export default function CompanyTestsScreen() {
         } else {
             setModalVisible(false);
             setTestTitle(''); setTestDesc(''); setMaxMarks('100'); setPassingMarks('50'); setTestDeadline('');
+            setIsMCQ(false); setMcqQuestions([{ question: '', options: ['', '', '', ''], correctIndex: 0 }]);
             if (Platform.OS === 'web') alert('Assessment dispatched!');
             else Alert.alert('Assessment Assigned', 'The candidate has been notified.');
         }
@@ -139,6 +149,8 @@ export default function CompanyTestsScreen() {
             default: return { bg: 'rgba(148, 163, 184, 0.1)', color: '#94a3b8' };
         }
     };
+
+    const addMcqQuestion = () => setMcqQuestions([...mcqQuestions, { question: '', options: ['', '', '', ''], correctIndex: 0 }]);
 
     if (loading) return <ActivityIndicator size="large" color="#3b82f6" style={{ flex: 1, backgroundColor: '#0f172a' }} />;
 
@@ -278,10 +290,62 @@ export default function CompanyTestsScreen() {
                                 <TextInput style={styles.input} value={testTitle} onChangeText={setTestTitle} placeholder="e.g. React Native Challenge" placeholderTextColor="#64748b" />
                             </View>
 
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Instructions</Text>
-                                <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={testDesc} onChangeText={setTestDesc} placeholder="Write detailed requirements..." placeholderTextColor="#64748b" multiline />
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                                <Text style={styles.label}>Is this an MCQ Test?</Text>
+                                <TouchableOpacity
+                                    style={[styles.toggleBtn, isMCQ ? { backgroundColor: '#10b981' } : { backgroundColor: '#334155' }]}
+                                    onPress={() => setIsMCQ(!isMCQ)}
+                                >
+                                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>{isMCQ ? 'YES' : 'NO'}</Text>
+                                </TouchableOpacity>
                             </View>
+
+                            {!isMCQ ? (
+                                <View style={styles.inputGroup}>
+                                    <Text style={styles.label}>Instructions</Text>
+                                    <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={testDesc} onChangeText={setTestDesc} placeholder="Write detailed requirements..." placeholderTextColor="#64748b" multiline />
+                                </View>
+                            ) : (
+                                <View style={styles.mcqBuilder}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                        <Text style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: 16 }}>MCQ Builder</Text>
+                                    </View>
+                                    {mcqQuestions.map((q, idx) => (
+                                        <View key={idx} style={{ marginBottom: 20, backgroundColor: 'rgba(51, 65, 85, 0.3)', padding: 16, borderRadius: 12 }}>
+                                            <Text style={styles.label}>Question {idx + 1}</Text>
+                                            <TextInput
+                                                style={[styles.input, { marginBottom: 12 }]}
+                                                value={q.question}
+                                                onChangeText={txt => { const updated = [...mcqQuestions]; updated[idx].question = txt; setMcqQuestions(updated); }}
+                                                placeholder="Enter question text..."
+                                                placeholderTextColor="#64748b"
+                                            />
+                                            {q.options.map((opt, oIdx) => (
+                                                <View key={oIdx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 }}>
+                                                    <TouchableOpacity
+                                                        style={[styles.radioBtn, q.correctIndex === oIdx && styles.radioBtnActive]}
+                                                        onPress={() => { const updated = [...mcqQuestions]; updated[idx].correctIndex = oIdx; setMcqQuestions(updated); }}
+                                                    >
+                                                        {q.correctIndex === oIdx && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                                    </TouchableOpacity>
+                                                    <TextInput
+                                                        style={[styles.input, { flex: 1, height: 40, padding: 10 }]}
+                                                        value={opt}
+                                                        onChangeText={txt => { const updated = [...mcqQuestions]; updated[idx].options[oIdx] = txt; setMcqQuestions(updated); }}
+                                                        placeholder={`Option ${String.fromCharCode(65 + oIdx)}`}
+                                                        placeholderTextColor="#64748b"
+                                                    />
+                                                </View>
+                                            ))}
+                                            <Text style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>* Tick the radio button to mark the correct answer.</Text>
+                                        </View>
+                                    ))}
+                                    <TouchableOpacity style={styles.addMcqBtn} onPress={addMcqQuestion}>
+                                        <Ionicons name="add" size={18} color="#3b82f6" />
+                                        <Text style={{ color: '#3b82f6', fontWeight: 'bold', marginLeft: 8 }}>Add Question</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
 
                             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
                                 <View style={{ flex: 1 }}>
@@ -357,4 +421,9 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#0f172a', color: '#f8fafc', borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: '#334155' },
     submitBtn: { backgroundColor: '#3b82f6', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
     submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    toggleBtn: { marginLeft: 16, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+    mcqBuilder: { marginBottom: 16 },
+    radioBtn: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#334155', alignItems: 'center', justifyContent: 'center' },
+    radioBtnActive: { borderColor: '#10b981', backgroundColor: '#10b981' },
+    addMcqBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: 12, borderRadius: 12 }
 });
