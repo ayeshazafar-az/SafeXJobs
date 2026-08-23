@@ -1,4 +1,5 @@
 import { useAuth } from '@/lib/AuthProvider';
+import { checkReminders } from '@/lib/reminderService';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -67,6 +68,9 @@ export default function CandidateDashboardScreen() {
             };
 
             fetchDashboardData();
+            if (user) {
+                checkReminders(user.id);
+            }
         }, [user])
     );
 

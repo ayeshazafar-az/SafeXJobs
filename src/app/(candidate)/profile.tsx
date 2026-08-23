@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function CandidateProfileScreen() {
     const { user } = useAuth();
@@ -24,6 +24,7 @@ export default function CandidateProfileScreen() {
     const [portfolioUrl, setPortfolioUrl] = useState('');
     const [resumeUrl, setResumeUrl] = useState('');
     const [videoUrl, setVideoUrl] = useState('');
+    const [profilePictureUrl, setProfilePictureUrl] = useState('');
 
     const [educationStr, setEducationStr] = useState('');
     const [experienceStr, setExperienceStr] = useState('');
@@ -50,6 +51,7 @@ export default function CandidateProfileScreen() {
                 setPortfolioUrl(data.portfolio_url || '');
                 setResumeUrl(data.resume_url || '');
                 setVideoUrl(data.video_intro_url || '');
+                setProfilePictureUrl(data.profile_picture_url || '');
             }
             setLoading(false);
         };
@@ -78,7 +80,8 @@ export default function CandidateProfileScreen() {
             portfolio_url: portfolioUrl,
             resume_url: resumeUrl,
             video_intro_url: videoUrl,
-            certifications: formattedCerts
+            certifications: formattedCerts,
+            profile_picture_url: profilePictureUrl || undefined,
         };
 
         const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
@@ -214,6 +217,30 @@ export default function CandidateProfileScreen() {
         }
     };
 
+    const handleUploadProfilePicture = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.8,
+            });
+            if (result.canceled || !result.assets[0]) return;
+
+            setUploadingMedia('picture');
+            const url = await uploadToSupabase(result.assets[0].uri, 'profile-pictures', 'image/jpeg', 'jpg');
+            if (url) {
+                setProfilePictureUrl(url);
+                await supabase.from('profiles').update({ profile_picture_url: url }).eq('id', user?.id);
+                Alert.alert('Success', 'Profile picture updated.');
+            }
+        } catch (err) {
+            console.error('Profile picture upload error', err);
+        } finally {
+            setUploadingMedia(null);
+        }
+    };
+
     if (loading) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -253,6 +280,25 @@ export default function CandidateProfileScreen() {
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
                 {activeSection === 'Personal' && (
                     <View style={styles.formSection}>
+                        {/* Profile Picture */}
+                        <TouchableOpacity style={styles.avatarContainer} onPress={handleUploadProfilePicture} disabled={uploadingMedia === 'picture'}>
+                            {uploadingMedia === 'picture' ? (
+                                <View style={styles.avatarCircle}>
+                                    <ActivityIndicator color="#3b82f6" size="large" />
+                                </View>
+                            ) : profilePictureUrl ? (
+                                <Image source={{ uri: profilePictureUrl }} style={styles.avatarCircle} />
+                            ) : (
+                                <View style={styles.avatarCircle}>
+                                    <Text style={styles.avatarInitial}>{(fullName || user?.email || '?')[0].toUpperCase()}</Text>
+                                </View>
+                            )}
+                            <View style={styles.cameraOverlay}>
+                                <Ionicons name="camera" size={16} color="#fff" />
+                            </View>
+                            <Text style={styles.avatarHint}>Tap to change photo</Text>
+                        </TouchableOpacity>
+
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Full Name</Text>
                             <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="John Doe" placeholderTextColor="#64748b" />
@@ -409,6 +455,22 @@ const styles = StyleSheet.create({
 
     content: { padding: 20 },
     formSection: { gap: 16 },
+    // Avatar Styles
+    avatarContainer: { alignItems: 'center', marginBottom: 24, marginTop: 8 },
+    avatarCircle: {
+        width: 100, height: 100, borderRadius: 50,
+        backgroundColor: '#334155', borderWidth: 2, borderColor: '#3b82f6',
+        alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
+    },
+    avatarInitial: { fontSize: 36, fontWeight: 'bold', color: '#94a3b8' },
+    cameraOverlay: {
+        position: 'absolute', bottom: 20, right: '35%',
+        backgroundColor: '#3b82f6', width: 28, height: 28, borderRadius: 14,
+        alignItems: 'center', justifyContent: 'center',
+        borderWidth: 2, borderColor: '#1e293b'
+    },
+    avatarHint: { color: '#94a3b8', fontSize: 13, marginTop: 8 },
+
     inputGroup: { marginBottom: 6 },
     label: { color: '#cbd5e1', fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
     input: { backgroundColor: '#1e293b', color: '#f8fafc', borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: '#334155' },

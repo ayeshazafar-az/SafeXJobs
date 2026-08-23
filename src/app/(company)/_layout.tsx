@@ -36,6 +36,13 @@ export default function CompanyLayout() {
                 }}
             />
             <Tabs.Screen
+                name="my-jobs"
+                options={{
+                    title: 'My Jobs',
+                    tabBarIcon: ({ color }) => <Ionicons name="list" size={24} color={color} />
+                }}
+            />
+            <Tabs.Screen
                 name="applications"
                 options={{
                     title: 'Review',

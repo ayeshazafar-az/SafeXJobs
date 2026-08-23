@@ -2,11 +2,11 @@ import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const PIPELINE_STEPS = [
     'Applied', 'Under Review', 'Shortlisted', 'Test Assigned', 'Test Submitted',
-    'Test Passed', 'Interview Scheduled', 'Interview Completed', 'Selected', 'Hired'
+    'Test Passed', 'Interview Scheduled', 'Interview Completed', 'Selected', 'Offer Sent', 'Hired'
 ];
 
 const getStatusColor = (status: string) => {
@@ -20,7 +20,9 @@ const getStatusColor = (status: string) => {
         case 'Interview Scheduled': return '#fb923c';
         case 'Interview Completed': return '#38bdf8';
         case 'Selected': return '#10b981';
+        case 'Offer Sent': return '#06b6d4';
         case 'Hired': return '#22c55e';
+        case 'Offer Declined': return '#f97316';
         case 'Rejected': return '#f43f5e';
         case 'Withdrawn': return '#64748b';
         default: return '#94a3b8';
@@ -38,7 +40,9 @@ const getStatusIcon = (status: string): keyof typeof Ionicons.glyphMap => {
         case 'Interview Scheduled': return 'calendar';
         case 'Interview Completed': return 'videocam';
         case 'Selected': return 'ribbon';
+        case 'Offer Sent': return 'gift';
         case 'Hired': return 'briefcase';
+        case 'Offer Declined': return 'close';
         case 'Rejected': return 'close-circle';
         case 'Withdrawn': return 'exit';
         default: return 'ellipse';
@@ -50,6 +54,7 @@ export default function CandidateApplicationsScreen() {
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [respondingId, setRespondingId] = useState<string | null>(null);
 
     const fetchApplications = async () => {
         if (!user) return;
@@ -59,7 +64,8 @@ export default function CandidateApplicationsScreen() {
             .select(`
                 *,
                 jobs (
-                    title, company_id, job_type, location
+                    title, company_id, job_type, location,
+                    profiles!jobs_company_id_fkey ( company_name )
                 ),
                 profiles!applications_candidate_id_fkey (
                     company_name
@@ -84,6 +90,39 @@ export default function CandidateApplicationsScreen() {
     const getPipelineIndex = (status: string) => {
         const idx = PIPELINE_STEPS.indexOf(status);
         return idx === -1 ? -1 : idx;
+    };
+
+    const handleOfferResponse = async (app: any, accepted: boolean) => {
+        setRespondingId(app.id);
+        const newStatus = accepted ? 'Hired' : 'Offer Declined';
+        const { error } = await supabase.from('applications').update({ status: newStatus }).eq('id', app.id);
+        setRespondingId(null);
+
+        if (error) {
+            if (Platform.OS === 'web') alert('Failed to respond: ' + error.message);
+            else Alert.alert('Error', error.message);
+            return;
+        }
+
+        setApplications(apps => apps.map(a => a.id === app.id ? { ...a, status: newStatus } : a));
+
+        // Notify the company
+        const companyId = app.jobs?.company_id;
+        if (companyId) {
+            const notifTitle = accepted ? '✅ Offer Accepted!' : '❌ Offer Declined';
+            const notifBody = accepted
+                ? `The candidate has accepted the offer for the ${app.jobs?.title || 'job'} position.`
+                : `The candidate has declined the offer for the ${app.jobs?.title || 'job'} position.`;
+            await supabase.from('notifications').insert({
+                user_id: companyId,
+                title: notifTitle,
+                body: notifBody,
+                type: 'offer_response',
+            });
+        }
+
+        if (Platform.OS === 'web') alert(accepted ? 'Offer accepted! Congratulations!' : 'Offer declined.');
+        else Alert.alert(accepted ? '🎉 Congratulations!' : 'Offer Declined', accepted ? 'You have accepted the job offer!' : 'You have declined the offer. The company has been notified.');
     };
 
     return (
@@ -111,7 +150,7 @@ export default function CandidateApplicationsScreen() {
                         const statusColor = getStatusColor(app.status);
                         const statusIcon = getStatusIcon(app.status);
                         const pipelineIdx = getPipelineIndex(app.status);
-                        const isTerminal = app.status === 'Rejected' || app.status === 'Withdrawn';
+                        const isTerminal = app.status === 'Rejected' || app.status === 'Withdrawn' || app.status === 'Offer Declined';
                         const companyName = app.profiles?.company_name;
 
                         return (
@@ -168,12 +207,66 @@ export default function CandidateApplicationsScreen() {
                                 {/* Rejected/Withdrawn Banner */}
                                 {isTerminal && (
                                     <View style={[styles.terminalBanner, { borderColor: `${statusColor}40` }]}>
-                                        <Ionicons name={app.status === 'Rejected' ? 'close-circle' : 'exit-outline'} size={18} color={statusColor} />
+                                        <Ionicons name={app.status === 'Rejected' ? 'close-circle' : app.status === 'Offer Declined' ? 'close' : 'exit-outline'} size={18} color={statusColor} />
                                         <Text style={[styles.terminalText, { color: statusColor }]}>
                                             {app.status === 'Rejected'
                                                 ? 'This application was not selected to proceed further.'
-                                                : 'You withdrew this application.'}
+                                                : app.status === 'Offer Declined'
+                                                    ? 'You declined the job offer for this position.'
+                                                    : 'You withdrew this application.'}
                                         </Text>
+                                    </View>
+                                )}
+
+                                {/* Offer Details Banner — shown when status is Offer Sent */}
+                                {app.status === 'Offer Sent' && (
+                                    <View style={styles.offerBanner}>
+                                        <View style={styles.offerHeader}>
+                                            <Ionicons name="gift" size={22} color="#06b6d4" />
+                                            <Text style={styles.offerTitle}>Job Offer</Text>
+                                        </View>
+
+                                        {app.offer_salary && (
+                                            <View style={styles.offerRow}>
+                                                <Text style={styles.offerLabel}>Salary</Text>
+                                                <Text style={styles.offerValue}>{app.offer_salary} PKR</Text>
+                                            </View>
+                                        )}
+                                        {app.offer_start_date && (
+                                            <View style={styles.offerRow}>
+                                                <Text style={styles.offerLabel}>Start Date</Text>
+                                                <Text style={styles.offerValue}>{app.offer_start_date}</Text>
+                                            </View>
+                                        )}
+                                        {app.offer_terms && (
+                                            <View style={styles.offerRow}>
+                                                <Text style={styles.offerLabel}>Terms</Text>
+                                                <Text style={styles.offerValue}>{app.offer_terms}</Text>
+                                            </View>
+                                        )}
+
+                                        <View style={styles.offerActions}>
+                                            <TouchableOpacity
+                                                style={[styles.offerBtn, styles.offerAcceptBtn]}
+                                                onPress={() => handleOfferResponse(app, true)}
+                                                disabled={respondingId === app.id}
+                                            >
+                                                {respondingId === app.id ? <ActivityIndicator color="#fff" size="small" /> : (
+                                                    <>
+                                                        <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                                                        <Text style={styles.offerBtnText}>Accept Offer</Text>
+                                                    </>
+                                                )}
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[styles.offerBtn, styles.offerDeclineBtn]}
+                                                onPress={() => handleOfferResponse(app, false)}
+                                                disabled={respondingId === app.id}
+                                            >
+                                                <Ionicons name="close-circle" size={18} color="#f97316" />
+                                                <Text style={[styles.offerBtnText, { color: '#f97316' }]}>Decline</Text>
+                                            </TouchableOpacity>
+                                        </View>
                                     </View>
                                 )}
 
@@ -245,4 +338,35 @@ const styles = StyleSheet.create({
     terminalText: { fontSize: 12, lineHeight: 18, flex: 1 },
 
     dateText: { color: '#475569', fontSize: 11, textAlign: 'right' },
+
+    // Offer Banner
+    offerBanner: {
+        backgroundColor: 'rgba(6, 182, 212, 0.08)',
+        borderWidth: 1, borderColor: 'rgba(6, 182, 212, 0.25)',
+        borderRadius: 12, padding: 16, marginBottom: 12,
+    },
+    offerHeader: {
+        flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12,
+    },
+    offerTitle: { color: '#06b6d4', fontSize: 16, fontWeight: 'bold' },
+    offerRow: {
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'center', paddingVertical: 6,
+        borderBottomWidth: 1, borderBottomColor: 'rgba(6, 182, 212, 0.1)',
+    },
+    offerLabel: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
+    offerValue: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold' },
+    offerActions: {
+        flexDirection: 'row', gap: 10, marginTop: 14,
+    },
+    offerBtn: {
+        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        gap: 6, paddingVertical: 12, borderRadius: 10,
+    },
+    offerAcceptBtn: { backgroundColor: '#10b981' },
+    offerDeclineBtn: {
+        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+        borderWidth: 1, borderColor: 'rgba(249, 115, 22, 0.3)',
+    },
+    offerBtnText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
 });

@@ -2,7 +2,6 @@ import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView, Platform,
     ScrollView,
     StyleSheet,
@@ -109,8 +108,8 @@ export default function RegisterScreen() {
                 return;
             }
 
-            Alert.alert('Success', 'Your account has been fully verified & created in the database database!');
-            router.replace('/(auth)/login');
+            // Redirect to email verification screen
+            router.replace(`/(auth)/verify-email?email=${encodeURIComponent(email.trim())}` as any);
         }
 
         setLoading(false);

@@ -6,7 +6,8 @@ import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platfor
 
 const ALL_STATUSES = [
     'Applied', 'Under Review', 'Shortlisted', 'Test Assigned', 'Test Submitted',
-    'Test Passed', 'Interview Scheduled', 'Interview Completed', 'Selected', 'Hired', 'Rejected', 'Withdrawn'
+    'Test Passed', 'Interview Scheduled', 'Interview Completed', 'Selected',
+    'Offer Sent', 'Hired', 'Offer Declined', 'Rejected', 'Withdrawn'
 ];
 
 const getStatusColor = (status: string) => {
@@ -20,7 +21,9 @@ const getStatusColor = (status: string) => {
         case 'Interview Scheduled': return '#fb923c';
         case 'Interview Completed': return '#38bdf8';
         case 'Selected': return '#10b981';
+        case 'Offer Sent': return '#06b6d4';
         case 'Hired': return '#22c55e';
+        case 'Offer Declined': return '#f97316';
         case 'Rejected': return '#f43f5e';
         case 'Withdrawn': return '#64748b';
         default: return '#94a3b8';
@@ -37,8 +40,10 @@ const getNextActions = (status: string) => {
         case 'Test Passed': return ['Interview Scheduled', 'Rejected'];
         case 'Interview Scheduled': return ['Interview Completed', 'Rejected'];
         case 'Interview Completed': return ['Selected', 'Rejected'];
-        case 'Selected': return ['Hired', 'Rejected']; // In this case 'Hired' triggers offer
+        case 'Selected': return ['Offer Sent', 'Rejected'];
+        case 'Offer Sent': return []; // Waiting for candidate to accept/decline
         case 'Hired': return [];
+        case 'Offer Declined': return [];
         case 'Rejected': return [];
         case 'Withdrawn': return [];
         default: return ['Under Review'];
@@ -95,7 +100,7 @@ export default function CompanyApplicationsScreen() {
     const onRefresh = () => { setRefreshing(true); fetchApplications(); };
 
     const updateStatus = async (appId: string, newStatus: string, candidateId?: string, isOffer: boolean = false) => {
-        if (isOffer && newStatus === 'Hired') {
+        if (newStatus === 'Offer Sent') {
             const app = applications.find(a => a.id === appId);
             setSelectedOfferApp(app);
             setOfferModalVisible(true);
@@ -141,19 +146,21 @@ export default function CompanyApplicationsScreen() {
         }
         setUpdatingId(selectedOfferApp.id);
 
-        const { error } = await supabase.from('applications').update({
-            status: 'Hired' // Or we could have an "Offer Sent" intermediate status, but "Hired" locks the pipeline based on PRD
-        }).eq('id', selectedOfferApp.id);
+        // Save offer details to the applications table AND set status to 'Offer Sent'
+        const updatePayload: Record<string, any> = { status: 'Offer Sent' };
+        if (offerSalary) updatePayload.offer_salary = offerSalary;
+        if (offerStartDate) updatePayload.offer_start_date = offerStartDate;
+        if (offerTerms) updatePayload.offer_terms = offerTerms;
+
+        const { error } = await supabase.from('applications').update(updatePayload).eq('id', selectedOfferApp.id);
 
         if (!error) {
-            // Log formal offer details directly in application metadata or notification depending on structure.
-            // For this implementation, we will append it to a structured notification that candidate can read
             const companyName = selectedOfferApp.jobs?.profiles?.company_name || 'the company';
             const offerMessage = `You have received an official job offer from ${companyName} for the ${selectedOfferApp.jobs?.title} position!\n\n` +
                 `Proposed Salary: ${offerSalary} PKR\n` +
                 `Start Date: ${offerStartDate}\n` +
                 `Terms: ${offerTerms || 'Standard company policies apply.'}\n\n` +
-                `Please contact the hiring manager to formally accept this offer. Welcome aboard!`;
+                `Please go to your Applications tab to review and accept or decline this offer.`;
 
             await supabase.from('notifications').insert({
                 user_id: selectedOfferApp.candidate_id,
@@ -162,7 +169,7 @@ export default function CompanyApplicationsScreen() {
                 type: 'job_offer'
             });
 
-            setApplications(apps => apps.map(app => app.id === selectedOfferApp.id ? { ...app, status: 'Hired' } : app));
+            setApplications(apps => apps.map(app => app.id === selectedOfferApp.id ? { ...app, status: 'Offer Sent', offer_salary: offerSalary, offer_start_date: offerStartDate, offer_terms: offerTerms } : app));
             setOfferModalVisible(false);
             setOfferSalary(''); setOfferStartDate(''); setOfferTerms('');
 

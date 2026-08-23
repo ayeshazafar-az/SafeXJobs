@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const TYPE_FILTERS = ['All', 'Full-Time', 'Part-Time', 'Contract', 'Internship', 'Remote'];
+const EDUCATION_OPTIONS = ['Any', 'Matric', 'Intermediate', "Bachelor's", "Master's", 'PhD'];
+const WORK_MODE_OPTIONS = ['All', 'Remote', 'Onsite', 'Hybrid'];
 
 export default function FindJobsScreen() {
     const { user } = useAuth();
@@ -15,7 +17,10 @@ export default function FindJobsScreen() {
     const [filterProvince, setFilterProvince] = useState('');
     const [filterCity, setFilterCity] = useState('');
     const [filterSalaryMin, setFilterSalaryMin] = useState('');
+    const [filterSalaryMax, setFilterSalaryMax] = useState('');
     const [filterExperience, setFilterExperience] = useState('');
+    const [filterEducation, setFilterEducation] = useState('Any');
+    const [filterWorkMode, setFilterWorkMode] = useState('All');
     const [jobs, setJobs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -114,8 +119,11 @@ export default function FindJobsScreen() {
         const locationMatch = !filterProvince || (job.location || '').toLowerCase().includes(filterProvince.toLowerCase());
         const cityMatch = !filterCity || (job.location || '').toLowerCase().includes(filterCity.toLowerCase());
         const salaryMatch = !filterSalaryMin || (job.salary_min && job.salary_min >= parseInt(filterSalaryMin));
+        const salaryMaxMatch = !filterSalaryMax || (job.salary_max && job.salary_max <= parseInt(filterSalaryMax));
         const expMatch = !filterExperience || (job.required_experience || '').toLowerCase().includes(filterExperience.toLowerCase());
-        return queryMatch && typeMatch && locationMatch && cityMatch && salaryMatch && expMatch;
+        const eduMatch = filterEducation === 'Any' || (job.required_education || '').toLowerCase().includes(filterEducation.toLowerCase());
+        const workModeMatch = filterWorkMode === 'All' || (job.job_type || '').toLowerCase().includes(filterWorkMode.toLowerCase()) || (job.location || '').toLowerCase().includes(filterWorkMode.toLowerCase());
+        return queryMatch && typeMatch && locationMatch && cityMatch && salaryMatch && salaryMaxMatch && expMatch && eduMatch && workModeMatch;
     });
 
     return (
@@ -161,13 +169,37 @@ export default function FindJobsScreen() {
                         </View>
                         <View style={styles.advRow}>
                             <TextInput style={[styles.advInput, { marginRight: 8 }]} placeholder="Min Salary" placeholderTextColor="#64748b" keyboardType="numeric" value={filterSalaryMin} onChangeText={setFilterSalaryMin} />
+                            <TextInput style={styles.advInput} placeholder="Max Salary" placeholderTextColor="#64748b" keyboardType="numeric" value={filterSalaryMax} onChangeText={setFilterSalaryMax} />
+                        </View>
+                        <View style={styles.advRow}>
                             <TextInput style={styles.advInput} placeholder="Experience (e.g. 2 years)" placeholderTextColor="#64748b" value={filterExperience} onChangeText={setFilterExperience} />
                         </View>
+
+                        {/* Education Level */}
+                        <Text style={styles.advLabel}>Education Level</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                            {EDUCATION_OPTIONS.map(opt => (
+                                <TouchableOpacity key={opt} style={[styles.filterChip, filterEducation === opt && styles.filterChipActive]} onPress={() => setFilterEducation(opt)}>
+                                    <Text style={[styles.filterText, filterEducation === opt && styles.filterTextActive]}>{opt}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        {/* Work Mode */}
+                        <Text style={styles.advLabel}>Work Mode</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                            {WORK_MODE_OPTIONS.map(opt => (
+                                <TouchableOpacity key={opt} style={[styles.filterChip, filterWorkMode === opt && styles.filterChipActive]} onPress={() => setFilterWorkMode(opt)}>
+                                    <Text style={[styles.filterText, filterWorkMode === opt && styles.filterTextActive]}>{opt}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
                         <TouchableOpacity
                             style={styles.clearBtn}
-                            onPress={() => { setFilterProvince(''); setFilterCity(''); setFilterSalaryMin(''); setFilterExperience(''); }}
+                            onPress={() => { setFilterProvince(''); setFilterCity(''); setFilterSalaryMin(''); setFilterSalaryMax(''); setFilterExperience(''); setFilterEducation('Any'); setFilterWorkMode('All'); }}
                         >
-                            <Text style={styles.clearBtnText}>Clear Filters</Text>
+                            <Text style={styles.clearBtnText}>Clear All Filters</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -366,6 +398,7 @@ const styles = StyleSheet.create({
     },
     clearBtn: { alignSelf: 'flex-end', marginTop: 4 },
     clearBtnText: { color: '#f43f5e', fontSize: 12, fontWeight: '600' },
+    advLabel: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginBottom: 6, marginTop: 4 },
 
     jobsList: { padding: 20, paddingBottom: 100 },
     jobCard: {
