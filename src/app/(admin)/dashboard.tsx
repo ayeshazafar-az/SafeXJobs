@@ -93,10 +93,23 @@ export default function AdminDashboardScreen() {
                         <Text style={styles.statNumber}>{stats.companies}</Text>
                         <Text style={styles.statLabel}>Companies</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(admin)/users')}>
-                        <Ionicons name="people" size={28} color="#10b981" />
-                        <Text style={styles.statNumber}>{stats.candidates}</Text>
-                        <Text style={styles.statLabel}>Candidates</Text>
+                    <TouchableOpacity style={styles.statCard}>
+                        <Ionicons name="document-text" size={28} color="#f59e0b" />
+                        <Text style={styles.statNumber}>{stats.apps !== 0 ? stats.apps : '-'}</Text>
+                        <Text style={styles.statLabel}>Applications</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Global Monitoring Quick Links */}
+                <Text style={styles.sectionTitle}>Global Supervision</Text>
+                <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+                    <TouchableOpacity style={[styles.actionCard, { flex: 1, alignItems: 'center' }]} onPress={() => router.push('/(admin)/chats' as any)}>
+                        <Ionicons name="chatbubbles" size={24} color="#60a5fa" />
+                        <Text style={{ color: '#f8fafc', fontWeight: 'bold', marginTop: 8 }}>Chat Monitor</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.actionCard, { flex: 1, alignItems: 'center' }]} onPress={() => router.push('/(admin)/applications' as any)}>
+                        <Ionicons name="file-tray-full" size={24} color="#a78bfa" />
+                        <Text style={{ color: '#f8fafc', fontWeight: 'bold', marginTop: 8 }}>Global Apps</Text>
                     </TouchableOpacity>
                 </View>
 

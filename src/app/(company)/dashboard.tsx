@@ -16,6 +16,7 @@ export default function CompanyDashboard() {
         upcomingInterviews: 0, hired: 0,
     });
     const [jobAppStats, setJobAppStats] = useState<{ title: string, count: number }[]>([]);
+    const [profileCompletion, setProfileCompletion] = useState(0);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -23,7 +24,7 @@ export default function CompanyDashboard() {
             const roleCol = role === 'hiring_manager' ? 'hiring_manager_id' : 'company_id';
 
             // 1. Fetch profile name and status
-            const { data: profile, error: profileError } = await supabase.from('profiles').select('company_name, full_name, status').eq('id', user.id).single();
+            const { data: profile, error: profileError } = await supabase.from('profiles').select('company_name, full_name, status, bio, website_url, avatar_url').eq('id', user.id).single();
             if (profileError) {
                 console.error('[COMPANY] Error fetching profile:', profileError);
                 // Don't alert here to avoid annoying user, but we log it
@@ -32,6 +33,14 @@ export default function CompanyDashboard() {
                 console.log('[COMPANY] Fetched own profile:', profile);
                 setCompanyName(profile.company_name || profile.full_name || 'Your Company');
                 setStatus(profile.status || 'Pending');
+
+                let score = 20; // base score
+                if (profile.full_name) score += 10;
+                if (profile.company_name) score += 20;
+                if (profile.bio) score += 20;
+                if (profile.website_url) score += 15;
+                if (profile.avatar_url) score += 15;
+                setProfileCompletion(score);
             } else {
                 console.log('[COMPANY] Profile not found or blocked by RLS');
             }
@@ -138,6 +147,23 @@ export default function CompanyDashboard() {
                         <Ionicons name="log-out-outline" size={24} color="#ef4444" />
                     </TouchableOpacity>
                 </View>
+            </View>
+
+            {/* Profile Completion Card */}
+            <View style={styles.progressCard}>
+                <View style={styles.progressHeader}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Ionicons name="business" size={24} color="#38bdf8" />
+                        <Text style={styles.progressTitle}>Profile Completion</Text>
+                    </View>
+                    <Text style={styles.progressValue}>{profileCompletion}%</Text>
+                </View>
+                <View style={styles.progressBarBg}>
+                    <View style={[styles.progressBarFill, { width: `${profileCompletion}%`, backgroundColor: profileCompletion === 100 ? '#10b981' : '#38bdf8' }]} />
+                </View>
+                {profileCompletion < 100 && (
+                    <Text style={styles.progressHint}>Complete your company profile to attract high-quality candidates.</Text>
+                )}
             </View>
 
             {/* Pending Verification Banner */}
@@ -296,8 +322,17 @@ const styles = StyleSheet.create({
     warningTitle: { color: '#f59e0b', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
     warningText: { color: '#fbbf24', fontSize: 13, lineHeight: 20 },
 
-    sectionHeading: { fontSize: 18, fontWeight: '600', color: '#f8fafc', marginBottom: 16 },
-    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
+    sectionHeading: { fontSize: 16, fontWeight: '700', color: '#f8fafc', marginBottom: 12, marginTop: 8 },
+
+    progressCard: { backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#334155' },
+    progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    progressTitle: { color: '#f8fafc', fontSize: 15, fontWeight: 'bold' },
+    progressValue: { color: '#38bdf8', fontSize: 15, fontWeight: 'bold' },
+    progressBarBg: { height: 8, backgroundColor: '#0f172a', borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
+    progressBarFill: { height: '100%', borderRadius: 4 },
+    progressHint: { color: '#94a3b8', fontSize: 12, marginTop: 4 },
+
+    statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
     statCard: {
         backgroundColor: '#1e293b', flex: 1, minWidth: '28%',
         padding: 16, borderRadius: 12,

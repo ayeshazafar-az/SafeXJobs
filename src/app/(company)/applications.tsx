@@ -2,8 +2,35 @@ import { useAuth } from '@/lib/AuthProvider';
 import { triggerExternalNotification } from '@/lib/notificationService';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+function VideoModal({ url, visible, onClose }: { url: string, visible: boolean, onClose: () => void }) {
+    const player = useVideoPlayer(url, player => {
+        player.loop = false;
+        if (visible) player.play();
+    });
+
+    useEffect(() => {
+        if (!visible) player.pause();
+    }, [visible]);
+
+    return (
+        <Modal visible={visible} animationType="fade" transparent>
+            <View style={styles.videoOverlay}>
+                <View style={styles.videoContent}>
+                    <TouchableOpacity style={styles.closeVideoBtn} onPress={onClose}>
+                        <Ionicons name="close" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <VideoView player={player} style={styles.videoPlayer} />
+                </View>
+            </View>
+        </Modal>
+    );
+}
 
 const ALL_STATUSES = [
     'Applied', 'Under Review', 'Shortlisted', 'Test Assigned', 'Test Submitted',
@@ -71,6 +98,10 @@ export default function CompanyApplicationsScreen() {
     const [reportedCandidate, setReportedCandidate] = useState<any>(null);
     const [complaintDesc, setComplaintDesc] = useState('');
     const [complaintSaving, setComplaintSaving] = useState(false);
+
+    // Video Player State
+    const [videoUrl, setVideoUrl] = useState('');
+    const [videoModalVisible, setVideoModalVisible] = useState(false);
 
     const fetchApplications = async () => {
         if (!user) return;
@@ -221,6 +252,67 @@ export default function CompanyApplicationsScreen() {
         }
     };
 
+    const generateOfferPDF = async (app: any) => {
+        const c = app.profiles;
+        const job = app.jobs;
+        const date = new Date().toLocaleDateString();
+
+        const html = `
+            <html>
+                <head>
+                    <style>
+                        body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; }
+                        .header { text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px; }
+                        h1 { color: #3b82f6; margin: 0; }
+                        .content { line-height: 1.6; font-size: 16px; }
+                        .signature { margin-top: 50px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>${job?.profiles?.company_name || 'Our Company'}</h1>
+                        <p>Official Job Offer</p>
+                    </div>
+                    <div class="content">
+                        <p><strong>Date:</strong> ${date}</p>
+                        <p><strong>To:</strong> ${c?.full_name}</p>
+                        <br/>
+                        <p>Dear ${c?.full_name},</p>
+                        <p>We are delighted to formally offer you the position of <strong>${job?.title}</strong> at <strong>${job?.profiles?.company_name || 'our company'}</strong>.</p>
+                        <p><strong>Proposed Salary:</strong> ${app.offer_salary ? app.offer_salary + ' PKR' : 'As discussed'}</p>
+                        <p><strong>Start Date:</strong> ${app.offer_start_date || 'To be determined'}</p>
+                        <p><strong>Terms:</strong> ${app.offer_terms || 'Standard employment terms apply.'}</p>
+                        <br/>
+                        <p>We are excited to have you join our team and look forward to a mutually rewarding relationship. Please review and respond to this offer through the SafeXJobs platform.</p>
+                        <br/><br/><br/>
+                        <p>Sincerely,</p>
+                        <div class="signature">
+                            <p>_________________________</p>
+                            <p>Hiring Manager</p>
+                            <p>${job?.profiles?.company_name || 'Our Company'}</p>
+                        </div>
+                    </div>
+                </body>
+            </html>
+        `;
+
+        try {
+            const { uri } = await Print.printToFileAsync({ html });
+            if (Platform.OS === 'web') {
+                window.open(uri, '_blank');
+            } else {
+                if (await Sharing.isAvailableAsync()) {
+                    await Sharing.shareAsync(uri);
+                } else {
+                    Alert.alert('Sharing Unavailable', 'Unable to share or save the generated PDF on this device.');
+                }
+            }
+        } catch (error: any) {
+            if (Platform.OS === 'web') alert('Error generating PDF: ' + error.message);
+            else Alert.alert('Error', 'Could not generate PDF: ' + error.message);
+        }
+    };
+
     const openUrl = (url: string) => { if (url) Linking.openURL(url); };
 
     return (
@@ -293,7 +385,7 @@ export default function CompanyApplicationsScreen() {
 
                                         <View style={styles.quickActions}>
                                             {c?.video_intro_url && (
-                                                <TouchableOpacity style={styles.quickBtn} onPress={() => openUrl(c.video_intro_url)}>
+                                                <TouchableOpacity style={styles.quickBtn} onPress={() => { setVideoUrl(c.video_intro_url); setVideoModalVisible(true); }}>
                                                     <Ionicons name="videocam" size={16} color="#a78bfa" />
                                                     <Text style={styles.quickBtnText}>Watch Video</Text>
                                                 </TouchableOpacity>
@@ -317,6 +409,13 @@ export default function CompanyApplicationsScreen() {
                                                 </TouchableOpacity>
                                             )}
                                         </View>
+
+                                        {(app.status === 'Hired' || app.status === 'Offer Sent' || app.status === 'Offer Accepted') && (
+                                            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: '#4f46e5', marginTop: 16 }]} onPress={() => generateOfferPDF(app)}>
+                                                <Ionicons name="document-text" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Generate Offer Letter (PDF)</Text>
+                                            </TouchableOpacity>
+                                        )}
                                     </View>
                                 )}
 
@@ -416,6 +515,9 @@ export default function CompanyApplicationsScreen() {
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
+
+            {/* Video Inline Player Modal */}
+            <VideoModal url={videoUrl} visible={videoModalVisible} onClose={() => setVideoModalVisible(false)} />
         </View>
     );
 }
@@ -468,5 +570,10 @@ const styles = StyleSheet.create({
     label: { color: '#cbd5e1', fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
     input: { backgroundColor: '#0f172a', color: '#f8fafc', borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: '#334155' },
     submitBtn: { paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-    submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
+    submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+
+    videoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+    videoContent: { width: '100%', height: 350, position: 'relative' },
+    videoPlayer: { width: '100%', height: '100%' },
+    closeVideoBtn: { position: 'absolute', top: -40, right: 20, zIndex: 10, padding: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 }
 });

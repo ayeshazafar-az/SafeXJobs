@@ -1,8 +1,33 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+function VideoModal({ url, visible, onClose }: { url: string, visible: boolean, onClose: () => void }) {
+    const player = useVideoPlayer(url, player => {
+        player.loop = false;
+        if (visible) player.play();
+    });
+
+    useEffect(() => {
+        if (!visible) player.pause();
+    }, [visible]);
+
+    return (
+        <Modal visible={visible} animationType="fade" transparent>
+            <View style={styles.videoOverlay}>
+                <View style={styles.videoContent}>
+                    <TouchableOpacity style={styles.closeVideoBtn} onPress={onClose}>
+                        <Ionicons name="close" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <VideoView player={player} style={styles.videoPlayer} />
+                </View>
+            </View>
+        </Modal>
+    );
+}
 
 export default function CompanyTestsScreen() {
     const { user, role } = useAuth();
@@ -22,6 +47,9 @@ export default function CompanyTestsScreen() {
     const [evalTestId, setEvalTestId] = useState<string | null>(null);
     const [evalMarks, setEvalMarks] = useState('');
     const [evalComments, setEvalComments] = useState('');
+
+    const [videoUrl, setVideoUrl] = useState('');
+    const [videoVisible, setVideoVisible] = useState(false);
 
     // MCQ State
     const [isMCQ, setIsMCQ] = useState(false);
@@ -133,13 +161,6 @@ export default function CompanyTestsScreen() {
         }
     };
 
-    const openUrl = (url: string) => {
-        if (url) Linking.openURL(url).catch(() => {
-            if (Platform.OS === 'web') alert('Invalid URL');
-            else Alert.alert('Invalid URL', 'Could not open the submission link.');
-        });
-    };
-
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'Pending': return { bg: 'rgba(251, 146, 60, 0.1)', color: '#fb923c' };
@@ -147,6 +168,20 @@ export default function CompanyTestsScreen() {
             case 'Passed': return { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981' };
             case 'Failed': return { bg: 'rgba(244, 63, 94, 0.1)', color: '#f43f5e' };
             default: return { bg: 'rgba(148, 163, 184, 0.1)', color: '#94a3b8' };
+        }
+    };
+
+    const isVideoUrl = (url: string) => {
+        const lower = url.toLowerCase();
+        return lower.includes('.mp4') || lower.includes('.mov') || lower.includes('.webm');
+    };
+
+    const handleSubmissionClick = (url: string) => {
+        if (isVideoUrl(url)) {
+            setVideoUrl(url);
+            setVideoVisible(true);
+        } else {
+            Linking.openURL(url);
         }
     };
 
@@ -216,9 +251,9 @@ export default function CompanyTestsScreen() {
                                     <View>
                                         {/* Submission link */}
                                         {test.submission_url && (
-                                            <TouchableOpacity style={styles.reviewBtn} onPress={() => openUrl(test.submission_url)}>
-                                                <Ionicons name="link" size={18} color="#3b82f6" style={{ marginRight: 6 }} />
-                                                <Text style={styles.reviewBtnText}>Review Submission Link</Text>
+                                            <TouchableOpacity style={styles.reviewBtn} onPress={() => handleSubmissionClick(test.submission_url)}>
+                                                <Ionicons name={isVideoUrl(test.submission_url) ? "videocam" : "link"} size={18} color="#3b82f6" style={{ marginRight: 6 }} />
+                                                <Text style={styles.reviewBtnText}>{isVideoUrl(test.submission_url) ? "Watch Submission Video" : "Review Submission Link"}</Text>
                                             </TouchableOpacity>
                                         )}
                                         {test.submission_text && (
@@ -370,6 +405,8 @@ export default function CompanyTestsScreen() {
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
+
+            <VideoModal url={videoUrl} visible={videoVisible} onClose={() => setVideoVisible(false)} />
         </View>
     );
 }
@@ -425,5 +462,10 @@ const styles = StyleSheet.create({
     mcqBuilder: { marginBottom: 16 },
     radioBtn: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#334155', alignItems: 'center', justifyContent: 'center' },
     radioBtnActive: { borderColor: '#10b981', backgroundColor: '#10b981' },
-    addMcqBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: 12, borderRadius: 12 }
+    addMcqBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: 12, borderRadius: 12 },
+
+    videoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+    videoContent: { width: '100%', height: 350, position: 'relative' },
+    videoPlayer: { width: '100%', height: '100%' },
+    closeVideoBtn: { position: 'absolute', top: -40, right: 20, zIndex: 10, padding: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 }
 });

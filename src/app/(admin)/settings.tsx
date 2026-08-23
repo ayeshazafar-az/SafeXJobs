@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -5,18 +6,31 @@ import { useEffect, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AdminSettingsScreen() {
+    const { theme, themeMode, toggleTheme } = useTheme();
+    const styles = getStyles(theme);
     const [maintenanceMode, setMaintenanceMode] = useState(false);
     const [autoVerify, setAutoVerify] = useState(false);
     const [activeTab, setActiveTab] = useState<'Monitoring' | 'Settings'>('Monitoring');
     const [complaints, setComplaints] = useState<any[]>([]);
 
+    const fetchComplaints = async () => {
+        const { data } = await supabase.from('complaints').select('*, reporter:profiles!complaints_reported_by_fkey(full_name), target:profiles!complaints_reported_user_id_fkey(full_name, role)').order('created_at', { ascending: false });
+        if (data) setComplaints(data);
+    };
+
     useEffect(() => {
-        const fetchComplaints = async () => {
-            const { data } = await supabase.from('complaints').select('*').order('created_at', { ascending: false });
-            if (data) setComplaints(data);
-        };
         fetchComplaints();
     }, []);
+
+    const updateComplaintStatus = async (id: string, status: string) => {
+        const { error } = await supabase.from('complaints').update({ status }).eq('id', id);
+        if (!error) {
+            fetchComplaints();
+        } else {
+            if (Platform.OS === 'web') alert('Error: ' + error.message);
+            else Alert.alert('Error', error.message);
+        }
+    };
 
     const handleSignOut = () => {
         if (Platform.OS === 'web') {
@@ -91,8 +105,25 @@ export default function AdminSettingsScreen() {
                             <Switch
                                 value={autoVerify}
                                 onValueChange={setAutoVerify}
-                                trackColor={{ false: '#334155', true: 'rgba(16, 185, 129, 0.4)' }}
-                                thumbColor={autoVerify ? '#10b981' : '#94a3b8'}
+                                trackColor={{ false: theme.border, true: 'rgba(16, 185, 129, 0.4)' }}
+                                thumbColor={autoVerify ? theme.success : theme.textSecondary}
+                            />
+                        </View>
+
+                        <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Appearance</Text>
+                        <View style={styles.settingCard}>
+                            <View style={styles.settingInfo}>
+                                <Ionicons name={themeMode === 'light' ? "sunny" : "moon"} size={24} color={themeMode === 'light' ? theme.warning : theme.primary} style={styles.settingIcon} />
+                                <View>
+                                    <Text style={styles.settingTitle}>Dark Mode</Text>
+                                    <Text style={styles.settingDesc}>Toggle between active themes.</Text>
+                                </View>
+                            </View>
+                            <Switch
+                                value={themeMode === 'dark'}
+                                onValueChange={toggleTheme}
+                                trackColor={{ false: theme.border, true: 'rgba(59, 130, 246, 0.4)' }}
+                                thumbColor={themeMode === 'dark' ? theme.primary : theme.textSecondary}
                             />
                         </View>
 
@@ -123,38 +154,34 @@ export default function AdminSettingsScreen() {
 
                         <Text style={styles.sectionTitle}>Active Complaints & Chat Reports</Text>
 
-                        {complaints.length === 0 ? (
+                        {complaints.filter(c => c.status !== 'Resolved').length === 0 ? (
                             <View style={{ alignItems: 'center', marginTop: 40, opacity: 0.5 }}>
                                 <Ionicons name="checkmark-circle-outline" size={48} color="#10b981" />
                                 <Text style={{ color: '#94a3b8', marginTop: 12 }}>Inbox Zero - No active complaints.</Text>
                             </View>
                         ) : (
-                            complaints.map((item) => (
+                            complaints.filter(c => c.status !== 'Resolved').map((item) => (
                                 <View key={item.id} style={styles.complaintCard}>
                                     <View style={styles.complaintHeader}>
                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                            <Ionicons
-                                                name={item.type === 'Suspicious Activity' ? 'warning' : 'chatbubble-ellipses'}
-                                                size={18}
-                                                color="#f43f5e"
-                                            />
-                                            <Text style={styles.complaintType}>{item.type}</Text>
+                                            <Ionicons name="warning" size={18} color="#f43f5e" />
+                                            <Text style={styles.complaintType}>Status: {item.status || 'Pending'}</Text>
                                         </View>
                                         <View style={styles.severityBadge}>
-                                            <Text style={styles.severityText}>{item.severity}</Text>
+                                            <Text style={styles.severityText}>{item.target?.role === 'candidate' ? 'Candidate Report' : 'Company Report'}</Text>
                                         </View>
                                     </View>
 
-                                    <Text style={styles.complaintUser}>Target: {item.user_name || 'Anonymous'}</Text>
-                                    <Text style={styles.complaintIssue}>{item.issue}</Text>
-                                    <Text style={styles.complaintDate}>{new Date(item.created_at).toLocaleString()}</Text>
+                                    <Text style={styles.complaintUser}>Target: {item.target?.full_name || 'Anonymous'}</Text>
+                                    <Text style={styles.complaintIssue}>{item.description}</Text>
+                                    <Text style={styles.complaintDate}>Reported by {item.reporter?.full_name || 'System'} • {new Date(item.created_at).toLocaleString()}</Text>
 
                                     <View style={styles.complaintActions}>
-                                        <TouchableOpacity style={[styles.actionBtn, { borderColor: '#334155', borderWidth: 1 }]}>
+                                        <TouchableOpacity onPress={() => updateComplaintStatus(item.id, 'Dismissed')} style={[styles.actionBtn, { borderColor: '#334155', borderWidth: 1 }]}>
                                             <Text style={{ color: '#94a3b8', fontWeight: 'bold' }}>Dismiss</Text>
                                         </TouchableOpacity>
-                                        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#3b82f6', flex: 1.5 }]}>
-                                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Review Evidence</Text>
+                                        <TouchableOpacity onPress={() => updateComplaintStatus(item.id, 'Resolved')} style={[styles.actionBtn, { backgroundColor: '#10b981', flex: 1.5 }]}>
+                                            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Mark Resolved</Text>
                                         </TouchableOpacity>
                                     </View>
                                 </View>
@@ -167,14 +194,14 @@ export default function AdminSettingsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     header: {
         padding: 24, paddingTop: 60, paddingBottom: 20,
-        backgroundColor: '#0f172a',
+        backgroundColor: theme.headerBg,
     },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4, letterSpacing: -0.5 },
-    subtitle: { fontSize: 14, color: '#94a3b8', fontWeight: '500' },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4, letterSpacing: -0.5 },
+    subtitle: { fontSize: 14, color: theme.textSecondary, fontWeight: '500' },
     signOutBtn: { backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(244, 63, 94, 0.3)' },
 
     tabContainer: {
@@ -187,42 +214,42 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: 12, paddingHorizontal: 16,
         borderRadius: 12,
-        backgroundColor: 'rgba(51, 65, 85, 0.4)',
+        backgroundColor: theme.border,
         alignItems: 'center'
     },
-    tabBtnActive: { backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155' },
-    tabBtnText: { color: '#64748b', fontSize: 13, fontWeight: '700' },
-    tabBtnTextActive: { color: '#f8fafc' },
+    tabBtnActive: { backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border },
+    tabBtnText: { color: theme.textSecondary, fontSize: 13, fontWeight: '700' },
+    tabBtnTextActive: { color: theme.text },
 
     content: { padding: 20, paddingBottom: 100 },
-    sectionTitle: { color: '#e2e8f0', fontSize: 18, fontWeight: '700', marginBottom: 16 },
+    sectionTitle: { color: theme.text, fontSize: 18, fontWeight: '700', marginBottom: 16 },
 
     settingsWrapper: { flex: 1 },
     settingCard: {
-        backgroundColor: '#1e293b',
+        backgroundColor: theme.card,
         borderRadius: 16,
         padding: 16,
         marginBottom: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        borderWidth: 1, borderColor: '#334155'
+        borderWidth: 1, borderColor: theme.border
     },
     settingInfo: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 16 },
     settingIcon: { marginRight: 12 },
-    settingTitle: { color: '#f8fafc', fontSize: 15, fontWeight: '700', marginBottom: 2 },
-    settingDesc: { color: '#94a3b8', fontSize: 12 },
+    settingTitle: { color: theme.text, fontSize: 15, fontWeight: '700', marginBottom: 2 },
+    settingDesc: { color: theme.textSecondary, fontSize: 12 },
 
     managementBtn: {
-        backgroundColor: '#1e293b',
+        backgroundColor: theme.card,
         borderRadius: 16,
         padding: 16,
         marginBottom: 12,
         flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 1, borderColor: '#334155'
+        borderWidth: 1, borderColor: theme.border
     },
-    managementBtnText: { color: '#f8fafc', fontSize: 15, fontWeight: '600', marginLeft: 12 },
+    managementBtnText: { color: theme.text, fontSize: 15, fontWeight: '600', marginLeft: 12 },
 
     monitoringWrapper: { flex: 1 },
     systemHealthCard: {
@@ -233,15 +260,15 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     pulseDot: { width: 10, height: 10, borderRadius: 5 },
-    healthTitle: { color: '#10b981', fontSize: 16, fontWeight: 'bold' },
-    healthDesc: { color: '#94a3b8', fontSize: 13, lineHeight: 20 },
+    healthTitle: { color: theme.success, fontSize: 16, fontWeight: 'bold' },
+    healthDesc: { color: theme.textSecondary, fontSize: 13, lineHeight: 20 },
 
     complaintCard: {
-        backgroundColor: '#1e293b',
+        backgroundColor: theme.card,
         borderRadius: 16,
         padding: 16,
         marginBottom: 16,
-        borderWidth: 1, borderColor: '#334155',
+        borderWidth: 1, borderColor: theme.border,
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
             android: { elevation: 3 },
@@ -249,13 +276,13 @@ const styles = StyleSheet.create({
         })
     },
     complaintHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    complaintType: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold' },
+    complaintType: { color: theme.text, fontSize: 14, fontWeight: 'bold' },
     severityBadge: { backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-    severityText: { color: '#f43f5e', fontSize: 11, fontWeight: 'bold' },
-    complaintUser: { color: '#94a3b8', fontSize: 13, marginBottom: 4 },
-    complaintIssue: { color: '#e2e8f0', fontSize: 15, fontWeight: '500', marginBottom: 12 },
-    complaintDate: { color: '#64748b', fontSize: 11, marginBottom: 16 },
+    severityText: { color: theme.danger, fontSize: 11, fontWeight: 'bold' },
+    complaintUser: { color: theme.textSecondary, fontSize: 13, marginBottom: 4 },
+    complaintIssue: { color: theme.text, fontSize: 15, fontWeight: '500', marginBottom: 12 },
+    complaintDate: { color: theme.textSecondary, fontSize: 11, marginBottom: 16 },
 
-    complaintActions: { flexDirection: 'row', gap: 12, borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 16 },
+    complaintActions: { flexDirection: 'row', gap: 12, borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 16 },
     actionBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 }
 });

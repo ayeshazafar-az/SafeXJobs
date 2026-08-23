@@ -1,9 +1,9 @@
+import { AuthProvider, useAuth } from '@/lib/AuthProvider';
+import { ThemeProvider as AppThemeProvider } from '@/lib/ThemeContext';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
-
-import { AuthProvider, useAuth } from '@/lib/AuthProvider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -46,9 +46,11 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AuthProvider>
-        <InitialLayout />
-      </AuthProvider>
+      <AppThemeProvider>
+        <AuthProvider>
+          <InitialLayout />
+        </AuthProvider>
+      </AppThemeProvider>
     </ThemeProvider>
   );
 }
