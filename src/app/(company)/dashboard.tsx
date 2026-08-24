@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -7,6 +8,8 @@ import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpa
 
 export default function CompanyDashboard() {
     const { user, role } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [loading, setLoading] = useState(true);
     const [companyName, setCompanyName] = useState('');
     const [status, setStatus] = useState('Pending');
@@ -127,7 +130,7 @@ export default function CompanyDashboard() {
     if (loading) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#3b82f6" />
+                <ActivityIndicator size="large" color={theme.primary} />
             </View>
         );
     }
@@ -141,10 +144,10 @@ export default function CompanyDashboard() {
                 </View>
                 <View style={styles.headerActions}>
                     <TouchableOpacity onPress={() => router.push('/(company)/notifications')} style={styles.bellBtn}>
-                        <Ionicons name="notifications-outline" size={22} color="#f8fafc" />
+                        <Ionicons name="notifications-outline" size={22} color={theme.text} />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                        <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+                        <Ionicons name="log-out-outline" size={24} color={theme.danger} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -153,13 +156,13 @@ export default function CompanyDashboard() {
             <View style={styles.progressCard}>
                 <View style={styles.progressHeader}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Ionicons name="business" size={24} color="#38bdf8" />
+                        <Ionicons name="business" size={24} color={theme.primary} />
                         <Text style={styles.progressTitle}>Profile Completion</Text>
                     </View>
                     <Text style={styles.progressValue}>{profileCompletion}%</Text>
                 </View>
                 <View style={styles.progressBarBg}>
-                    <View style={[styles.progressBarFill, { width: `${profileCompletion}%`, backgroundColor: profileCompletion === 100 ? '#10b981' : '#38bdf8' }]} />
+                    <View style={[styles.progressBarFill, { width: `${profileCompletion}%`, backgroundColor: profileCompletion === 100 ? theme.success : theme.primary }]} />
                 </View>
                 {profileCompletion < 100 && (
                     <Text style={styles.progressHint}>Complete your company profile to attract high-quality candidates.</Text>
@@ -169,7 +172,7 @@ export default function CompanyDashboard() {
             {/* Pending Verification Banner */}
             {status !== 'Verified' && (
                 <View style={styles.warningBanner}>
-                    <Ionicons name="warning-outline" size={24} color="#f59e0b" />
+                    <Ionicons name="warning-outline" size={24} color={theme.warning} />
                     <View style={{ marginLeft: 12, flex: 1 }}>
                         <Text style={styles.warningTitle}>Pending Verification</Text>
                         <Text style={styles.warningText}>
@@ -182,15 +185,15 @@ export default function CompanyDashboard() {
             {/* Jobs Overview */}
             <Text style={styles.sectionHeading}>Jobs Overview</Text>
             <View style={styles.statsGrid}>
-                <View style={[styles.statCard, { borderLeftColor: '#3b82f6', borderLeftWidth: 4 }]}>
+                <View style={[styles.statCard, { borderLeftColor: theme.primary, borderLeftWidth: 4 }]}>
                     <Text style={styles.statValue}>{stats.totalJobs}</Text>
                     <Text style={styles.statLabel}>Total Jobs</Text>
                 </View>
-                <View style={[styles.statCard, { borderLeftColor: '#10b981', borderLeftWidth: 4 }]}>
+                <View style={[styles.statCard, { borderLeftColor: theme.success, borderLeftWidth: 4 }]}>
                     <Text style={styles.statValue}>{stats.activeJobs}</Text>
                     <Text style={styles.statLabel}>Active Jobs</Text>
                 </View>
-                <View style={[styles.statCard, { borderLeftColor: '#64748b', borderLeftWidth: 4 }]}>
+                <View style={[styles.statCard, { borderLeftColor: theme.textSecondary, borderLeftWidth: 4 }]}>
                     <Text style={styles.statValue}>{stats.closedJobs}</Text>
                     <Text style={styles.statLabel}>Closed Jobs</Text>
                 </View>
@@ -204,10 +207,10 @@ export default function CompanyDashboard() {
                     const renderBar = (label: string, value: number, color: string) => (
                         <View style={{ marginBottom: 16 }} key={label}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                                <Text style={{ color: '#e2e8f0', fontSize: 14, fontWeight: '500' }}>{label}</Text>
-                                <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>{value}</Text>
+                                <Text style={{ color: theme.text, fontSize: 14, fontWeight: '500' }}>{label}</Text>
+                                <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: 'bold' }}>{value}</Text>
                             </View>
-                            <View style={{ height: 10, backgroundColor: '#334155', borderRadius: 5, overflow: 'hidden' }}>
+                            <View style={{ height: 10, backgroundColor: theme.background, borderRadius: 5, overflow: 'hidden' }}>
                                 <View style={{ height: '100%', width: `${(value / maxVal) * 100}%`, backgroundColor: color, borderRadius: 5 }} />
                             </View>
                         </View>
@@ -215,11 +218,11 @@ export default function CompanyDashboard() {
 
                     return (
                         <>
-                            {renderBar('Total Apps', stats.totalApps, '#a855f7')}
-                            {renderBar('Shortlisted', stats.shortlisted, '#f59e0b')}
-                            {renderBar('Pending Tests', stats.pendingTests, '#38bdf8')}
-                            {renderBar('Interviews', stats.upcomingInterviews, '#fb923c')}
-                            {renderBar('Hired', stats.hired, '#10b981')}
+                            {renderBar('Total Apps', stats.totalApps, theme.primary)}
+                            {renderBar('Shortlisted', stats.shortlisted, theme.warning)}
+                            {renderBar('Pending Tests', stats.pendingTests, theme.warning)}
+                            {renderBar('Interviews', stats.upcomingInterviews, theme.warning)}
+                            {renderBar('Hired', stats.hired, theme.success)}
                         </>
                     );
                 })()}
@@ -235,11 +238,11 @@ export default function CompanyDashboard() {
                             return jobAppStats.map((item, idx) => (
                                 <View style={{ marginBottom: 16 }} key={idx}>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                                        <Text style={{ color: '#e2e8f0', fontSize: 13, fontWeight: '500', flex: 1 }} numberOfLines={1}>{item.title}</Text>
-                                        <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold', marginLeft: 10 }}>{item.count}</Text>
+                                        <Text style={{ color: theme.text, fontSize: 13, fontWeight: '500', flex: 1 }} numberOfLines={1}>{item.title}</Text>
+                                        <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: 'bold', marginLeft: 10 }}>{item.count}</Text>
                                     </View>
-                                    <View style={{ height: 10, backgroundColor: '#334155', borderRadius: 5, overflow: 'hidden' }}>
-                                        <View style={{ height: '100%', width: `${(item.count / maxVal) * 100}%`, backgroundColor: '#eab308', borderRadius: 5 }} />
+                                    <View style={{ height: 10, backgroundColor: theme.background, borderRadius: 5, overflow: 'hidden' }}>
+                                        <View style={{ height: '100%', width: `${(item.count / maxVal) * 100}%`, backgroundColor: theme.warning, borderRadius: 5 }} />
                                     </View>
                                 </View>
                             ));
@@ -253,63 +256,63 @@ export default function CompanyDashboard() {
             <View style={styles.actionList}>
                 <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/(company)/applications')}>
                     <View style={[styles.iconBox, { backgroundColor: 'rgba(168, 85, 247, 0.1)' }]}>
-                        <Ionicons name="document-text-outline" size={20} color="#a855f7" />
+                        <Ionicons name="document-text-outline" size={20} color={theme.primary} />
                     </View>
                     <View style={styles.actionTextContainer}>
                         <Text style={styles.actionTitle}>Review Applications</Text>
                         <Text style={styles.actionDesc}>{stats.totalApps} total applications received</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
+                    <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/(company)/tests')}>
                     <View style={[styles.iconBox, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
-                        <Ionicons name="star-outline" size={20} color="#f59e0b" />
+                        <Ionicons name="star-outline" size={20} color={theme.warning} />
                     </View>
                     <View style={styles.actionTextContainer}>
                         <Text style={styles.actionTitle}>Candidate Assessments</Text>
                         <Text style={styles.actionDesc}>{stats.pendingTests} pending test submissions</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
+                    <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/(company)/interviews')}>
                     <View style={[styles.iconBox, { backgroundColor: 'rgba(56, 189, 248, 0.1)' }]}>
-                        <Ionicons name="videocam-outline" size={20} color="#38bdf8" />
+                        <Ionicons name="videocam-outline" size={20} color={theme.primary} />
                     </View>
                     <View style={styles.actionTextContainer}>
                         <Text style={styles.actionTitle}>Interviews & Meetings</Text>
                         <Text style={styles.actionDesc}>{stats.upcomingInterviews} upcoming interviews</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
+                    <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.actionItem, { borderBottomWidth: 0 }]} onPress={() => router.push('/(company)/chat')}>
                     <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-                        <Ionicons name="chatbubbles-outline" size={20} color="#10b981" />
+                        <Ionicons name="chatbubbles-outline" size={20} color={theme.success} />
                     </View>
                     <View style={styles.actionTextContainer}>
                         <Text style={styles.actionTitle}>Messages</Text>
                         <Text style={styles.actionDesc}>Chat with shortlisted candidates</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
+                    <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
             </View>
         </ScrollView>
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     content: { padding: 24, paddingTop: 60, paddingBottom: 40 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 },
     headerActions: { flexDirection: 'row', gap: 12 },
-    title: { fontSize: 28, fontWeight: '800', color: '#f8fafc', marginBottom: 6 },
-    subtitle: { fontSize: 15, color: '#94a3b8' },
+    title: { fontSize: 28, fontWeight: '800', color: theme.text, marginBottom: 6 },
+    subtitle: { fontSize: 15, color: theme.textSecondary },
     bellBtn: {
         width: 44, height: 44, borderRadius: 12,
-        backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center',
-        borderWidth: 1, borderColor: '#334155',
+        backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center',
+        borderWidth: 1, borderColor: theme.border,
     },
     logoutButton: { backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: 10, borderRadius: 12 },
 
@@ -319,44 +322,44 @@ const styles = StyleSheet.create({
         borderRadius: 12, padding: 16, marginBottom: 28,
         flexDirection: 'row', alignItems: 'flex-start'
     },
-    warningTitle: { color: '#f59e0b', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-    warningText: { color: '#fbbf24', fontSize: 13, lineHeight: 20 },
+    warningTitle: { color: theme.warning, fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+    warningText: { color: theme.warning, fontSize: 13, lineHeight: 20 },
 
-    sectionHeading: { fontSize: 16, fontWeight: '700', color: '#f8fafc', marginBottom: 12, marginTop: 8 },
+    sectionHeading: { fontSize: 16, fontWeight: '700', color: theme.text, marginBottom: 12, marginTop: 8 },
 
-    progressCard: { backgroundColor: '#1e293b', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#334155' },
+    progressCard: { backgroundColor: theme.card, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: theme.border },
     progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    progressTitle: { color: '#f8fafc', fontSize: 15, fontWeight: 'bold' },
-    progressValue: { color: '#38bdf8', fontSize: 15, fontWeight: 'bold' },
-    progressBarBg: { height: 8, backgroundColor: '#0f172a', borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
+    progressTitle: { color: theme.text, fontSize: 15, fontWeight: 'bold' },
+    progressValue: { color: theme.primary, fontSize: 15, fontWeight: 'bold' },
+    progressBarBg: { height: 8, backgroundColor: theme.background, borderRadius: 4, overflow: 'hidden', marginBottom: 8 },
     progressBarFill: { height: '100%', borderRadius: 4 },
-    progressHint: { color: '#94a3b8', fontSize: 12, marginTop: 4 },
+    progressHint: { color: theme.textSecondary, fontSize: 12, marginTop: 4 },
 
     statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
     statCard: {
-        backgroundColor: '#1e293b', flex: 1, minWidth: '28%',
+        backgroundColor: theme.card, flex: 1, minWidth: '28%',
         padding: 16, borderRadius: 12,
-        borderWidth: 1, borderColor: '#334155',
+        borderWidth: 1, borderColor: theme.border,
     },
-    statValue: { fontSize: 26, fontWeight: 'bold', color: '#f8fafc', marginBottom: 4 },
-    statLabel: { fontSize: 12, color: '#94a3b8' },
+    statValue: { fontSize: 26, fontWeight: 'bold', color: theme.text, marginBottom: 4 },
+    statLabel: { fontSize: 12, color: theme.textSecondary },
     chartContainer: {
-        backgroundColor: '#1e293b', padding: 20, borderRadius: 16,
-        borderWidth: 1, borderColor: '#334155', marginBottom: 28,
+        backgroundColor: theme.card, padding: 20, borderRadius: 16,
+        borderWidth: 1, borderColor: theme.border, marginBottom: 28,
     },
     actionList: {
-        backgroundColor: '#1e293b', borderRadius: 16,
-        borderWidth: 1, borderColor: '#334155', overflow: 'hidden',
+        backgroundColor: theme.card, borderRadius: 16,
+        borderWidth: 1, borderColor: theme.border, overflow: 'hidden',
     },
     actionItem: {
         flexDirection: 'row', alignItems: 'center',
-        padding: 16, borderBottomWidth: 1, borderBottomColor: '#334155',
+        padding: 16, borderBottomWidth: 1, borderBottomColor: theme.border,
     },
     iconBox: {
         width: 40, height: 40, borderRadius: 10,
         alignItems: 'center', justifyContent: 'center', marginRight: 16,
     },
     actionTextContainer: { flex: 1 },
-    actionTitle: { fontSize: 15, fontWeight: '600', color: '#f8fafc', marginBottom: 4 },
-    actionDesc: { fontSize: 13, color: '#94a3b8' },
+    actionTitle: { fontSize: 15, fontWeight: '600', color: theme.text, marginBottom: 4 },
+    actionDesc: { fontSize: 13, color: theme.textSecondary },
 });

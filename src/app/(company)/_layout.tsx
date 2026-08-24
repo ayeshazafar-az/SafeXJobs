@@ -1,16 +1,18 @@
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 export default function CompanyLayout() {
+    const { theme } = useTheme();
     return (
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: '#f59e0b',
-                tabBarInactiveTintColor: '#94a3b8',
+                tabBarActiveTintColor: theme.warning,
+                tabBarInactiveTintColor: theme.textSecondary,
                 tabBarStyle: {
-                    backgroundColor: '#0f172a',
-                    borderTopColor: '#1e293b',
+                    backgroundColor: theme.background,
+                    borderTopColor: theme.card,
                     borderTopWidth: 1,
                     paddingBottom: 4,
                     height: 60,

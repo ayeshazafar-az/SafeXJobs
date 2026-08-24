@@ -1,16 +1,18 @@
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 export default function CandidateLayout() {
+    const { theme } = useTheme();
     return (
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: '#3b82f6',
-                tabBarInactiveTintColor: '#94a3b8',
+                tabBarActiveTintColor: theme.primary,
+                tabBarInactiveTintColor: theme.textSecondary,
                 tabBarStyle: {
-                    backgroundColor: '#0f172a',
-                    borderTopColor: '#1e293b',
+                    backgroundColor: theme.background,
+                    borderTopColor: theme.card,
                     borderTopWidth: 1,
                     paddingBottom: 4,
                     height: 60,

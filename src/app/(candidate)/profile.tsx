@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,6 +9,8 @@ import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Platfor
 
 export default function CandidateProfileScreen() {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState<string | null>(null);
@@ -244,7 +247,7 @@ export default function CandidateProfileScreen() {
     if (loading) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#3b82f6" />
+                <ActivityIndicator size="large" color={theme.primary} />
             </View>
         );
     }
@@ -258,7 +261,7 @@ export default function CandidateProfileScreen() {
                         <Text style={styles.subtitle}>Complete your profile to attract top hiring managers.</Text>
                     </View>
                     <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
-                        <Ionicons name="log-out-outline" size={24} color="#f43f5e" />
+                        <Ionicons name="log-out-outline" size={24} color={theme.danger} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -284,7 +287,7 @@ export default function CandidateProfileScreen() {
                         <TouchableOpacity style={styles.avatarContainer} onPress={handleUploadProfilePicture} disabled={uploadingMedia === 'picture'}>
                             {uploadingMedia === 'picture' ? (
                                 <View style={styles.avatarCircle}>
-                                    <ActivityIndicator color="#3b82f6" size="large" />
+                                    <ActivityIndicator color={theme.primary} size="large" />
                                 </View>
                             ) : profilePictureUrl ? (
                                 <Image source={{ uri: profilePictureUrl }} style={styles.avatarCircle} />
@@ -301,15 +304,15 @@ export default function CandidateProfileScreen() {
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Full Name</Text>
-                            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="John Doe" placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="John Doe" placeholderTextColor={theme.textSecondary} />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Phone Number</Text>
-                            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+92 3XX XXXXXXX" placeholderTextColor="#64748b" keyboardType="phone-pad" />
+                            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+92 3XX XXXXXXX" placeholderTextColor={theme.textSecondary} keyboardType="phone-pad" />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Province & City</Text>
-                            <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="Islamabad, Capital Territory" placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="Islamabad, Capital Territory" placeholderTextColor={theme.textSecondary} />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Career Objective</Text>
@@ -319,12 +322,12 @@ export default function CandidateProfileScreen() {
                                 value={careerObjective}
                                 onChangeText={setCareerObjective}
                                 placeholder="Write a short summary about your goals..."
-                                placeholderTextColor="#64748b"
+                                placeholderTextColor={theme.textSecondary}
                             />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Languages</Text>
-                            <TextInput style={styles.input} value={languages} onChangeText={setLanguages} placeholder="English, Urdu, etc." placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={languages} onChangeText={setLanguages} placeholder="English, Urdu, etc." placeholderTextColor={theme.textSecondary} />
                         </View>
                     </View>
                 )}
@@ -333,7 +336,7 @@ export default function CandidateProfileScreen() {
                     <View style={styles.formSection}>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Skills (Comma Separated)</Text>
-                            <TextInput style={styles.input} value={skills} onChangeText={setSkills} placeholder="React, Node.js, Design" placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={skills} onChangeText={setSkills} placeholder="React, Node.js, Design" placeholderTextColor={theme.textSecondary} />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Education History (One per line)</Text>
@@ -343,7 +346,7 @@ export default function CandidateProfileScreen() {
                                 value={educationStr}
                                 onChangeText={setEducationStr}
                                 placeholder="BS Computer Science - XYZ Univ"
-                                placeholderTextColor="#64748b"
+                                placeholderTextColor={theme.textSecondary}
                             />
                         </View>
                         <View style={styles.inputGroup}>
@@ -354,7 +357,7 @@ export default function CandidateProfileScreen() {
                                 value={experienceStr}
                                 onChangeText={setExperienceStr}
                                 placeholder="Software Eng - Acme Corp (2022-2024)"
-                                placeholderTextColor="#64748b"
+                                placeholderTextColor={theme.textSecondary}
                             />
                         </View>
                         <View style={styles.inputGroup}>
@@ -365,16 +368,16 @@ export default function CandidateProfileScreen() {
                                 value={certificationsStr}
                                 onChangeText={setCertificationsStr}
                                 placeholder="AWS Solutions Architect (2023)"
-                                placeholderTextColor="#64748b"
+                                placeholderTextColor={theme.textSecondary}
                             />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>LinkedIn Profile URL</Text>
-                            <TextInput style={styles.input} value={linkedinUrl} onChangeText={setLinkedinUrl} placeholder="https://linkedin.com/in/..." placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={linkedinUrl} onChangeText={setLinkedinUrl} placeholder="https://linkedin.com/in/..." placeholderTextColor={theme.textSecondary} />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Portfolio / Website</Text>
-                            <TextInput style={styles.input} value={portfolioUrl} onChangeText={setPortfolioUrl} placeholder="https://github.com/..." placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={portfolioUrl} onChangeText={setPortfolioUrl} placeholder="https://github.com/..." placeholderTextColor={theme.textSecondary} />
                         </View>
                     </View>
                 )}
@@ -383,11 +386,11 @@ export default function CandidateProfileScreen() {
                     <View style={styles.formSection}>
                         <View style={styles.mediaCard}>
                             <View style={styles.mediaIconWrapper}>
-                                <Ionicons name="document-text" size={32} color="#3b82f6" />
+                                <Ionicons name="document-text" size={32} color={theme.primary} />
                             </View>
                             <View style={{ flex: 1, marginLeft: 16 }}>
                                 <Text style={styles.mediaTitle}>Upload CV / Resume</Text>
-                                <Text style={styles.mediaDesc}>PDF Only. {resumeUrl ? <Text style={{ color: '#10b981', fontWeight: 'bold' }}>Uploaded</Text> : 'Not provided'}</Text>
+                                <Text style={styles.mediaDesc}>PDF Only. {resumeUrl ? <Text style={{ color: theme.success, fontWeight: 'bold' }}>Uploaded</Text> : 'Not provided'}</Text>
                             </View>
                             <TouchableOpacity style={styles.uploadBtn} onPress={handleUploadResume} disabled={uploadingMedia !== null}>
                                 {uploadingMedia === 'resume' ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.uploadBtnText}>{resumeUrl ? 'Replace' : 'Upload'}</Text>}
@@ -396,28 +399,28 @@ export default function CandidateProfileScreen() {
 
                         {resumeUrl ? (
                             <TouchableOpacity style={styles.viewLinkBox} onPress={() => Linking.openURL(resumeUrl)}>
-                                <Ionicons name="eye-outline" size={16} color="#3b82f6" style={{ marginRight: 6 }} />
-                                <Text style={{ color: '#3b82f6', fontSize: 13, fontWeight: 'bold' }}>View Currently Uploaded Resume</Text>
+                                <Ionicons name="eye-outline" size={16} color={theme.primary} style={{ marginRight: 6 }} />
+                                <Text style={{ color: theme.primary, fontSize: 13, fontWeight: 'bold' }}>View Currently Uploaded Resume</Text>
                             </TouchableOpacity>
                         ) : null}
 
                         <View style={[styles.mediaCard, { marginTop: 16 }]}>
                             <View style={[styles.mediaIconWrapper, { backgroundColor: 'rgba(244, 63, 94, 0.1)' }]}>
-                                <Ionicons name="videocam" size={32} color="#f43f5e" />
+                                <Ionicons name="videocam" size={32} color={theme.danger} />
                             </View>
                             <View style={{ flex: 1, marginLeft: 16 }}>
                                 <Text style={styles.mediaTitle}>Video Intro</Text>
-                                <Text style={styles.mediaDesc}>Record a 60s intro. {videoUrl ? <Text style={{ color: '#10b981', fontWeight: 'bold' }}>Uploaded</Text> : 'Required'}</Text>
+                                <Text style={styles.mediaDesc}>Record a 60s intro. {videoUrl ? <Text style={{ color: theme.success, fontWeight: 'bold' }}>Uploaded</Text> : 'Required'}</Text>
                             </View>
-                            <TouchableOpacity style={[styles.uploadBtn, { backgroundColor: '#f43f5e' }]} onPress={handleRecordVideo} disabled={uploadingMedia !== null}>
+                            <TouchableOpacity style={[styles.uploadBtn, { backgroundColor: theme.danger }]} onPress={handleRecordVideo} disabled={uploadingMedia !== null}>
                                 {uploadingMedia === 'video' ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.uploadBtnText}>{videoUrl ? 'Re-Record' : 'Record'}</Text>}
                             </TouchableOpacity>
                         </View>
 
                         {videoUrl ? (
                             <TouchableOpacity style={styles.viewLinkBox} onPress={() => Linking.openURL(videoUrl)}>
-                                <Ionicons name="eye-outline" size={16} color="#f43f5e" style={{ marginRight: 6 }} />
-                                <Text style={{ color: '#f43f5e', fontSize: 13, fontWeight: 'bold' }}>Watch Current Video Intro</Text>
+                                <Ionicons name="eye-outline" size={16} color={theme.danger} style={{ marginRight: 6 }} />
+                                <Text style={{ color: theme.danger, fontSize: 13, fontWeight: 'bold' }}>Watch Current Video Intro</Text>
                             </TouchableOpacity>
                         ) : null}
 
@@ -440,17 +443,17 @@ export default function CandidateProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
-    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155' },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: '#94a3b8' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: theme.textSecondary },
     signOutBtn: { backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(244, 63, 94, 0.3)' },
 
-    segmentedControl: { flexDirection: 'row', padding: 16, gap: 8, backgroundColor: '#0f172a' },
-    segmentBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 100, backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155' },
-    segmentBtnActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-    segmentBtnText: { color: '#94a3b8', fontSize: 13, fontWeight: '700' },
+    segmentedControl: { flexDirection: 'row', padding: 16, gap: 8, backgroundColor: theme.background },
+    segmentBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 100, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border },
+    segmentBtnActive: { backgroundColor: theme.primary, borderColor: theme.primary },
+    segmentBtnText: { color: theme.textSecondary, fontSize: 13, fontWeight: '700' },
     segmentBtnTextActive: { color: '#ffffff' },
 
     content: { padding: 20 },
@@ -459,34 +462,34 @@ const styles = StyleSheet.create({
     avatarContainer: { alignItems: 'center', marginBottom: 24, marginTop: 8 },
     avatarCircle: {
         width: 100, height: 100, borderRadius: 50,
-        backgroundColor: '#334155', borderWidth: 2, borderColor: '#3b82f6',
+        backgroundColor: theme.border, borderWidth: 2, borderColor: theme.primary,
         alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
     },
-    avatarInitial: { fontSize: 36, fontWeight: 'bold', color: '#94a3b8' },
+    avatarInitial: { fontSize: 36, fontWeight: 'bold', color: theme.textSecondary },
     cameraOverlay: {
         position: 'absolute', bottom: 20, right: '35%',
-        backgroundColor: '#3b82f6', width: 28, height: 28, borderRadius: 14,
+        backgroundColor: theme.primary, width: 28, height: 28, borderRadius: 14,
         alignItems: 'center', justifyContent: 'center',
-        borderWidth: 2, borderColor: '#1e293b'
+        borderWidth: 2, borderColor: theme.card
     },
-    avatarHint: { color: '#94a3b8', fontSize: 13, marginTop: 8 },
+    avatarHint: { color: theme.textSecondary, fontSize: 13, marginTop: 8 },
 
     inputGroup: { marginBottom: 6 },
-    label: { color: '#cbd5e1', fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
-    input: { backgroundColor: '#1e293b', color: '#f8fafc', borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: '#334155' },
+    label: { color: theme.text, fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
+    input: { backgroundColor: theme.card, color: theme.text, borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: theme.border },
 
-    mediaCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
+    mediaCard: { backgroundColor: theme.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: theme.border },
     mediaIconWrapper: { width: 60, height: 60, borderRadius: 16, backgroundColor: 'rgba(59, 130, 246, 0.1)', alignItems: 'center', justifyContent: 'center' },
-    mediaTitle: { color: '#f8fafc', fontSize: 16, fontWeight: 'bold' },
-    mediaDesc: { color: '#94a3b8', fontSize: 12, marginTop: 4 },
-    uploadBtn: { backgroundColor: '#3b82f6', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, minWidth: 80, alignItems: 'center' },
+    mediaTitle: { color: theme.text, fontSize: 16, fontWeight: 'bold' },
+    mediaDesc: { color: theme.textSecondary, fontSize: 12, marginTop: 4 },
+    uploadBtn: { backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, minWidth: 80, alignItems: 'center' },
     uploadBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
 
     viewLinkBox: { flexDirection: 'row', alignItems: 'center', marginTop: 8, paddingHorizontal: 16 },
 
-    mediaInfoText: { color: '#64748b', fontSize: 12, lineHeight: 18, marginTop: 32, textAlign: 'center', paddingHorizontal: 10 },
+    mediaInfoText: { color: theme.textSecondary, fontSize: 12, lineHeight: 18, marginTop: 32, textAlign: 'center', paddingHorizontal: 10 },
 
-    footer: { padding: 20, backgroundColor: '#1e293b', borderTopWidth: 1, borderTopColor: '#334155' },
-    saveBtn: { backgroundColor: '#10b981', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+    footer: { padding: 20, backgroundColor: theme.card, borderTopWidth: 1, borderTopColor: theme.border },
+    saveBtn: { backgroundColor: theme.success, paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
     saveBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });

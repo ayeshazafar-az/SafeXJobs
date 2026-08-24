@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -51,6 +52,8 @@ const getStatusIcon = (status: string): keyof typeof Ionicons.glyphMap => {
 
 export default function CandidateApplicationsScreen() {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -134,13 +137,13 @@ export default function CandidateApplicationsScreen() {
 
             <ScrollView
                 contentContainerStyle={styles.listContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
             >
                 {loading ? (
-                    <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
+                    <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
                 ) : applications.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Ionicons name="document-outline" size={64} color="#334155" />
+                        <Ionicons name="document-outline" size={64} color={theme.border} />
                         <Text style={styles.emptyText}>No applications yet</Text>
                         <Text style={styles.emptySubText}>Start browsing jobs and submit your first application!</Text>
                     </View>
@@ -172,7 +175,7 @@ export default function CandidateApplicationsScreen() {
                                     </View>
                                 </View>
 
-                                {/* Visual Pipeline Tracker — §26 */}
+                                {/* Visual Pipeline Tracker */}
                                 {!isTerminal && (
                                     <View style={styles.pipelineContainer}>
                                         <View style={styles.pipelineTrack}>
@@ -199,7 +202,7 @@ export default function CandidateApplicationsScreen() {
                                         <View style={styles.pipelineLabels}>
                                             <Text style={[styles.pipelineLabel, { color: getStatusColor(PIPELINE_STEPS[0]) }]}>Applied</Text>
                                             <Text style={[styles.pipelineLabel, { color: statusColor, fontWeight: 'bold' }]}>{app.status}</Text>
-                                            <Text style={[styles.pipelineLabel, { color: '#334155' }]}>Hired</Text>
+                                            <Text style={[styles.pipelineLabel, { color: theme.border }]}>Hired</Text>
                                         </View>
                                     </View>
                                 )}
@@ -218,7 +221,7 @@ export default function CandidateApplicationsScreen() {
                                     </View>
                                 )}
 
-                                {/* Offer Details Banner — shown when status is Offer Sent */}
+                                {/* Offer Details Banner */}
                                 {app.status === 'Offer Sent' && (
                                     <View style={styles.offerBanner}>
                                         <View style={styles.offerHeader}>
@@ -281,33 +284,33 @@ export default function CandidateApplicationsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     header: {
         padding: 24, paddingTop: 60, paddingBottom: 20,
-        backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155',
+        backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border,
     },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: '#94a3b8' },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: theme.textSecondary },
     listContent: { padding: 20, paddingBottom: 100 },
 
     emptyContainer: { alignItems: 'center', marginTop: 80, opacity: 0.6 },
-    emptyText: { color: '#e2e8f0', fontSize: 16, fontWeight: 'bold', marginTop: 16 },
-    emptySubText: { color: '#94a3b8', fontSize: 13, marginTop: 8, textAlign: 'center', paddingHorizontal: 20 },
+    emptyText: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginTop: 16 },
+    emptySubText: { color: theme.textSecondary, fontSize: 13, marginTop: 8, textAlign: 'center', paddingHorizontal: 20 },
 
     appCard: {
-        backgroundColor: '#1e293b', borderRadius: 16,
+        backgroundColor: theme.card, borderRadius: 16,
         padding: 20, marginBottom: 16,
-        borderWidth: 1, borderColor: '#334155',
+        borderWidth: 1, borderColor: theme.border,
     },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
     statusIconBox: {
         width: 44, height: 44, borderRadius: 12,
         alignItems: 'center', justifyContent: 'center',
     },
-    jobTitle: { color: '#f8fafc', fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-    companyText: { color: '#94a3b8', fontSize: 13, marginBottom: 2 },
-    metaText: { color: '#475569', fontSize: 11 },
+    jobTitle: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
+    companyText: { color: theme.textSecondary, fontSize: 13, marginBottom: 2 },
+    metaText: { color: theme.textSecondary, fontSize: 11 },
     statusBadge: {
         paddingHorizontal: 10, paddingVertical: 4,
         borderRadius: 8, borderWidth: 1,
@@ -320,9 +323,9 @@ const styles = StyleSheet.create({
     pipelineStep: { flex: 1, flexDirection: 'row', alignItems: 'center' },
     pipelineDot: {
         width: 10, height: 10, borderRadius: 5,
-        backgroundColor: '#334155', borderWidth: 2, borderColor: '#334155',
+        backgroundColor: theme.border, borderWidth: 2, borderColor: theme.border,
     },
-    pipelineLine: { flex: 1, height: 2, backgroundColor: '#334155' },
+    pipelineLine: { flex: 1, height: 2, backgroundColor: theme.border },
     pipelineLabels: {
         flexDirection: 'row', justifyContent: 'space-between',
         paddingHorizontal: 0, marginTop: 6,
@@ -337,7 +340,7 @@ const styles = StyleSheet.create({
     },
     terminalText: { fontSize: 12, lineHeight: 18, flex: 1 },
 
-    dateText: { color: '#475569', fontSize: 11, textAlign: 'right' },
+    dateText: { color: theme.textSecondary, fontSize: 11, textAlign: 'right' },
 
     // Offer Banner
     offerBanner: {
@@ -354,8 +357,8 @@ const styles = StyleSheet.create({
         alignItems: 'center', paddingVertical: 6,
         borderBottomWidth: 1, borderBottomColor: 'rgba(6, 182, 212, 0.1)',
     },
-    offerLabel: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
-    offerValue: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold' },
+    offerLabel: { color: theme.textSecondary, fontSize: 13, fontWeight: '600' },
+    offerValue: { color: theme.text, fontSize: 14, fontWeight: 'bold' },
     offerActions: {
         flexDirection: 'row', gap: 10, marginTop: 14,
     },

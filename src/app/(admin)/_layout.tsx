@@ -1,21 +1,23 @@
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 export default function AdminLayout() {
+    const { theme } = useTheme();
     return (
         <Tabs
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: {
-                    backgroundColor: '#1e293b',
-                    borderTopColor: '#334155',
+                    backgroundColor: theme.card,
+                    borderTopColor: theme.border,
                     borderTopWidth: 1,
                     height: 60,
                     paddingBottom: 8,
                     paddingTop: 8,
                 },
-                tabBarActiveTintColor: '#3b82f6',
-                tabBarInactiveTintColor: '#64748b',
+                tabBarActiveTintColor: theme.primary,
+                tabBarInactiveTintColor: theme.textSecondary,
             }}
         >
             <Tabs.Screen

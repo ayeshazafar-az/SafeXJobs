@@ -1,6 +1,7 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { triggerExternalNotification } from '@/lib/notificationService';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -38,26 +39,6 @@ const ALL_STATUSES = [
     'Offer Sent', 'Hired', 'Offer Declined', 'Rejected', 'Withdrawn'
 ];
 
-const getStatusColor = (status: string) => {
-    switch (status) {
-        case 'Applied': return '#94a3b8';
-        case 'Under Review': return '#60a5fa';
-        case 'Shortlisted': return '#a78bfa';
-        case 'Test Assigned': return '#f59e0b';
-        case 'Test Submitted': return '#fbbf24';
-        case 'Test Passed': return '#34d399';
-        case 'Interview Scheduled': return '#fb923c';
-        case 'Interview Completed': return '#38bdf8';
-        case 'Selected': return '#10b981';
-        case 'Offer Sent': return '#06b6d4';
-        case 'Hired': return '#22c55e';
-        case 'Offer Declined': return '#f97316';
-        case 'Rejected': return '#f43f5e';
-        case 'Withdrawn': return '#64748b';
-        default: return '#94a3b8';
-    }
-};
-
 const getNextActions = (status: string) => {
     switch (status) {
         case 'Applied': return ['Under Review', 'Shortlisted', 'Rejected'];
@@ -80,6 +61,7 @@ const getNextActions = (status: string) => {
 
 export default function CompanyApplicationsScreen() {
     const { user, role } = useAuth();
+    const { theme } = useTheme();
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -102,6 +84,26 @@ export default function CompanyApplicationsScreen() {
     // Video Player State
     const [videoUrl, setVideoUrl] = useState('');
     const [videoModalVisible, setVideoModalVisible] = useState(false);
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'Applied': return theme.textSecondary;
+            case 'Under Review': return theme.primary;
+            case 'Shortlisted': return theme.primary;
+            case 'Test Assigned': return theme.warning;
+            case 'Test Submitted': return theme.warning;
+            case 'Test Passed': return theme.success;
+            case 'Interview Scheduled': return theme.warning;
+            case 'Interview Completed': return theme.primary;
+            case 'Selected': return theme.success;
+            case 'Offer Sent': return theme.primary;
+            case 'Hired': return theme.success;
+            case 'Offer Declined': return theme.warning;
+            case 'Rejected': return theme.danger;
+            case 'Withdrawn': return theme.textSecondary;
+            default: return theme.textSecondary;
+        }
+    };
 
     const fetchApplications = async () => {
         if (!user) return;
@@ -262,8 +264,8 @@ export default function CompanyApplicationsScreen() {
                 <head>
                     <style>
                         body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; }
-                        .header { text-align: center; border-bottom: 2px solid #3b82f6; padding-bottom: 20px; margin-bottom: 30px; }
-                        h1 { color: #3b82f6; margin: 0; }
+                        .header { text-align: center; border-bottom: 2px solid ${theme.primary}; padding-bottom: 20px; margin-bottom: 30px; }
+                        h1 { color: ${theme.primary}; margin: 0; }
                         .content { line-height: 1.6; font-size: 16px; }
                         .signature { margin-top: 50px; }
                     </style>
@@ -315,6 +317,8 @@ export default function CompanyApplicationsScreen() {
 
     const openUrl = (url: string) => { if (url) Linking.openURL(url); };
 
+    const styles = getStyles(theme);
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -322,12 +326,12 @@ export default function CompanyApplicationsScreen() {
                 <Text style={styles.subtitle}>Evaluate incoming applications for your active listings.</Text>
             </View>
 
-            <ScrollView contentContainerStyle={styles.listContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}>
+            <ScrollView contentContainerStyle={styles.listContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}>
                 {loading ? (
-                    <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
+                    <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
                 ) : applications.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Ionicons name="folder-open-outline" size={64} color="#334155" />
+                        <Ionicons name="folder-open-outline" size={64} color={theme.border} />
                         <Text style={styles.emptyText}>No applications received yet.</Text>
                     </View>
                 ) : (
@@ -346,7 +350,7 @@ export default function CompanyApplicationsScreen() {
                                     </View>
                                     <View style={{ flex: 1, marginLeft: 12 }}>
                                         <Text style={styles.candidateName}>{c?.full_name || 'Anonymous'}</Text>
-                                        <Text style={styles.jobTitleApplied}>Applied for: <Text style={{ color: '#f8fafc' }}>{job?.title}</Text></Text>
+                                        <Text style={styles.jobTitleApplied}>Applied for: <Text style={{ color: theme.text }}>{job?.title}</Text></Text>
                                         <Text style={styles.timeText}>{c?.province && c?.city ? `${c.city}, ${c.province}` : ''} • {new Date(app.created_at).toLocaleDateString()}</Text>
                                     </View>
                                     <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20`, borderColor: `${statusColor}40` }]}>
@@ -372,13 +376,13 @@ export default function CompanyApplicationsScreen() {
                                     <View style={styles.expandedSection}>
                                         {c?.education && c.education.length > 0 && (
                                             <View style={styles.detailRow}>
-                                                <Ionicons name="school-outline" size={16} color="#60a5fa" />
+                                                <Ionicons name="school-outline" size={16} color={theme.primary} />
                                                 <Text style={styles.detailText}>{c.education.map((e: any) => `${e.degree} - ${e.institution}`).join('\n')}</Text>
                                             </View>
                                         )}
                                         {c?.experience && c.experience.length > 0 && (
                                             <View style={styles.detailRow}>
-                                                <Ionicons name="briefcase-outline" size={16} color="#f59e0b" />
+                                                <Ionicons name="briefcase-outline" size={16} color={theme.warning} />
                                                 <Text style={styles.detailText}>{c.experience.map((e: any) => `${e.title} at ${e.company}`).join('\n')}</Text>
                                             </View>
                                         )}
@@ -386,13 +390,13 @@ export default function CompanyApplicationsScreen() {
                                         <View style={styles.quickActions}>
                                             {c?.video_intro_url && (
                                                 <TouchableOpacity style={styles.quickBtn} onPress={() => { setVideoUrl(c.video_intro_url); setVideoModalVisible(true); }}>
-                                                    <Ionicons name="videocam" size={16} color="#a78bfa" />
+                                                    <Ionicons name="videocam" size={16} color={theme.primary} />
                                                     <Text style={styles.quickBtnText}>Watch Video</Text>
                                                 </TouchableOpacity>
                                             )}
                                             {c?.resume_url && (
                                                 <TouchableOpacity style={styles.quickBtn} onPress={() => openUrl(c.resume_url)}>
-                                                    <Ionicons name="document-attach" size={16} color="#38bdf8" />
+                                                    <Ionicons name="document-attach" size={16} color={theme.primary} />
                                                     <Text style={styles.quickBtnText}>Download CV</Text>
                                                 </TouchableOpacity>
                                             )}
@@ -404,14 +408,14 @@ export default function CompanyApplicationsScreen() {
                                             )}
                                             {c?.portfolio_url && (
                                                 <TouchableOpacity style={styles.quickBtn} onPress={() => openUrl(c.portfolio_url)}>
-                                                    <Ionicons name="globe-outline" size={16} color="#10b981" />
+                                                    <Ionicons name="globe-outline" size={16} color={theme.success} />
                                                     <Text style={styles.quickBtnText}>Portfolio</Text>
                                                 </TouchableOpacity>
                                             )}
                                         </View>
 
                                         {(app.status === 'Hired' || app.status === 'Offer Sent' || app.status === 'Offer Accepted') && (
-                                            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: '#4f46e5', marginTop: 16 }]} onPress={() => generateOfferPDF(app)}>
+                                            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: theme.primary, marginTop: 16 }]} onPress={() => generateOfferPDF(app)}>
                                                 <Ionicons name="document-text" size={18} color="#fff" style={{ marginRight: 8 }} />
                                                 <Text style={{ color: '#fff', fontWeight: 'bold' }}>Generate Offer Letter (PDF)</Text>
                                             </TouchableOpacity>
@@ -426,7 +430,7 @@ export default function CompanyApplicationsScreen() {
                                         <Text style={styles.actionPrompt}>Update Status:</Text>
                                         <View style={styles.actionsRow}>
                                             {updatingId === app.id ? (
-                                                <ActivityIndicator color="#3b82f6" style={{ marginVertical: 10 }} />
+                                                <ActivityIndicator color={theme.primary} style={{ marginVertical: 10 }} />
                                             ) : (
                                                 nextActions.map(action => {
                                                     const isReject = action === 'Rejected';
@@ -434,7 +438,7 @@ export default function CompanyApplicationsScreen() {
                                                     const color = getStatusColor(action);
                                                     return (
                                                         <TouchableOpacity key={action} style={[styles.actionBtn, isReject ? styles.rejectBtn : (isHire ? styles.hireBtn : { backgroundColor: `${color}25` })]} onPress={() => updateStatus(app.id, action, app.candidate_id, isHire)}>
-                                                            <Text style={[styles.actionBtnText, { color: isReject ? '#f43f5e' : (isHire ? '#fff' : color) }]}>
+                                                            <Text style={[styles.actionBtnText, { color: isReject ? theme.danger : (isHire ? '#fff' : color) }]}>
                                                                 {isHire ? 'Extend Offer & Hire' : action}
                                                             </Text>
                                                         </TouchableOpacity>
@@ -456,28 +460,28 @@ export default function CompanyApplicationsScreen() {
                     <View style={styles.modalContent}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
                             <Text style={styles.modalTitle}>Extend Job Offer</Text>
-                            <TouchableOpacity onPress={() => setOfferModalVisible(false)}><Ionicons name="close" size={24} color="#94a3b8" /></TouchableOpacity>
+                            <TouchableOpacity onPress={() => setOfferModalVisible(false)}><Ionicons name="close" size={24} color={theme.textSecondary} /></TouchableOpacity>
                         </View>
-                        <Text style={{ color: '#94a3b8', marginBottom: 20 }}>
-                            You are extending an official offer to <Text style={{ color: '#fff', fontWeight: 'bold' }}>{selectedOfferApp?.profiles?.full_name}</Text> for the role of <Text style={{ color: '#fff', fontWeight: 'bold' }}>{selectedOfferApp?.jobs?.title}</Text>.
+                        <Text style={{ color: theme.textSecondary, marginBottom: 20 }}>
+                            You are extending an official offer to <Text style={{ color: theme.text, fontWeight: 'bold' }}>{selectedOfferApp?.profiles?.full_name}</Text> for the role of <Text style={{ color: theme.text, fontWeight: 'bold' }}>{selectedOfferApp?.jobs?.title}</Text>.
                         </Text>
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Proposed Salary (PKR)</Text>
-                            <TextInput style={styles.input} value={offerSalary} onChangeText={setOfferSalary} placeholder="e.g. 150000" keyboardType="numeric" placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={offerSalary} onChangeText={setOfferSalary} placeholder="e.g. 150000" keyboardType="numeric" placeholderTextColor={theme.textSecondary} />
                         </View>
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Expected Start Date</Text>
-                            <TextInput style={styles.input} value={offerStartDate} onChangeText={setOfferStartDate} placeholder="YYYY-MM-DD" placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={offerStartDate} onChangeText={setOfferStartDate} placeholder="YYYY-MM-DD" placeholderTextColor={theme.textSecondary} />
                         </View>
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Offer Terms & Conditions</Text>
-                            <TextInput style={[styles.input, { height: 100, textAlignVertical: 'top' }]} value={offerTerms} onChangeText={setOfferTerms} placeholder="List any specific terms, notice periods, or office hours expected..." multiline placeholderTextColor="#64748b" />
+                            <TextInput style={[styles.input, { height: 100, textAlignVertical: 'top' }]} value={offerTerms} onChangeText={setOfferTerms} placeholder="List any specific terms, notice periods, or office hours expected..." multiline placeholderTextColor={theme.textSecondary} />
                         </View>
 
-                        <TouchableOpacity style={[styles.submitBtn, { backgroundColor: '#22c55e' }]} onPress={handleSendOffer} disabled={updatingId === selectedOfferApp?.id}>
+                        <TouchableOpacity style={[styles.submitBtn, { backgroundColor: theme.success }]} onPress={handleSendOffer} disabled={updatingId === selectedOfferApp?.id}>
                             {updatingId === selectedOfferApp?.id ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Send Official Offer</Text>}
                         </TouchableOpacity>
                     </View>
@@ -490,23 +494,23 @@ export default function CompanyApplicationsScreen() {
                     <View style={styles.modalContent}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
                             <Text style={styles.modalTitle}>Report Candidate</Text>
-                            <TouchableOpacity onPress={() => setReportModalVisible(false)}><Ionicons name="close" size={24} color="#94a3b8" /></TouchableOpacity>
+                            <TouchableOpacity onPress={() => setReportModalVisible(false)}><Ionicons name="close" size={24} color={theme.textSecondary} /></TouchableOpacity>
                         </View>
-                        <Text style={{ color: '#94a3b8', marginBottom: 20 }}>
+                        <Text style={{ color: theme.textSecondary, marginBottom: 20 }}>
                             If this candidate is submitting fake information, spam, or abusive content, let us know.
                         </Text>
 
                         <TextInput
                             style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
                             placeholder="Detail the issue with this candidate..."
-                            placeholderTextColor="#64748b"
+                            placeholderTextColor={theme.textSecondary}
                             multiline
                             value={complaintDesc}
                             onChangeText={setComplaintDesc}
                         />
 
                         <TouchableOpacity
-                            style={[styles.submitBtn, { backgroundColor: '#f43f5e' }]}
+                            style={[styles.submitBtn, { backgroundColor: theme.danger }]}
                             onPress={handleReportSubmit}
                             disabled={complaintSaving}
                         >
@@ -522,53 +526,53 @@ export default function CompanyApplicationsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
-    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155' },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: '#94a3b8' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: theme.textSecondary },
     listContent: { padding: 20, paddingBottom: 100 },
     emptyContainer: { alignItems: 'center', marginTop: 80, opacity: 0.6 },
-    emptyText: { color: '#e2e8f0', fontSize: 16, fontWeight: 'bold', marginTop: 16 },
+    emptyText: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginTop: 16 },
 
-    appCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#334155' },
+    appCard: { backgroundColor: theme.card, borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: theme.border },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
     avatarPlaceholder: { width: 48, height: 48, borderRadius: 12, backgroundColor: 'rgba(56, 189, 248, 0.15)', alignItems: 'center', justifyContent: 'center' },
-    avatarText: { color: '#38bdf8', fontSize: 20, fontWeight: 'bold' },
-    candidateName: { color: '#f8fafc', fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-    jobTitleApplied: { color: '#64748b', fontSize: 13, fontWeight: '500', marginBottom: 2 },
-    timeText: { color: '#475569', fontSize: 11 },
+    avatarText: { color: theme.primary, fontSize: 20, fontWeight: 'bold' },
+    candidateName: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
+    jobTitleApplied: { color: theme.textSecondary, fontSize: 13, fontWeight: '500', marginBottom: 2 },
+    timeText: { color: theme.textSecondary, fontSize: 11 },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, position: 'absolute', right: 0, top: 0 },
     statusText: { fontSize: 11, fontWeight: 'bold' },
 
-    bioBox: { backgroundColor: '#0f172a', padding: 12, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: '#334155', marginBottom: 12 },
-    bioText: { color: '#cbd5e1', fontSize: 13, fontStyle: 'italic', lineHeight: 20 },
+    bioBox: { backgroundColor: theme.background, padding: 12, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: theme.border, marginBottom: 12 },
+    bioText: { color: theme.textSecondary, fontSize: 13, fontStyle: 'italic', lineHeight: 20 },
     skillsWrapper: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-    skillTag: { backgroundColor: '#334155', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-    skillText: { color: '#e2e8f0', fontSize: 11, fontWeight: '600' },
+    skillTag: { backgroundColor: theme.border, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+    skillText: { color: theme.text, fontSize: 11, fontWeight: '600' },
 
     expandedSection: { gap: 12, marginBottom: 12 },
     detailRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-    detailText: { color: '#cbd5e1', fontSize: 13, lineHeight: 20, flex: 1 },
+    detailText: { color: theme.textSecondary, fontSize: 13, lineHeight: 20, flex: 1 },
 
     quickActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-    quickBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#0f172a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#334155' },
-    quickBtnText: { color: '#e2e8f0', fontSize: 12, fontWeight: '600' },
+    quickBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: theme.border },
+    quickBtnText: { color: theme.text, fontSize: 12, fontWeight: '600' },
 
-    actionsDivider: { height: 1, backgroundColor: '#334155', marginBottom: 12 },
-    actionPrompt: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginBottom: 10 },
+    actionsDivider: { height: 1, backgroundColor: theme.border, marginBottom: 12 },
+    actionPrompt: { color: theme.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 10 },
     actionsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
     actionBtn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
     actionBtnText: { fontSize: 12, fontWeight: 'bold' },
-    rejectBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#f43f5e' },
-    hireBtn: { backgroundColor: '#22c55e' },
+    rejectBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.danger },
+    hireBtn: { backgroundColor: theme.success },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-    modalTitle: { color: '#f8fafc', fontSize: 20, fontWeight: 'bold' },
+    modalContent: { backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+    modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold' },
     inputGroup: { marginBottom: 16 },
-    label: { color: '#cbd5e1', fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
-    input: { backgroundColor: '#0f172a', color: '#f8fafc', borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: '#334155' },
+    label: { color: theme.textSecondary, fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
+    input: { backgroundColor: theme.background, color: theme.text, borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: theme.border },
     submitBtn: { paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
     submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 

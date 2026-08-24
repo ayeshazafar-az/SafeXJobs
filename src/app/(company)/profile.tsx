@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { router } from 'expo-router';
@@ -19,6 +20,8 @@ import {
 
 export default function CompanyProfileScreen() {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -115,7 +118,7 @@ export default function CompanyProfileScreen() {
         }
     };
 
-    if (loading) return <ActivityIndicator size="large" color="#f59e0b" style={{ flex: 1, backgroundColor: '#0f172a' }} />;
+    if (loading) return <ActivityIndicator size="large" color={theme.primary} style={{ flex: 1, backgroundColor: theme.background }} />;
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -124,7 +127,7 @@ export default function CompanyProfileScreen() {
             <View style={styles.headerCard}>
                 <View style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
                     <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
-                        <Ionicons name="log-out-outline" size={20} color="#f43f5e" />
+                        <Ionicons name="log-out-outline" size={20} color={theme.danger} />
                     </TouchableOpacity>
                 </View>
 
@@ -132,7 +135,7 @@ export default function CompanyProfileScreen() {
                     {logoUrl ? (
                         <Image source={{ uri: logoUrl }} style={styles.logoImage} />
                     ) : (
-                        <Ionicons name="business" size={56} color="#f59e0b" />
+                        <Ionicons name="business" size={56} color={theme.primary} />
                     )}
                     <View style={styles.editIconOverlay}>
                         <Ionicons name="camera" size={14} color="#fff" />
@@ -141,8 +144,8 @@ export default function CompanyProfileScreen() {
 
                 <Text style={styles.companyName}>{companyName}</Text>
                 <View style={[styles.badgeContainer, status === 'Verified' ? undefined : { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-                    <Ionicons name={status === 'Verified' ? "checkmark-circle" : "time"} size={16} color={status === 'Verified' ? "#10b981" : "#f59e0b"} />
-                    <Text style={[styles.badgeText, status === 'Verified' ? undefined : { color: '#f59e0b' }]}>
+                    <Ionicons name={status === 'Verified' ? "checkmark-circle" : "time"} size={16} color={status === 'Verified' ? theme.success : theme.warning} />
+                    <Text style={[styles.badgeText, status === 'Verified' ? undefined : { color: theme.warning }]}>
                         {status === 'Verified' ? 'Verified Company' : (status === 'Suspended' ? 'Account Suspended' : 'Pending Verification')}
                     </Text>
                 </View>
@@ -152,7 +155,7 @@ export default function CompanyProfileScreen() {
             {/* Company Description */}
             <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                    <Ionicons name="information-circle-outline" size={20} color="#38bdf8" />
+                    <Ionicons name="information-circle-outline" size={20} color={theme.primary} />
                     <Text style={styles.sectionTitle}>Company Overview</Text>
                 </View>
                 <TextInput
@@ -160,7 +163,7 @@ export default function CompanyProfileScreen() {
                     multiline
                     numberOfLines={4}
                     placeholder="Briefly describe your company culture, mission, and vision..."
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor={theme.textSecondary}
                     value={description}
                     onChangeText={setDescription}
                 />
@@ -169,7 +172,7 @@ export default function CompanyProfileScreen() {
             {/* Additional Details */}
             <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                    <Ionicons name="globe-outline" size={20} color="#a855f7" />
+                    <Ionicons name="globe-outline" size={20} color={theme.warning} />
                     <Text style={styles.sectionTitle}>Online Presence</Text>
                 </View>
 
@@ -178,7 +181,7 @@ export default function CompanyProfileScreen() {
                     <TextInput
                         style={styles.input}
                         placeholder="https://www.company.com"
-                        placeholderTextColor="#64748b"
+                        placeholderTextColor={theme.textSecondary}
                         value={website}
                         onChangeText={setWebsite}
                     />
@@ -192,16 +195,16 @@ export default function CompanyProfileScreen() {
             {/* Team Management */}
             <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                    <Ionicons name="people-outline" size={20} color="#10b981" />
+                    <Ionicons name="people-outline" size={20} color={theme.success} />
                     <Text style={styles.sectionTitle}>Team Management</Text>
                 </View>
 
-                <Text style={{ color: '#94a3b8', fontSize: 13, marginBottom: 16 }}>
+                <Text style={{ color: theme.textSecondary, fontSize: 13, marginBottom: 16 }}>
                     Manage your hiring managers, recruiters, and HR staff who can post jobs and review applications on behalf of your company.
                 </Text>
 
                 <TouchableOpacity
-                    style={[styles.saveButton, { backgroundColor: '#10b981', flexDirection: 'row', justifyContent: 'center' }]}
+                    style={[styles.saveButton, { backgroundColor: theme.success, flexDirection: 'row', justifyContent: 'center' }]}
                     onPress={() => router.push('/(company)/managers' as any)}
                 >
                     <Ionicons name="settings-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
@@ -213,26 +216,26 @@ export default function CompanyProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     content: { padding: 20, paddingTop: 60, paddingBottom: 40 },
-    headerCard: { backgroundColor: '#1e293b', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 20, borderWidth: 1, borderColor: '#334155' },
-    avatarContainer: { width: 100, height: 100, borderRadius: 20, backgroundColor: '#0f172a', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#f59e0b', marginBottom: 16, overflow: 'hidden' },
+    headerCard: { backgroundColor: theme.card, borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 20, borderWidth: 1, borderColor: theme.border },
+    avatarContainer: { width: 100, height: 100, borderRadius: 20, backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: theme.primary, marginBottom: 16, overflow: 'hidden' },
     logoImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-    editIconOverlay: { position: 'absolute', bottom: -5, right: -5, backgroundColor: '#f59e0b', padding: 6, borderRadius: 12, borderWidth: 2, borderColor: '#1e293b' },
-    companyName: { fontSize: 24, fontWeight: 'bold', color: '#f8fafc', marginBottom: 4 },
+    editIconOverlay: { position: 'absolute', bottom: -5, right: -5, backgroundColor: theme.primary, padding: 6, borderRadius: 12, borderWidth: 2, borderColor: theme.card },
+    companyName: { fontSize: 24, fontWeight: 'bold', color: theme.text, marginBottom: 4 },
     badgeContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.15)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginBottom: 8 },
-    badgeText: { fontSize: 12, color: '#10b981', fontWeight: '700', marginLeft: 4 },
-    userEmail: { fontSize: 14, color: '#94a3b8' },
+    badgeText: { fontSize: 12, color: theme.success, fontWeight: '700', marginLeft: 4 },
+    userEmail: { fontSize: 14, color: theme.textSecondary },
 
-    sectionCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: '#334155' },
+    sectionCard: { backgroundColor: theme.card, borderRadius: 16, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: theme.border },
     sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#f8fafc', marginLeft: 8 },
-    textArea: { backgroundColor: '#0f172a', borderRadius: 12, borderWidth: 1, borderColor: '#334155', color: '#f8fafc', padding: 16, textAlignVertical: 'top', fontSize: 15, minHeight: 100 },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: theme.text, marginLeft: 8 },
+    textArea: { backgroundColor: theme.background, borderRadius: 12, borderWidth: 1, borderColor: theme.border, color: theme.text, padding: 16, textAlignVertical: 'top', fontSize: 15, minHeight: 100 },
     inputContainer: { marginBottom: 16 },
-    label: { color: '#e2e8f0', marginBottom: 8, fontSize: 13, fontWeight: '600' },
-    input: { backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155', borderRadius: 12, padding: 16, color: '#f8fafc', fontSize: 15 },
-    saveButton: { backgroundColor: '#f59e0b', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
+    label: { color: theme.text, marginBottom: 8, fontSize: 13, fontWeight: '600' },
+    input: { backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border, borderRadius: 12, padding: 16, color: theme.text, fontSize: 15 },
+    saveButton: { backgroundColor: theme.primary, borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
     saveButtonText: { color: '#ffffff', fontWeight: 'bold', fontSize: 15 },
     signOutBtn: { backgroundColor: 'rgba(244, 63, 94, 0.1)', padding: 8, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(244, 63, 94, 0.3)' }
 });

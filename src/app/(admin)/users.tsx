@@ -1,9 +1,12 @@
+import { useTheme } from '@/lib/ThemeContext';
 import { adminSupabase } from '@/lib/adminSupabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AdminUsersScreen() {
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'All' | 'candidate' | 'company' | 'hiring_manager'>('All');
@@ -111,7 +114,7 @@ export default function AdminUsersScreen() {
 
             <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
                 {loading ? (
-                    <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 40 }} />
+                    <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} />
                 ) : (
                     filteredUsers.map(user => (
                         <View key={user.id} style={styles.userCard}>
@@ -147,7 +150,7 @@ export default function AdminUsersScreen() {
                                     style={[styles.suspendBtn, user.status === 'Suspended' && styles.unsuspendBtn]}
                                     onPress={() => toggleSuspendStatus(user.id, user.status)}
                                 >
-                                    <Text style={[styles.suspendBtnText, user.status === 'Suspended' && { color: '#10b981' }]}>
+                                    <Text style={[styles.suspendBtnText, user.status === 'Suspended' && { color: theme.success }]}>
                                         {user.status === 'Suspended' ? 'Restore Access' : 'Suspend'}
                                     </Text>
                                 </TouchableOpacity>
@@ -157,7 +160,7 @@ export default function AdminUsersScreen() {
                 )}
                 {filteredUsers.length === 0 && !loading && (
                     <View style={styles.emptyContainer}>
-                        <Ionicons name="folder-open-outline" size={48} color="#334155" />
+                        <Ionicons name="folder-open-outline" size={48} color={theme.border} />
                         <Text style={styles.emptyText}>No users found in this category.</Text>
                     </View>
                 )}
@@ -166,14 +169,14 @@ export default function AdminUsersScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     header: {
         padding: 24, paddingTop: 60, paddingBottom: 20,
-        backgroundColor: '#0f172a',
+        backgroundColor: theme.background,
     },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4, letterSpacing: -0.5 },
-    subtitle: { fontSize: 14, color: '#94a3b8', fontWeight: '500' },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4, letterSpacing: -0.5 },
+    subtitle: { fontSize: 14, color: theme.textSecondary, fontWeight: '500' },
 
     statsContainer: {
         marginBottom: 8,
@@ -184,7 +187,7 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     statCard: {
-        backgroundColor: '#1e293b',
+        backgroundColor: theme.card,
         padding: 20,
         borderRadius: 24,
         width: 150,
@@ -200,8 +203,8 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         marginBottom: 16,
     },
-    statValue: { color: '#f8fafc', fontSize: 28, fontWeight: '900', marginBottom: 4 },
-    statLabel: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
+    statValue: { color: theme.text, fontSize: 28, fontWeight: '900', marginBottom: 4 },
+    statLabel: { color: theme.textSecondary, fontSize: 13, fontWeight: '600' },
 
     tabContainer: {
         flexDirection: 'row',
@@ -212,17 +215,17 @@ const styles = StyleSheet.create({
     tabBtn: {
         paddingVertical: 10, paddingHorizontal: 20,
         borderRadius: 100,
-        backgroundColor: 'rgba(51, 65, 85, 0.4)',
+        backgroundColor: `${theme.border}66`,
     },
     tabBtnActive: {
-        backgroundColor: '#3b82f6',
+        backgroundColor: theme.primary,
     },
-    tabBtnText: { color: '#94a3b8', fontSize: 13, fontWeight: '700' },
+    tabBtnText: { color: theme.textSecondary, fontSize: 13, fontWeight: '700' },
     tabBtnTextActive: { color: '#ffffff' },
 
     listContent: { paddingHorizontal: 20, paddingBottom: 100 },
     userCard: {
-        backgroundColor: '#1e293b',
+        backgroundColor: theme.card,
         borderRadius: 20,
         padding: 16,
         marginBottom: 16,
@@ -246,14 +249,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     userTextMeta: { marginLeft: 16, flex: 1, justifyContent: 'center' },
-    userName: { color: '#f8fafc', fontSize: 16, fontWeight: '700' },
-    userEmail: { color: '#64748b', fontSize: 13, fontWeight: '500' },
+    userName: { color: theme.text, fontSize: 16, fontWeight: '700' },
+    userEmail: { color: theme.textSecondary, fontSize: 13, fontWeight: '500' },
 
     suspendedMiniBadge: {
         backgroundColor: 'rgba(244, 63, 94, 0.15)',
         paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
     },
-    suspendedMiniText: { color: '#f43f5e', fontSize: 10, fontWeight: '900' },
+    suspendedMiniText: { color: theme.danger, fontSize: 10, fontWeight: '900' },
 
     actionBlock: { marginLeft: 16 },
     suspendBtn: {
@@ -266,8 +269,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         borderColor: 'rgba(16, 185, 129, 0.3)'
     },
-    suspendBtnText: { color: '#f43f5e', fontSize: 13, fontWeight: '700' },
+    suspendBtnText: { color: theme.danger, fontSize: 13, fontWeight: '700' },
 
     emptyContainer: { alignItems: 'center', marginTop: 60, opacity: 0.5 },
-    emptyText: { color: '#94a3b8', marginTop: 16, fontWeight: '500' }
+    emptyText: { color: theme.textSecondary, marginTop: 16, fontWeight: '500' }
 });

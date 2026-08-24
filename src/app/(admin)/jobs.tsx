@@ -1,9 +1,12 @@
+import { useTheme } from '@/lib/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AdminJobsScreen() {
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [jobs, setJobs] = useState<any[]>([]);
     const [appStats, setAppStats] = useState({ total: 0, shortlisted: 0, tests: 0, interviews: 0, hired: 0, rejected: 0 });
     const [loading, setLoading] = useState(true);
@@ -126,10 +129,10 @@ export default function AdminJobsScreen() {
 
             <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
                 {loading ? (
-                    <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 40 }} />
+                    <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} />
                 ) : (
                     <View style={styles.emptyContainer}>
-                        <Ionicons name="shield-checkmark" size={48} color="#334155" />
+                        <Ionicons name="shield-checkmark" size={48} color={theme.border} />
                         <Text style={styles.emptyText}>Moderation board ready.</Text>
                     </View>
                 )}
@@ -138,23 +141,23 @@ export default function AdminJobsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     header: {
         padding: 24, paddingTop: 60, paddingBottom: 20,
-        backgroundColor: '#0f172a',
+        backgroundColor: theme.background,
     },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4, letterSpacing: -0.5 },
-    subtitle: { fontSize: 14, color: '#94a3b8', fontWeight: '500' },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4, letterSpacing: -0.5 },
+    subtitle: { fontSize: 14, color: theme.textSecondary, fontWeight: '500' },
 
     sectionDivider: { marginBottom: 12 },
-    sectionTitle: { color: '#e2e8f0', fontSize: 16, fontWeight: '700', paddingHorizontal: 20, marginBottom: 8 },
+    sectionTitle: { color: theme.text, fontSize: 16, fontWeight: '700', paddingHorizontal: 20, marginBottom: 8 },
     statsScroll: {
         paddingHorizontal: 20,
         gap: 12,
     },
     statCard: {
-        backgroundColor: '#1e293b',
+        backgroundColor: theme.card,
         padding: 16,
         borderRadius: 20,
         width: 140,
@@ -170,8 +173,8 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center',
         marginBottom: 12,
     },
-    statValue: { color: '#f8fafc', fontSize: 24, fontWeight: '900', marginBottom: 4 },
-    statLabel: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
+    statValue: { color: theme.text, fontSize: 24, fontWeight: '900', marginBottom: 4 },
+    statLabel: { color: theme.textSecondary, fontSize: 12, fontWeight: '600' },
 
     tabContainer: {
         flexDirection: 'row',
@@ -183,13 +186,13 @@ const styles = StyleSheet.create({
     tabBtn: {
         paddingVertical: 10, paddingHorizontal: 20,
         borderRadius: 100,
-        backgroundColor: 'rgba(51, 65, 85, 0.4)',
+        backgroundColor: `${theme.border}66`,
     },
-    tabBtnActive: { backgroundColor: '#3b82f6' },
-    tabBtnText: { color: '#94a3b8', fontSize: 13, fontWeight: '700' },
+    tabBtnActive: { backgroundColor: theme.primary },
+    tabBtnText: { color: theme.textSecondary, fontSize: 13, fontWeight: '700' },
     tabBtnTextActive: { color: '#ffffff' },
 
     listContent: { paddingHorizontal: 20, paddingBottom: 100 },
     emptyContainer: { alignItems: 'center', marginTop: 40, opacity: 0.5 },
-    emptyText: { color: '#94a3b8', marginTop: 12, fontWeight: '500' }
+    emptyText: { color: theme.textSecondary, marginTop: 12, fontWeight: '500' }
 });

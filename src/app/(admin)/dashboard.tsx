@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/ThemeContext';
 import { adminSupabase } from '@/lib/adminSupabase';
 import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +7,8 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function AdminDashboardScreen() {
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [companies, setCompanies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ companies: 0, candidates: 0, jobs: 0, apps: 0 });
@@ -16,14 +19,12 @@ export default function AdminDashboardScreen() {
         setLoading(true);
 
         try {
-            // Use adminSupabase (service role key) to bypass RLS
             const { data, error } = await adminSupabase.from('profiles').select('*').eq('role', 'company');
             console.log('[ADMIN] Companies fetched:', data?.length, 'Error:', error?.message || 'none');
 
             if (error) {
                 Alert.alert('Supabase Error', error.message);
             } else if (data) {
-                // Dump every company's status so we can see exactly what's in the DB
                 data.forEach((c, i) => console.log(`[ADMIN] Company #${i + 1}: name=${c.company_name}, status='${c.status}', email=${c.email}, id=${c.id}`));
                 if (data.length === 0) {
                     Alert.alert('Empty Fetch', 'No companies found in the database.');
@@ -36,7 +37,6 @@ export default function AdminDashboardScreen() {
             Alert.alert('Fatal Exception', e.message || String(e));
         }
 
-        // Load stats
         const [companiesCount, candidatesCount, jobsCount] = await Promise.all([
             adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'company'),
             adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'candidate'),
@@ -47,7 +47,7 @@ export default function AdminDashboardScreen() {
             companies: companiesCount.count || 0,
             candidates: candidatesCount.count || 0,
             jobs: jobsCount.count || 0,
-            apps: 0 // Placeholder until Applications table is generated
+            apps: 0
         });
 
         setLoading(false);
@@ -89,12 +89,12 @@ export default function AdminDashboardScreen() {
                 {/* Stats Row */}
                 <View style={styles.statsRow}>
                     <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(admin)/users')}>
-                        <Ionicons name="business" size={28} color="#3b82f6" />
+                        <Ionicons name="business" size={28} color={theme.primary} />
                         <Text style={styles.statNumber}>{stats.companies}</Text>
                         <Text style={styles.statLabel}>Companies</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.statCard}>
-                        <Ionicons name="document-text" size={28} color="#f59e0b" />
+                        <Ionicons name="document-text" size={28} color={theme.warning} />
                         <Text style={styles.statNumber}>{stats.apps !== 0 ? stats.apps : '-'}</Text>
                         <Text style={styles.statLabel}>Applications</Text>
                     </TouchableOpacity>
@@ -105,11 +105,11 @@ export default function AdminDashboardScreen() {
                 <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
                     <TouchableOpacity style={[styles.actionCard, { flex: 1, alignItems: 'center' }]} onPress={() => router.push('/(admin)/chats' as any)}>
                         <Ionicons name="chatbubbles" size={24} color="#60a5fa" />
-                        <Text style={{ color: '#f8fafc', fontWeight: 'bold', marginTop: 8 }}>Chat Monitor</Text>
+                        <Text style={{ color: theme.text, fontWeight: 'bold', marginTop: 8 }}>Chat Monitor</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={[styles.actionCard, { flex: 1, alignItems: 'center' }]} onPress={() => router.push('/(admin)/applications' as any)}>
                         <Ionicons name="file-tray-full" size={24} color="#a78bfa" />
-                        <Text style={{ color: '#f8fafc', fontWeight: 'bold', marginTop: 8 }}>Global Apps</Text>
+                        <Text style={{ color: theme.text, fontWeight: 'bold', marginTop: 8 }}>Global Apps</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -121,10 +121,10 @@ export default function AdminDashboardScreen() {
                         const renderBar = (label: string, value: number, color: string) => (
                             <View style={{ marginBottom: 16 }} key={label}>
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                                    <Text style={{ color: '#e2e8f0', fontSize: 14, fontWeight: '500' }}>{label}</Text>
-                                    <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>{value}</Text>
+                                    <Text style={{ color: theme.text, fontSize: 14, fontWeight: '500' }}>{label}</Text>
+                                    <Text style={{ color: theme.textSecondary, fontSize: 14, fontWeight: 'bold' }}>{value}</Text>
                                 </View>
-                                <View style={{ height: 10, backgroundColor: '#334155', borderRadius: 5, overflow: 'hidden' }}>
+                                <View style={{ height: 10, backgroundColor: theme.border, borderRadius: 5, overflow: 'hidden' }}>
                                     <View style={{ height: '100%', width: `${(value / maxVal) * 100}%`, backgroundColor: color, borderRadius: 5 }} />
                                 </View>
                             </View>
@@ -144,22 +144,22 @@ export default function AdminDashboardScreen() {
                 <Text style={styles.sectionTitle}>Pending Verification</Text>
 
                 {loading ? (
-                    <ActivityIndicator size="large" color="#f59e0b" style={{ marginVertical: 30 }} />
+                    <ActivityIndicator size="large" color={theme.warning} style={{ marginVertical: 30 }} />
                 ) : (
                     <>
                         {companies.filter(c => c.status === 'Pending' || c.status === 'Under Review' || !c.status).length === 0 && (
-                            <Text style={{ color: '#94a3b8', marginHorizontal: 8, fontStyle: 'italic' }}>No companies pending verification.</Text>
+                            <Text style={{ color: theme.textSecondary, marginHorizontal: 8, fontStyle: 'italic' }}>No companies pending verification.</Text>
                         )}
 
                         {companies.filter(c => c.status === 'Pending' || c.status === 'Under Review' || !c.status).map(company => (
                             <TouchableOpacity activeOpacity={0.7} onPress={() => { setSelectedCompany(company); setModalVisible(true); }} key={company.id} style={[styles.actionCard, { marginBottom: 16 }]}>
                                 <View style={styles.actionHeader}>
-                                    <Ionicons name="business-outline" size={32} color="#f59e0b" />
+                                    <Ionicons name="business-outline" size={32} color={theme.warning} />
                                     <View style={{ marginLeft: 12, flex: 1 }}>
                                         <Text style={styles.actionName}>{company.company_name || 'Unnamed Company'}</Text>
-                                        <Text style={styles.actionDesc}>Status: <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>{company.status || 'Pending'}</Text></Text>
+                                        <Text style={styles.actionDesc}>Status: <Text style={{ color: theme.warning, fontWeight: 'bold' }}>{company.status || 'Pending'}</Text></Text>
                                     </View>
-                                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
+                                    <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                                 </View>
                                 <View style={styles.actionsBlock}>
                                     <TouchableOpacity
@@ -169,7 +169,7 @@ export default function AdminDashboardScreen() {
                                         <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Reject</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
-                                        style={[styles.btn, { backgroundColor: '#10b981', flex: 1.5 }]}
+                                        style={[styles.btn, { backgroundColor: theme.success, flex: 1.5 }]}
                                         onPress={() => updateCompanyStatus(company.id, 'Verified')}
                                     >
                                         <Text style={{ color: '#fff', fontWeight: 'bold' }}>Verify & Approve</Text>
@@ -181,22 +181,22 @@ export default function AdminDashboardScreen() {
                         <Text style={[styles.sectionTitle, { marginTop: 30 }]}>Verified Companies</Text>
 
                         {companies.filter(c => c.status === 'Verified').length === 0 && (
-                            <Text style={{ color: '#94a3b8', marginHorizontal: 8, fontStyle: 'italic' }}>No verified companies yet.</Text>
+                            <Text style={{ color: theme.textSecondary, marginHorizontal: 8, fontStyle: 'italic' }}>No verified companies yet.</Text>
                         )}
 
                         {companies.filter(c => c.status === 'Verified').map(company => (
                             <TouchableOpacity activeOpacity={0.7} onPress={() => { setSelectedCompany(company); setModalVisible(true); }} key={company.id} style={[styles.actionCard, { marginBottom: 16 }]}>
                                 <View style={styles.actionHeader}>
-                                    <Ionicons name="business" size={32} color="#10b981" />
+                                    <Ionicons name="business" size={32} color={theme.success} />
                                     <View style={{ marginLeft: 12, flex: 1 }}>
                                         <Text style={styles.actionName}>{company.company_name || 'Unnamed Company'}</Text>
-                                        <Text style={styles.actionDesc}>Status: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>Verified</Text></Text>
+                                        <Text style={styles.actionDesc}>Status: <Text style={{ color: theme.success, fontWeight: 'bold' }}>Verified</Text></Text>
                                     </View>
-                                    <Ionicons name="chevron-forward" size={20} color="#64748b" />
+                                    <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                                 </View>
                                 <View style={styles.actionsBlock}>
                                     <TouchableOpacity
-                                        style={[styles.btn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                                        style={[styles.btn, { backgroundColor: `${theme.danger}15` }]}
                                         onPress={() => updateCompanyStatus(company.id, 'Suspended')}
                                     >
                                         <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Suspend Account</Text>
@@ -217,17 +217,17 @@ export default function AdminDashboardScreen() {
                                                 <Text style={styles.actionName}>{company.company_name || 'Unnamed Company'}</Text>
                                                 <Text style={styles.actionDesc}>Status: <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>{company.status}</Text></Text>
                                             </View>
-                                            <Ionicons name="chevron-forward" size={20} color="#64748b" />
+                                            <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                                         </View>
                                         <View style={styles.actionsBlock}>
                                             <TouchableOpacity
-                                                style={[styles.btn, { borderColor: '#f59e0b', borderWidth: 1 }]}
+                                                style={[styles.btn, { borderColor: theme.warning, borderWidth: 1 }]}
                                                 onPress={() => updateCompanyStatus(company.id, 'Pending')}
                                             >
-                                                <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>Move to Pending</Text>
+                                                <Text style={{ color: theme.warning, fontWeight: 'bold' }}>Move to Pending</Text>
                                             </TouchableOpacity>
                                             <TouchableOpacity
-                                                style={[styles.btn, { backgroundColor: '#10b981', flex: 1.5 }]}
+                                                style={[styles.btn, { backgroundColor: theme.success, flex: 1.5 }]}
                                                 onPress={() => updateCompanyStatus(company.id, 'Verified')}
                                             >
                                                 <Text style={{ color: '#fff', fontWeight: 'bold' }}>Verify & Approve</Text>
@@ -247,7 +247,7 @@ export default function AdminDashboardScreen() {
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>Company Profile Details</Text>
                             <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
-                                <Ionicons name="close" size={24} color="#f8fafc" />
+                                <Ionicons name="close" size={24} color={theme.text} />
                             </TouchableOpacity>
                         </View>
                         <ScrollView contentContainerStyle={styles.modalScroll}>
@@ -255,12 +255,12 @@ export default function AdminDashboardScreen() {
                                 <View style={styles.detailsContainer}>
                                     {selectedCompany.logo_url && (
                                         <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                                            <Image source={{ uri: selectedCompany.logo_url }} style={{ width: 100, height: 100, borderRadius: 12, borderWidth: 1, borderColor: '#334155' }} />
+                                            <Image source={{ uri: selectedCompany.logo_url }} style={{ width: 100, height: 100, borderRadius: 12, borderWidth: 1, borderColor: theme.border }} />
                                         </View>
                                     )}
 
                                     <View style={styles.detailRow}>
-                                        <Ionicons name="business-outline" size={20} color="#3b82f6" />
+                                        <Ionicons name="business-outline" size={20} color={theme.primary} />
                                         <View style={{ marginLeft: 12, flex: 1 }}>
                                             <Text style={styles.detailLabel}>Company Name</Text>
                                             <Text style={styles.detailValue}>{selectedCompany.company_name}</Text>
@@ -269,7 +269,7 @@ export default function AdminDashboardScreen() {
                                     <View style={styles.divider} />
 
                                     <View style={styles.detailRow}>
-                                        <Ionicons name="pricetag-outline" size={20} color="#10b981" />
+                                        <Ionicons name="pricetag-outline" size={20} color={theme.success} />
                                         <View style={{ marginLeft: 12, flex: 1 }}>
                                             <Text style={styles.detailLabel}>Industry</Text>
                                             <Text style={styles.detailValue}>{selectedCompany.industry || 'N/A'}</Text>
@@ -278,7 +278,7 @@ export default function AdminDashboardScreen() {
                                     <View style={styles.divider} />
 
                                     <View style={styles.detailRow}>
-                                        <Ionicons name="location-outline" size={20} color="#f59e0b" />
+                                        <Ionicons name="location-outline" size={20} color={theme.warning} />
                                         <View style={{ marginLeft: 12, flex: 1 }}>
                                             <Text style={styles.detailLabel}>Location</Text>
                                             <Text style={styles.detailValue}>{selectedCompany.company_location || 'N/A'}</Text>
@@ -287,7 +287,7 @@ export default function AdminDashboardScreen() {
                                     <View style={styles.divider} />
 
                                     <View style={styles.detailRow}>
-                                        <Ionicons name="globe-outline" size={20} color="#8b5cf6" />
+                                        <Ionicons name="globe-outline" size={20} color={theme.secondary} />
                                         <View style={{ marginLeft: 12, flex: 1 }}>
                                             <Text style={styles.detailLabel}>Website</Text>
                                             <Text style={styles.detailValue}>{selectedCompany.website_url || selectedCompany.website || 'N/A'}</Text>
@@ -324,7 +324,7 @@ export default function AdminDashboardScreen() {
                                     <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Reject</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    style={[styles.btn, { backgroundColor: '#10b981', flex: 1.5 }]}
+                                    style={[styles.btn, { backgroundColor: theme.success, flex: 1.5 }]}
                                     onPress={() => updateCompanyStatus(selectedCompany.id, 'Verified')}
                                 >
                                     <Text style={{ color: '#fff', fontWeight: 'bold' }}>Verify & Approve</Text>
@@ -334,7 +334,7 @@ export default function AdminDashboardScreen() {
                         {selectedCompany && selectedCompany.status === 'Verified' && (
                             <View style={styles.modalFooter}>
                                 <TouchableOpacity
-                                    style={[styles.btn, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
+                                    style={[styles.btn, { backgroundColor: `${theme.danger}15` }]}
                                     onPress={() => updateCompanyStatus(selectedCompany.id, 'Suspended')}
                                 >
                                     <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>Suspend Account</Text>
@@ -348,170 +348,55 @@ export default function AdminDashboardScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0f172a',
-    },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     header: {
-        padding: 24,
-        paddingTop: 60,
-        backgroundColor: '#1e293b',
-        borderBottomWidth: 1,
-        borderBottomColor: '#334155',
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        padding: 24, paddingTop: 60,
+        backgroundColor: theme.card,
+        borderBottomWidth: 1, borderBottomColor: theme.border,
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#f8fafc',
-        marginBottom: 4,
-    },
-    subtitle: {
-        fontSize: 14,
-        color: '#94a3b8',
-    },
-    logoutBtn: {
-        padding: 10,
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        borderRadius: 12,
-    },
-    content: {
-        padding: 20,
-    },
-    statsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
+    title: { fontSize: 28, fontWeight: 'bold', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 14, color: theme.textSecondary },
+    logoutBtn: { padding: 10, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 12 },
+    content: { padding: 20 },
+    statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
     statCard: {
-        flex: 1,
-        backgroundColor: '#1e293b',
-        padding: 20,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#334155',
-        alignItems: 'center',
-        marginHorizontal: 8,
+        flex: 1, backgroundColor: theme.card, padding: 20, borderRadius: 16,
+        borderWidth: 1, borderColor: theme.border, alignItems: 'center', marginHorizontal: 8,
     },
-    statNumber: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#f8fafc',
-        marginTop: 12,
-        marginBottom: 4,
-    },
-    statLabel: {
-        color: '#94a3b8',
-        fontSize: 13,
-    },
+    statNumber: { fontSize: 28, fontWeight: 'bold', color: theme.text, marginTop: 12, marginBottom: 4 },
+    statLabel: { color: theme.textSecondary, fontSize: 13 },
     chartContainer: {
-        backgroundColor: '#1e293b', padding: 20, borderRadius: 16,
-        borderWidth: 1, borderColor: '#334155', marginBottom: 28, marginHorizontal: 8,
+        backgroundColor: theme.card, padding: 20, borderRadius: 16,
+        borderWidth: 1, borderColor: theme.border, marginBottom: 28, marginHorizontal: 8,
     },
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#f8fafc',
-        marginTop: 24,
-        marginBottom: 16,
-        marginLeft: 8,
-    },
+    sectionTitle: { fontSize: 20, fontWeight: 'bold', color: theme.text, marginTop: 24, marginBottom: 16, marginLeft: 8 },
     actionCard: {
-        backgroundColor: '#1e293b',
-        padding: 20,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#334155',
-        marginHorizontal: 8,
+        backgroundColor: theme.card, padding: 20, borderRadius: 16,
+        borderWidth: 1, borderColor: theme.border, marginHorizontal: 8,
     },
-    actionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    actionName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#f8fafc',
-    },
-    actionDesc: {
-        color: '#94a3b8',
-        fontSize: 13,
-        marginTop: 4,
-    },
-    actionsBlock: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    btn: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        justifyContent: 'flex-end',
-    },
-    modalContent: {
-        backgroundColor: '#1e293b',
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        height: '80%',
-    },
+    actionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+    actionName: { fontSize: 18, fontWeight: 'bold', color: theme.text },
+    actionDesc: { color: theme.textSecondary, fontSize: 13, marginTop: 4 },
+    actionsBlock: { flexDirection: 'row', gap: 12 },
+    btn: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    modalOverlay: { flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '80%' },
     modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 24,
-        borderBottomWidth: 1,
-        borderBottomColor: '#334155',
+        flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+        padding: 24, borderBottomWidth: 1, borderBottomColor: theme.border,
     },
-    modalTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#f8fafc',
-    },
-    closeBtn: {
-        padding: 4,
-        backgroundColor: '#334155',
-        borderRadius: 20,
-    },
-    modalScroll: {
-        padding: 24,
-    },
-    detailsContainer: {
-        gap: 20,
-    },
-    detailRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-    },
-    detailLabel: {
-        color: '#94a3b8',
-        fontSize: 13,
-        marginBottom: 4,
-    },
-    detailValue: {
-        color: '#f8fafc',
-        fontSize: 15,
-        lineHeight: 22,
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#334155',
-        marginLeft: 32,
-    },
+    modalTitle: { fontSize: 22, fontWeight: 'bold', color: theme.text },
+    closeBtn: { padding: 4, backgroundColor: theme.border, borderRadius: 20 },
+    modalScroll: { padding: 24 },
+    detailsContainer: { gap: 20 },
+    detailRow: { flexDirection: 'row', alignItems: 'flex-start' },
+    detailLabel: { color: theme.textSecondary, fontSize: 13, marginBottom: 4 },
+    detailValue: { color: theme.text, fontSize: 15, lineHeight: 22 },
+    divider: { height: 1, backgroundColor: theme.border, marginLeft: 32 },
     modalFooter: {
-        padding: 24,
-        borderTopWidth: 1,
-        borderTopColor: '#334155',
-        flexDirection: 'row',
-        backgroundColor: '#0f172a',
+        padding: 24, borderTopWidth: 1, borderTopColor: theme.border,
+        flexDirection: 'row', backgroundColor: theme.background,
     }
 });

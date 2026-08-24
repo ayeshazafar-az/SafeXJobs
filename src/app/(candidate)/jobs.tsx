@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
@@ -11,6 +12,8 @@ const WORK_MODE_OPTIONS = ['All', 'Remote', 'Onsite', 'Hybrid'];
 
 export default function FindJobsScreen() {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeType, setActiveType] = useState('All');
     const [showFilters, setShowFilters] = useState(false);
@@ -168,16 +171,16 @@ export default function FindJobsScreen() {
 
                 {/* Search Bar */}
                 <View style={styles.searchBar}>
-                    <Ionicons name="search" size={20} color="#94a3b8" />
+                    <Ionicons name="search" size={20} color={theme.textSecondary} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search role, company, skill, category"
-                        placeholderTextColor="#64748b"
+                        placeholderTextColor={theme.textSecondary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
                     <TouchableOpacity onPress={() => setShowFilters(!showFilters)}>
-                        <Ionicons name={showFilters ? "close" : "options"} size={22} color={showFilters ? "#f43f5e" : "#f8fafc"} />
+                        <Ionicons name={showFilters ? "close" : "options"} size={22} color={showFilters ? theme.danger : theme.text} />
                     </TouchableOpacity>
                 </View>
 
@@ -198,15 +201,15 @@ export default function FindJobsScreen() {
                 {showFilters && (
                     <View style={styles.advFilters}>
                         <View style={styles.advRow}>
-                            <TextInput style={[styles.advInput, { marginRight: 8 }]} placeholder="Province" placeholderTextColor="#64748b" value={filterProvince} onChangeText={setFilterProvince} />
-                            <TextInput style={styles.advInput} placeholder="City" placeholderTextColor="#64748b" value={filterCity} onChangeText={setFilterCity} />
+                            <TextInput style={[styles.advInput, { marginRight: 8 }]} placeholder="Province" placeholderTextColor={theme.textSecondary} value={filterProvince} onChangeText={setFilterProvince} />
+                            <TextInput style={styles.advInput} placeholder="City" placeholderTextColor={theme.textSecondary} value={filterCity} onChangeText={setFilterCity} />
                         </View>
                         <View style={styles.advRow}>
-                            <TextInput style={[styles.advInput, { marginRight: 8 }]} placeholder="Min Salary" placeholderTextColor="#64748b" keyboardType="numeric" value={filterSalaryMin} onChangeText={setFilterSalaryMin} />
-                            <TextInput style={styles.advInput} placeholder="Max Salary" placeholderTextColor="#64748b" keyboardType="numeric" value={filterSalaryMax} onChangeText={setFilterSalaryMax} />
+                            <TextInput style={[styles.advInput, { marginRight: 8 }]} placeholder="Min Salary" placeholderTextColor={theme.textSecondary} keyboardType="numeric" value={filterSalaryMin} onChangeText={setFilterSalaryMin} />
+                            <TextInput style={styles.advInput} placeholder="Max Salary" placeholderTextColor={theme.textSecondary} keyboardType="numeric" value={filterSalaryMax} onChangeText={setFilterSalaryMax} />
                         </View>
                         <View style={styles.advRow}>
-                            <TextInput style={styles.advInput} placeholder="Experience (e.g. 2 years)" placeholderTextColor="#64748b" value={filterExperience} onChangeText={setFilterExperience} />
+                            <TextInput style={styles.advInput} placeholder="Experience (e.g. 2 years)" placeholderTextColor={theme.textSecondary} value={filterExperience} onChangeText={setFilterExperience} />
                         </View>
 
                         {/* Education Level */}
@@ -251,14 +254,14 @@ export default function FindJobsScreen() {
 
             <ScrollView
                 contentContainerStyle={styles.jobsList}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
             >
                 {loading ? (
-                    <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
+                    <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
                 ) : filteredJobs.length === 0 ? (
                     <View style={{ alignItems: 'center', marginTop: 50 }}>
-                        <Ionicons name="search-outline" size={64} color="#334155" />
-                        <Text style={{ color: '#94a3b8', marginTop: 16 }}>No jobs found matching your filters.</Text>
+                        <Ionicons name="search-outline" size={64} color={theme.border} />
+                        <Text style={{ color: theme.textSecondary, marginTop: 16 }}>No jobs found matching your filters.</Text>
                     </View>
                 ) : (
                     filteredJobs.map((job) => {
@@ -267,7 +270,7 @@ export default function FindJobsScreen() {
                             <TouchableOpacity key={job.id} style={styles.jobCard} onPress={() => setExpandedId(isExpanded ? null : job.id)} activeOpacity={0.85}>
                                 <View style={styles.jobMainInfo}>
                                     <View style={styles.jobIcon}>
-                                        <Ionicons name="briefcase" size={24} color="#3b82f6" />
+                                        <Ionicons name="briefcase" size={24} color={theme.primary} />
                                     </View>
                                     <View style={{ flex: 1, paddingRight: 10 }}>
                                         <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
@@ -334,7 +337,7 @@ export default function FindJobsScreen() {
                                         </View>
                                         {job.application_deadline && (
                                             <View style={styles.deadlineBanner}>
-                                                <Ionicons name="time-outline" size={14} color="#f59e0b" />
+                                                <Ionicons name="time-outline" size={14} color={theme.warning} />
                                                 <Text style={styles.deadlineText}>Deadline: {new Date(job.application_deadline).toLocaleDateString()}</Text>
                                             </View>
                                         )}
@@ -344,8 +347,8 @@ export default function FindJobsScreen() {
                                                 style={{ flexDirection: 'row', alignItems: 'center' }}
                                                 onPress={() => { setReportedJob(job); setReportModalVisible(true); }}
                                             >
-                                                <Ionicons name="warning-outline" size={14} color="#f43f5e" />
-                                                <Text style={{ color: '#f43f5e', fontSize: 12, marginLeft: 4 }}>Report Job</Text>
+                                                <Ionicons name="warning-outline" size={14} color={theme.danger} />
+                                                <Text style={{ color: theme.danger, fontSize: 12, marginLeft: 4 }}>Report Job</Text>
                                             </TouchableOpacity>
                                         </View>
                                     </View>
@@ -373,25 +376,25 @@ export default function FindJobsScreen() {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
                             <Text style={styles.modalTitle}>Report Job Posting</Text>
                             <TouchableOpacity onPress={() => setReportModalVisible(false)}>
-                                <Ionicons name="close" size={24} color="#94a3b8" />
+                                <Ionicons name="close" size={24} color={theme.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
-                        <Text style={{ color: '#94a3b8', marginBottom: 16 }}>
+                        <Text style={{ color: theme.textSecondary, marginBottom: 16 }}>
                             If you believe this job posting is fraudulent, offensive, or violates SafeX terms, please report it below.
                         </Text>
 
                         <TextInput
                             style={[styles.advInput, { height: 100, textAlignVertical: 'top' }]}
                             placeholder="Describe the issue with this job or company..."
-                            placeholderTextColor="#64748b"
+                            placeholderTextColor={theme.textSecondary}
                             multiline
                             value={complaintDesc}
                             onChangeText={setComplaintDesc}
                         />
 
                         <TouchableOpacity
-                            style={[styles.applyBtn, { backgroundColor: '#f43f5e', marginTop: 16, alignItems: 'center' }]}
+                            style={[styles.applyBtn, { backgroundColor: theme.danger, marginTop: 16, alignItems: 'center' }]}
                             onPress={handleReportSubmit}
                             disabled={complaintSaving}
                         >
@@ -404,57 +407,57 @@ export default function FindJobsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     header: {
-        padding: 24, paddingTop: 60, backgroundColor: '#1e293b',
-        borderBottomWidth: 1, borderBottomColor: '#334155',
+        padding: 24, paddingTop: 60, backgroundColor: theme.card,
+        borderBottomWidth: 1, borderBottomColor: theme.border,
     },
-    title: { fontSize: 28, fontWeight: 'bold', color: '#f8fafc', marginBottom: 6 },
-    subtitle: { fontSize: 15, color: '#94a3b8', marginBottom: 20 },
+    title: { fontSize: 28, fontWeight: 'bold', color: theme.text, marginBottom: 6 },
+    subtitle: { fontSize: 15, color: theme.textSecondary, marginBottom: 20 },
     searchBar: {
         flexDirection: 'row', alignItems: 'center',
-        backgroundColor: '#0f172a', borderRadius: 12,
+        backgroundColor: theme.background, borderRadius: 12,
         paddingHorizontal: 16, height: 50,
-        borderWidth: 1, borderColor: '#334155', marginBottom: 16,
+        borderWidth: 1, borderColor: theme.border, marginBottom: 16,
     },
-    searchInput: { flex: 1, color: '#f8fafc', marginLeft: 10, fontSize: 15 },
+    searchInput: { flex: 1, color: theme.text, marginLeft: 10, fontSize: 15 },
     filtersScroll: { flexDirection: 'row' },
     filterChip: {
         paddingVertical: 6, paddingHorizontal: 16,
-        backgroundColor: '#0f172a', borderRadius: 20,
-        marginRight: 10, borderWidth: 1, borderColor: '#334155',
+        backgroundColor: theme.background, borderRadius: 20,
+        marginRight: 10, borderWidth: 1, borderColor: theme.border,
     },
-    filterChipActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-    filterText: { color: '#94a3b8', fontWeight: '600', fontSize: 13 },
+    filterChipActive: { backgroundColor: theme.primary, borderColor: theme.primary },
+    filterText: { color: theme.textSecondary, fontWeight: '600', fontSize: 13 },
     filterTextActive: { color: '#fff' },
 
     // Advanced Filters
     advFilters: {
-        marginTop: 16, padding: 16, backgroundColor: '#0f172a',
-        borderRadius: 12, borderWidth: 1, borderColor: '#334155',
+        marginTop: 16, padding: 16, backgroundColor: theme.background,
+        borderRadius: 12, borderWidth: 1, borderColor: theme.border,
     },
     advRow: { flexDirection: 'row', marginBottom: 10 },
     advInput: {
-        flex: 1, backgroundColor: '#1e293b', borderRadius: 8,
-        padding: 12, color: '#f8fafc', fontSize: 13,
-        borderWidth: 1, borderColor: '#334155',
+        flex: 1, backgroundColor: theme.card, borderRadius: 8,
+        padding: 12, color: theme.text, fontSize: 13,
+        borderWidth: 1, borderColor: theme.border,
     },
     clearBtn: { alignSelf: 'flex-end', marginTop: 4 },
-    clearBtnText: { color: '#f43f5e', fontSize: 13, fontWeight: '600' },
+    clearBtnText: { color: theme.danger, fontSize: 13, fontWeight: '600' },
     filterActionsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
     createAlertBtn: {
-        backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center',
+        backgroundColor: theme.primary, flexDirection: 'row', alignItems: 'center',
         gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12
     },
     createAlertBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-    advLabel: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginBottom: 6, marginTop: 4 },
+    advLabel: { color: theme.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 6, marginTop: 4 },
 
     jobsList: { padding: 20, paddingBottom: 100 },
     jobCard: {
-        backgroundColor: '#1e293b', borderRadius: 16,
+        backgroundColor: theme.card, borderRadius: 16,
         padding: 20, marginBottom: 16,
-        borderWidth: 1, borderColor: '#334155',
+        borderWidth: 1, borderColor: theme.border,
     },
     jobMainInfo: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
     jobIcon: {
@@ -462,42 +465,42 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         alignItems: 'center', justifyContent: 'center', marginRight: 16,
     },
-    jobTitle: { fontSize: 17, fontWeight: 'bold', color: '#f8fafc', marginBottom: 4 },
-    jobCompany: { fontSize: 14, color: '#94a3b8' },
+    jobTitle: { fontSize: 17, fontWeight: 'bold', color: theme.text, marginBottom: 4 },
+    jobCompany: { fontSize: 14, color: theme.textSecondary },
     jobTags: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
     tag: {
-        backgroundColor: '#0f172a', paddingVertical: 4, paddingHorizontal: 10,
-        borderRadius: 8, borderWidth: 1, borderColor: '#334155',
+        backgroundColor: theme.background, paddingVertical: 4, paddingHorizontal: 10,
+        borderRadius: 8, borderWidth: 1, borderColor: theme.border,
     },
-    tagText: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
+    tagText: { color: theme.textSecondary, fontSize: 12, fontWeight: '600' },
 
     // Expanded
     expandedBox: {
-        backgroundColor: '#0f172a', borderRadius: 10,
+        backgroundColor: theme.background, borderRadius: 10,
         padding: 16, marginBottom: 12,
-        borderWidth: 1, borderColor: '#334155',
+        borderWidth: 1, borderColor: theme.border,
     },
-    descText: { color: '#cbd5e1', fontSize: 13, lineHeight: 20, marginBottom: 12 },
+    descText: { color: theme.textSecondary, fontSize: 13, lineHeight: 20, marginBottom: 12 },
     detailBlock: { marginBottom: 10 },
-    detailLabel: { color: '#60a5fa', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 },
-    detailContent: { color: '#cbd5e1', fontSize: 13, lineHeight: 20 },
+    detailLabel: { color: theme.primary, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 },
+    detailContent: { color: theme.textSecondary, fontSize: 13, lineHeight: 20 },
     detailRow: { flexDirection: 'row', gap: 16 },
     deadlineBanner: {
         flexDirection: 'row', alignItems: 'center', gap: 6,
         backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: 10, borderRadius: 8, marginTop: 8,
     },
-    deadlineText: { color: '#f59e0b', fontSize: 12, fontWeight: '600' },
+    deadlineText: { color: theme.warning, fontSize: 12, fontWeight: '600' },
 
     jobFooter: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-        borderTopWidth: 1, borderTopColor: '#334155', paddingTop: 12,
+        borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 12,
     },
-    jobSalary: { color: '#10b981', fontWeight: 'bold', fontSize: 14 },
-    jobTime: { color: '#64748b', fontSize: 12 },
-    applyBtn: { backgroundColor: '#3b82f6', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+    jobSalary: { color: theme.success, fontWeight: 'bold', fontSize: 14 },
+    jobTime: { color: theme.textSecondary, fontSize: 12 },
+    applyBtn: { backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
     applyBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
 
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-    modalTitle: { color: '#f8fafc', fontSize: 20, fontWeight: 'bold' }
+    modalOverlay: { flex: 1, backgroundColor: theme.overlay, justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+    modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold' }
 });

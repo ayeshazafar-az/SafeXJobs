@@ -1,3 +1,4 @@
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -7,6 +8,8 @@ import { Alert, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, Text
 const STORAGE_KEY = 'admin_setup_locations';
 
 export default function LocationsScreen() {
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const router = useRouter();
     const [locations, setLocations] = useState<string[]>([]);
     const [newLocation, setNewLocation] = useState('');
@@ -21,7 +24,7 @@ export default function LocationsScreen() {
             if (data) {
                 setLocations(JSON.parse(data));
             } else {
-                setLocations(['Remote', 'Islamabad', 'Lahore', 'Karachi', 'Dubai', 'London']); // Defaults
+                setLocations(['Remote', 'Islamabad', 'Lahore', 'Karachi', 'Dubai', 'London']);
             }
         } catch (e) {
             console.error('Failed to load locations', e);
@@ -66,7 +69,7 @@ export default function LocationsScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
-                    <Ionicons name="arrow-back" size={24} color="#f8fafc" />
+                    <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <Text style={styles.title}>Manage Locations</Text>
             </View>
@@ -75,7 +78,7 @@ export default function LocationsScreen() {
                 <TextInput
                     style={styles.input}
                     placeholder="e.g., New York, Sydney..."
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor={theme.textSecondary}
                     value={newLocation}
                     onChangeText={setNewLocation}
                 />
@@ -90,10 +93,10 @@ export default function LocationsScreen() {
                 contentContainerStyle={styles.list}
                 renderItem={({ item }) => (
                     <View style={styles.card}>
-                        <Ionicons name="location-outline" size={20} color="#10b981" />
+                        <Ionicons name="location-outline" size={20} color={theme.success} />
                         <Text style={styles.cardText}>{item}</Text>
                         <TouchableOpacity style={styles.deleteBtn} onPress={() => removeLocation(item)}>
-                            <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                            <Ionicons name="trash-outline" size={20} color={theme.danger} />
                         </TouchableOpacity>
                     </View>
                 )}
@@ -102,33 +105,33 @@ export default function LocationsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     header: {
         padding: 24, paddingTop: 60, paddingBottom: 20,
-        backgroundColor: '#1e293b', flexDirection: 'row', alignItems: 'center',
-        borderBottomWidth: 1, borderBottomColor: '#334155'
+        backgroundColor: theme.card, flexDirection: 'row', alignItems: 'center',
+        borderBottomWidth: 1, borderBottomColor: theme.border
     },
-    title: { fontSize: 20, fontWeight: 'bold', color: '#f8fafc' },
+    title: { fontSize: 20, fontWeight: 'bold', color: theme.text },
     inputArea: {
         flexDirection: 'row', padding: 20,
-        backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155'
+        backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border
     },
     input: {
-        flex: 1, backgroundColor: '#0f172a', color: '#f8fafc',
+        flex: 1, backgroundColor: theme.background, color: theme.text,
         borderRadius: 12, paddingHorizontal: 16, height: 48,
-        borderWidth: 1, borderColor: '#334155'
+        borderWidth: 1, borderColor: theme.border
     },
     addBtn: {
-        width: 48, height: 48, borderRadius: 12, backgroundColor: '#10b981',
+        width: 48, height: 48, borderRadius: 12, backgroundColor: theme.success,
         alignItems: 'center', justifyContent: 'center', marginLeft: 12
     },
     list: { padding: 20 },
     card: {
         flexDirection: 'row', alignItems: 'center',
-        backgroundColor: '#1e293b', padding: 16, borderRadius: 12,
-        marginBottom: 12, borderWidth: 1, borderColor: '#334155'
+        backgroundColor: theme.card, padding: 16, borderRadius: 12,
+        marginBottom: 12, borderWidth: 1, borderColor: theme.border
     },
-    cardText: { flex: 1, marginLeft: 12, color: '#f8fafc', fontSize: 16, fontWeight: '500' },
-    deleteBtn: { padding: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 8 }
+    cardText: { flex: 1, marginLeft: 12, color: theme.text, fontSize: 16, fontWeight: '500' },
+    deleteBtn: { padding: 8, backgroundColor: `${theme.danger}15`, borderRadius: 8 }
 });

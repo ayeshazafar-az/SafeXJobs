@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -12,6 +13,8 @@ const JOB_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Internship', 'Remote']
 
 export default function MyJobsScreen() {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [jobs, setJobs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -146,13 +149,13 @@ export default function MyJobsScreen() {
 
             <ScrollView
                 contentContainerStyle={styles.listContent}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f59e0b" />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
             >
                 {loading ? (
-                    <ActivityIndicator size="large" color="#f59e0b" style={{ marginTop: 50 }} />
+                    <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
                 ) : jobs.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Ionicons name="briefcase-outline" size={64} color="#334155" />
+                        <Ionicons name="briefcase-outline" size={64} color={theme.border} />
                         <Text style={styles.emptyText}>No jobs posted yet</Text>
                         <Text style={styles.emptySubText}>Go to "Post Job" to create your first listing.</Text>
                     </View>
@@ -165,31 +168,31 @@ export default function MyJobsScreen() {
                                 {/* Header */}
                                 <View style={styles.cardHeader}>
                                     <View style={[styles.jobIcon, { backgroundColor: isActive ? 'rgba(245, 158, 11, 0.1)' : 'rgba(100, 116, 139, 0.1)' }]}>
-                                        <Ionicons name="briefcase" size={22} color={isActive ? '#f59e0b' : '#64748b'} />
+                                        <Ionicons name="briefcase" size={22} color={isActive ? theme.warning : theme.textSecondary} />
                                     </View>
                                     <View style={{ flex: 1 }}>
                                         <Text style={styles.jobTitle}>{job.title}</Text>
                                         <Text style={styles.jobMeta}>{job.job_type || 'Full-Time'}{job.location ? ` • ${job.location}` : ''}</Text>
                                     </View>
                                     <View style={[styles.statusBadge, { backgroundColor: isActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(100, 116, 139, 0.15)' }]}>
-                                        <View style={[styles.statusDot, { backgroundColor: isActive ? '#10b981' : '#64748b' }]} />
-                                        <Text style={[styles.statusText, { color: isActive ? '#10b981' : '#64748b' }]}>{isActive ? 'Active' : 'Paused'}</Text>
+                                        <View style={[styles.statusDot, { backgroundColor: isActive ? theme.success : theme.textSecondary }]} />
+                                        <Text style={[styles.statusText, { color: isActive ? theme.success : theme.textSecondary }]}>{isActive ? 'Active' : 'Paused'}</Text>
                                     </View>
                                 </View>
 
                                 {/* Stats */}
                                 <View style={styles.statsRow}>
                                     <View style={styles.statItem}>
-                                        <Ionicons name="people-outline" size={16} color="#94a3b8" />
+                                        <Ionicons name="people-outline" size={16} color={theme.textSecondary} />
                                         <Text style={styles.statText}>{appCount} Applications</Text>
                                     </View>
                                     <View style={styles.statItem}>
-                                        <Ionicons name="time-outline" size={16} color="#94a3b8" />
+                                        <Ionicons name="time-outline" size={16} color={theme.textSecondary} />
                                         <Text style={styles.statText}>Posted {new Date(job.created_at).toLocaleDateString()}</Text>
                                     </View>
                                     {job.salary_min && job.salary_max && (
                                         <View style={styles.statItem}>
-                                            <Ionicons name="cash-outline" size={16} color="#94a3b8" />
+                                            <Ionicons name="cash-outline" size={16} color={theme.textSecondary} />
                                             <Text style={styles.statText}>PKR {job.salary_min.toLocaleString()} - {job.salary_max.toLocaleString()}</Text>
                                         </View>
                                     )}
@@ -198,8 +201,8 @@ export default function MyJobsScreen() {
                                 {/* Actions */}
                                 <View style={styles.actionsRow}>
                                     <TouchableOpacity style={styles.actionBtn} onPress={() => openEditModal(job)}>
-                                        <Ionicons name="create-outline" size={18} color="#60a5fa" />
-                                        <Text style={[styles.actionText, { color: '#60a5fa' }]}>Edit</Text>
+                                        <Ionicons name="create-outline" size={18} color={theme.primary} />
+                                        <Text style={[styles.actionText, { color: theme.primary }]}>Edit</Text>
                                     </TouchableOpacity>
 
                                     <TouchableOpacity
@@ -208,19 +211,19 @@ export default function MyJobsScreen() {
                                         disabled={togglingId === job.id}
                                     >
                                         {togglingId === job.id ? (
-                                            <ActivityIndicator color="#f59e0b" size="small" />
+                                            <ActivityIndicator color={theme.warning} size="small" />
                                         ) : (
                                             <>
-                                                <Ionicons name={isActive ? 'pause' : 'play'} size={18} color="#f59e0b" />
-                                                <Text style={[styles.actionText, { color: '#f59e0b' }]}>{isActive ? 'Pause' : 'Resume'}</Text>
+                                                <Ionicons name={isActive ? 'pause' : 'play'} size={18} color={theme.warning} />
+                                                <Text style={[styles.actionText, { color: theme.warning }]}>{isActive ? 'Pause' : 'Resume'}</Text>
                                             </>
                                         )}
                                     </TouchableOpacity>
 
                                     {isActive && (
                                         <TouchableOpacity style={styles.actionBtn} onPress={() => closeJob(job.id)}>
-                                            <Ionicons name="close-circle-outline" size={18} color="#f43f5e" />
-                                            <Text style={[styles.actionText, { color: '#f43f5e' }]}>Close</Text>
+                                            <Ionicons name="close-circle-outline" size={18} color={theme.danger} />
+                                            <Text style={[styles.actionText, { color: theme.danger }]}>Close</Text>
                                         </TouchableOpacity>
                                     )}
                                 </View>
@@ -238,19 +241,19 @@ export default function MyJobsScreen() {
                             <View style={styles.modalHeader}>
                                 <Text style={styles.modalTitle}>Edit Job</Text>
                                 <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                                    <Ionicons name="close" size={24} color="#94a3b8" />
+                                    <Ionicons name="close" size={24} color={theme.textSecondary} />
                                 </TouchableOpacity>
                             </View>
 
                             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 450 }}>
                                 <Text style={styles.fieldLabel}>Job Title *</Text>
-                                <TextInput style={styles.fieldInput} value={editTitle} onChangeText={setEditTitle} placeholder="Job title" placeholderTextColor="#64748b" />
+                                <TextInput style={styles.fieldInput} value={editTitle} onChangeText={setEditTitle} placeholder="Job title" placeholderTextColor={theme.textSecondary} />
 
                                 <Text style={styles.fieldLabel}>Department</Text>
-                                <TextInput style={styles.fieldInput} value={editDepartment} onChangeText={setEditDepartment} placeholder="Department" placeholderTextColor="#64748b" />
+                                <TextInput style={styles.fieldInput} value={editDepartment} onChangeText={setEditDepartment} placeholder="Department" placeholderTextColor={theme.textSecondary} />
 
                                 <Text style={styles.fieldLabel}>Location</Text>
-                                <TextInput style={styles.fieldInput} value={editLocation} onChangeText={setEditLocation} placeholder="Location" placeholderTextColor="#64748b" />
+                                <TextInput style={styles.fieldInput} value={editLocation} onChangeText={setEditLocation} placeholder="Location" placeholderTextColor={theme.textSecondary} />
 
                                 <Text style={styles.fieldLabel}>Employment Type</Text>
                                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
@@ -263,12 +266,12 @@ export default function MyJobsScreen() {
 
                                 <Text style={styles.fieldLabel}>Salary Range (PKR)</Text>
                                 <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
-                                    <TextInput style={[styles.fieldInput, { flex: 1 }]} value={editSalaryMin} onChangeText={setEditSalaryMin} placeholder="Min" placeholderTextColor="#64748b" keyboardType="numeric" />
-                                    <TextInput style={[styles.fieldInput, { flex: 1 }]} value={editSalaryMax} onChangeText={setEditSalaryMax} placeholder="Max" placeholderTextColor="#64748b" keyboardType="numeric" />
+                                    <TextInput style={[styles.fieldInput, { flex: 1 }]} value={editSalaryMin} onChangeText={setEditSalaryMin} placeholder="Min" placeholderTextColor={theme.textSecondary} keyboardType="numeric" />
+                                    <TextInput style={[styles.fieldInput, { flex: 1 }]} value={editSalaryMax} onChangeText={setEditSalaryMax} placeholder="Max" placeholderTextColor={theme.textSecondary} keyboardType="numeric" />
                                 </View>
 
                                 <Text style={styles.fieldLabel}>Description *</Text>
-                                <TextInput style={[styles.fieldInput, { height: 100, textAlignVertical: 'top' }]} value={editDescription} onChangeText={setEditDescription} placeholder="Job description" placeholderTextColor="#64748b" multiline />
+                                <TextInput style={[styles.fieldInput, { height: 100, textAlignVertical: 'top' }]} value={editDescription} onChangeText={setEditDescription} placeholder="Job description" placeholderTextColor={theme.textSecondary} multiline />
                             </ScrollView>
 
                             <TouchableOpacity style={styles.saveBtn} onPress={handleSaveEdit} disabled={editSaving}>
@@ -289,24 +292,24 @@ export default function MyJobsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     header: {
         padding: 24, paddingTop: 60, paddingBottom: 20,
-        backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155',
+        backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border,
     },
-    title: { fontSize: 28, fontWeight: '800', color: '#f8fafc', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: '#94a3b8' },
+    title: { fontSize: 28, fontWeight: '800', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: theme.textSecondary },
     listContent: { padding: 20, paddingBottom: 100 },
 
     emptyContainer: { alignItems: 'center', marginTop: 80, opacity: 0.6 },
-    emptyText: { color: '#e2e8f0', fontSize: 16, fontWeight: 'bold', marginTop: 16 },
-    emptySubText: { color: '#94a3b8', fontSize: 13, marginTop: 8, textAlign: 'center' },
+    emptyText: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginTop: 16 },
+    emptySubText: { color: theme.textSecondary, fontSize: 13, marginTop: 8, textAlign: 'center' },
 
     jobCard: {
-        backgroundColor: '#1e293b', borderRadius: 16,
+        backgroundColor: theme.card, borderRadius: 16,
         padding: 20, marginBottom: 16,
-        borderWidth: 1, borderColor: '#334155',
+        borderWidth: 1, borderColor: theme.border,
     },
     jobCardInactive: { opacity: 0.7 },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
@@ -314,8 +317,8 @@ const styles = StyleSheet.create({
         width: 44, height: 44, borderRadius: 12,
         alignItems: 'center', justifyContent: 'center', marginRight: 14,
     },
-    jobTitle: { fontSize: 16, fontWeight: 'bold', color: '#f8fafc', marginBottom: 2 },
-    jobMeta: { fontSize: 12, color: '#64748b' },
+    jobTitle: { fontSize: 16, fontWeight: 'bold', color: theme.text, marginBottom: 2 },
+    jobMeta: { fontSize: 12, color: theme.textSecondary },
     statusBadge: {
         flexDirection: 'row', alignItems: 'center', gap: 6,
         paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
@@ -325,47 +328,47 @@ const styles = StyleSheet.create({
 
     statsRow: {
         flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 14,
-        paddingTop: 12, borderTopWidth: 1, borderTopColor: '#334155',
+        paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.border,
     },
     statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    statText: { color: '#94a3b8', fontSize: 12 },
+    statText: { color: theme.textSecondary, fontSize: 12 },
 
     actionsRow: {
         flexDirection: 'row', gap: 8,
-        paddingTop: 12, borderTopWidth: 1, borderTopColor: '#334155',
+        paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.border,
     },
     actionBtn: {
         flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         gap: 6, paddingVertical: 10, borderRadius: 10,
-        backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155',
+        backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border,
     },
     actionText: { fontSize: 13, fontWeight: '600' },
 
     // Modal
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+    modalContent: { backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { color: '#f8fafc', fontSize: 20, fontWeight: 'bold' },
+    modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold' },
 
-    fieldLabel: { color: '#e2e8f0', fontSize: 13, fontWeight: '600', marginBottom: 6, marginTop: 4 },
+    fieldLabel: { color: theme.text, fontSize: 13, fontWeight: '600', marginBottom: 6, marginTop: 4 },
     fieldInput: {
-        backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155',
-        borderRadius: 10, padding: 14, color: '#f8fafc', fontSize: 14,
+        backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border,
+        borderRadius: 10, padding: 14, color: theme.text, fontSize: 14,
         marginBottom: 12,
     },
 
     chip: {
         paddingVertical: 7, paddingHorizontal: 14, borderRadius: 20,
-        backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155', marginRight: 8,
+        backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border, marginRight: 8,
     },
-    chipActive: { backgroundColor: '#f59e0b', borderColor: '#f59e0b' },
-    chipText: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
+    chipActive: { backgroundColor: theme.primary, borderColor: theme.primary },
+    chipText: { color: theme.textSecondary, fontSize: 12, fontWeight: '600' },
     chipTextActive: { color: '#fff' },
 
     saveBtn: {
-        backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 16,
+        backgroundColor: theme.primary, borderRadius: 12, paddingVertical: 16,
         alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 16,
-        shadowColor: '#f59e0b', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
+        shadowColor: theme.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
     },
     saveBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

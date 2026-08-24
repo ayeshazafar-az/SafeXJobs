@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useState } from 'react';
@@ -7,6 +8,8 @@ import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TextI
 
 export default function CandidateTestsScreen() {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [tests, setTests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -168,7 +171,7 @@ export default function CandidateTestsScreen() {
         return count;
     };
 
-    if (loading) return <ActivityIndicator size="large" color="#3b82f6" style={{ flex: 1, backgroundColor: '#0f172a' }} />;
+    if (loading) return <ActivityIndicator size="large" color={theme.primary} style={{ flex: 1, backgroundColor: theme.background }} />;
 
     return (
         <View style={styles.container}>
@@ -180,7 +183,7 @@ export default function CandidateTestsScreen() {
             <ScrollView contentContainerStyle={styles.listContent}>
                 {tests.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Ionicons name="document-text-outline" size={64} color="#334155" />
+                        <Ionicons name="document-text-outline" size={64} color={theme.border} />
                         <Text style={styles.emptyText}>No pending tests.</Text>
                         <Text style={styles.emptySubText}>If a company requires a skill assessment, it will show up here along with its deadline.</Text>
                     </View>
@@ -194,10 +197,10 @@ export default function CandidateTestsScreen() {
                         // determine styling
                         let statusColor = '#94a3b8';
                         let bg = 'rgba(148, 163, 184, 0.1)';
-                        if (isPending) { statusColor = pastDeadline ? '#f43f5e' : '#fb923c'; bg = pastDeadline ? 'rgba(244, 63, 94, 0.1)' : 'rgba(251, 146, 60, 0.1)'; }
-                        else if (test.status === 'Submitted') { statusColor = '#3b82f6'; bg = 'rgba(59, 130, 246, 0.1)'; }
-                        else if (test.status === 'Passed') { statusColor = '#10b981'; bg = 'rgba(16, 185, 129, 0.1)'; }
-                        else if (test.status === 'Failed') { statusColor = '#f43f5e'; bg = 'rgba(244, 63, 94, 0.1)'; }
+                        if (isPending) { statusColor = pastDeadline ? theme.danger : theme.warning; bg = pastDeadline ? 'rgba(244, 63, 94, 0.1)' : 'rgba(251, 146, 60, 0.1)'; }
+                        else if (test.status === 'Submitted') { statusColor = theme.primary; bg = 'rgba(59, 130, 246, 0.1)'; }
+                        else if (test.status === 'Passed') { statusColor = theme.success; bg = 'rgba(16, 185, 129, 0.1)'; }
+                        else if (test.status === 'Failed') { statusColor = theme.danger; bg = 'rgba(244, 63, 94, 0.1)'; }
 
                         return (
                             <View key={test.id} style={styles.testCard}>
@@ -213,8 +216,8 @@ export default function CandidateTestsScreen() {
 
                                 {test.deadline && (
                                     <View style={styles.deadlineBanner}>
-                                        <Ionicons name="time-outline" size={14} color={pastDeadline ? "#f43f5e" : "#f59e0b"} />
-                                        <Text style={[styles.deadlineText, { color: pastDeadline ? "#f43f5e" : "#f59e0b" }]}>
+                                        <Ionicons name="time-outline" size={14} color={pastDeadline ? theme.danger : theme.warning} />
+                                        <Text style={[styles.deadlineText, { color: pastDeadline ? theme.danger : theme.warning }]}>
                                             {pastDeadline ? 'Deadline Passed: ' : 'Deadline: '}{new Date(test.deadline).toLocaleDateString()}
                                         </Text>
                                     </View>
@@ -243,8 +246,8 @@ export default function CandidateTestsScreen() {
 
                                 {/* Status Result Block */}
                                 {(test.status === 'Passed' || test.status === 'Failed') && test.evaluator_comments && (
-                                    <View style={[styles.feedbackBox, test.status === 'Passed' ? { borderLeftColor: '#10b981' } : { borderLeftColor: '#f43f5e' }]}>
-                                        <Text style={[styles.feedbackLabel, test.status === 'Passed' ? { color: '#10b981' } : { color: '#f43f5e' }]}>Evaluator Feedback:</Text>
+                                    <View style={[styles.feedbackBox, test.status === 'Passed' ? { borderLeftColor: theme.success } : { borderLeftColor: theme.danger }]}>
+                                        <Text style={[styles.feedbackLabel, test.status === 'Passed' ? { color: theme.success } : { color: theme.danger }]}>Evaluator Feedback:</Text>
                                         <Text style={styles.descText}>{test.evaluator_comments}</Text>
                                     </View>
                                 )}
@@ -252,7 +255,7 @@ export default function CandidateTestsScreen() {
                                 {isPending ? (
                                     pastDeadline ? (
                                         <View style={styles.expiredBox}>
-                                            <Ionicons name="warning-outline" size={16} color="#f43f5e" />
+                                            <Ionicons name="warning-outline" size={16} color={theme.danger} />
                                             <Text style={styles.expiredText}>The deadline for this assessment has passed. You can no longer submit.</Text>
                                         </View>
                                     ) : (
@@ -286,7 +289,7 @@ export default function CandidateTestsScreen() {
                                                                         </View>
                                                                     ));
                                                                 } catch (e) {
-                                                                    return <Text style={{ color: '#ef4444' }}>Error loading questions.</Text>;
+                                                                    return <Text style={{ color: theme.danger }}>Error loading questions.</Text>;
                                                                 }
                                                             })()}
                                                         </View>
@@ -297,7 +300,7 @@ export default function CandidateTestsScreen() {
                                                                 <TextInput
                                                                     style={styles.urlInput}
                                                                     placeholder="URL (e.g. GitHub repo)..."
-                                                                    placeholderTextColor="#64748b"
+                                                                    placeholderTextColor={theme.textSecondary}
                                                                     value={submissionUrl}
                                                                     onChangeText={setSubmissionUrl}
                                                                 />
@@ -308,7 +311,7 @@ export default function CandidateTestsScreen() {
                                                             <TextInput
                                                                 style={[styles.urlInput, { height: 100, textAlignVertical: 'top', marginTop: 10 }]}
                                                                 placeholder="Or paste your written answer here..."
-                                                                placeholderTextColor="#64748b"
+                                                                placeholderTextColor={theme.textSecondary}
                                                                 multiline
                                                                 value={submissionText}
                                                                 onChangeText={setSubmissionText}
@@ -321,7 +324,7 @@ export default function CandidateTestsScreen() {
                                                             <Text style={{ color: '#fff', fontWeight: 'bold' }}>Submit Assessment</Text>
                                                         </TouchableOpacity>
                                                         <TouchableOpacity style={styles.cancelBtn} onPress={() => setSubmittingId(null)}>
-                                                            <Text style={{ color: '#f43f5e', fontWeight: 'bold' }}>Cancel</Text>
+                                                            <Text style={{ color: theme.danger, fontWeight: 'bold' }}>Cancel</Text>
                                                         </TouchableOpacity>
                                                     </View>
                                                 </View>
@@ -335,7 +338,7 @@ export default function CandidateTestsScreen() {
                                     )
                                 ) : test.status === 'Submitted' ? (
                                     <View style={styles.submittedBox}>
-                                        <Ionicons name="checkmark-circle" size={16} color="#3b82f6" />
+                                        <Ionicons name="checkmark-circle" size={16} color={theme.primary} />
                                         <Text style={styles.submittedText}>Assessement submitted and under review by the hiring team.</Text>
                                     </View>
                                 ) : null}
@@ -348,20 +351,20 @@ export default function CandidateTestsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
-    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155' },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: '#94a3b8' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: theme.textSecondary },
     listContent: { padding: 20, paddingBottom: 100 },
     emptyContainer: { alignItems: 'center', marginTop: 100, opacity: 0.6 },
-    emptyText: { color: '#e2e8f0', fontSize: 16, fontWeight: 'bold', marginTop: 16 },
-    emptySubText: { color: '#94a3b8', fontSize: 13, marginTop: 8, textAlign: 'center', paddingHorizontal: 20, lineHeight: 20 },
+    emptyText: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginTop: 16 },
+    emptySubText: { color: theme.textSecondary, fontSize: 13, marginTop: 8, textAlign: 'center', paddingHorizontal: 20, lineHeight: 20 },
 
-    testCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#334155' },
+    testCard: { backgroundColor: theme.card, borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: theme.border },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
-    testTitle: { color: '#f8fafc', fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
-    companyRefs: { color: '#94a3b8', fontSize: 13, fontWeight: '500' },
+    testTitle: { color: theme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
+    companyRefs: { color: theme.textSecondary, fontSize: 13, fontWeight: '500' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     statusText: { fontSize: 12, fontWeight: 'bold' },
 
@@ -369,41 +372,41 @@ const styles = StyleSheet.create({
     deadlineText: { fontSize: 12, fontWeight: '600' },
 
     marksBanner: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'rgba(96, 165, 250, 0.1)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 12 },
-    marksText: { color: '#60a5fa', fontSize: 12, fontWeight: '600' },
-    scoredText: { color: '#f8fafc', fontSize: 12, fontWeight: 'bold' },
+    marksText: { color: theme.primary, fontSize: 12, fontWeight: '600' },
+    scoredText: { color: theme.text, fontSize: 12, fontWeight: 'bold' },
 
-    descBox: { backgroundColor: '#0f172a', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: '#475569' },
-    descText: { color: '#cbd5e1', fontSize: 13, lineHeight: 20 },
+    descBox: { backgroundColor: theme.background, padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.border },
+    descText: { color: theme.textSecondary, fontSize: 13, lineHeight: 20 },
 
-    feedbackBox: { backgroundColor: '#0f172a', padding: 12, borderRadius: 8, marginTop: 8, borderLeftWidth: 3 },
+    feedbackBox: { backgroundColor: theme.background, padding: 12, borderRadius: 8, marginTop: 8, borderLeftWidth: 3 },
     feedbackLabel: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
 
     submitArea: { marginTop: 8 },
-    submitLabel: { color: '#94a3b8', fontSize: 12, fontWeight: '600', marginBottom: 8 },
+    submitLabel: { color: theme.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 8 },
 
-    startBtn: { backgroundColor: '#3b82f6', flexDirection: 'row', paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    startBtn: { backgroundColor: theme.primary, flexDirection: 'row', paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
     startBtnText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
 
-    submitForm: { backgroundColor: '#0f172a', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#334155' },
+    submitForm: { backgroundColor: theme.background, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: theme.border },
     uploadRow: { flexDirection: 'row', gap: 10 },
-    urlInput: { flex: 1, backgroundColor: '#1e293b', color: '#fff', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: '#334155', fontSize: 13 },
-    uploadBtn: { backgroundColor: '#6366f1', width: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    urlInput: { flex: 1, backgroundColor: theme.card, color: theme.text, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: theme.border, fontSize: 13 },
+    uploadBtn: { backgroundColor: theme.primary, width: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 
     submitActionGroup: { flexDirection: 'row', gap: 10, marginTop: 16 },
-    confirmBtn: { flex: 1, backgroundColor: '#10b981', paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-    cancelBtn: { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#f43f5e', paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    confirmBtn: { flex: 1, backgroundColor: theme.success, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    cancelBtn: { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.danger, paddingVertical: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 
     submittedBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, marginTop: 8 },
-    submittedText: { color: '#3b82f6', fontSize: 13, fontWeight: 'bold' },
+    submittedText: { color: theme.primary, fontSize: 13, fontWeight: 'bold' },
 
     expiredBox: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(244, 63, 94, 0.1)', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10, marginTop: 8 },
-    expiredText: { color: '#f43f5e', fontSize: 13, fontWeight: 'bold', flex: 1, lineHeight: 18 },
+    expiredText: { color: theme.danger, fontSize: 13, fontWeight: 'bold', flex: 1, lineHeight: 18 },
 
-    mcqQuestionBox: { backgroundColor: '#1e293b', padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#334155' },
-    mcqQuestionText: { color: '#f8fafc', fontSize: 15, fontWeight: '600', marginBottom: 12, lineHeight: 22 },
-    mcqOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#0f172a', borderRadius: 8, marginBottom: 8 },
-    mcqOptionText: { color: '#cbd5e1', fontSize: 14, marginLeft: 10, flex: 1 },
-    mcqRadio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#64748b', alignItems: 'center', justifyContent: 'center' },
-    mcqRadioActive: { borderColor: '#3b82f6' },
-    mcqRadioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#3b82f6' }
+    mcqQuestionBox: { backgroundColor: theme.card, padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: theme.border },
+    mcqQuestionText: { color: theme.text, fontSize: 15, fontWeight: '600', marginBottom: 12, lineHeight: 22 },
+    mcqOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, backgroundColor: theme.background, borderRadius: 8, marginBottom: 8 },
+    mcqOptionText: { color: theme.textSecondary, fontSize: 14, marginLeft: 10, flex: 1 },
+    mcqRadio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: theme.textSecondary, alignItems: 'center', justifyContent: 'center' },
+    mcqRadioActive: { borderColor: theme.primary },
+    mcqRadioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.primary }
 });

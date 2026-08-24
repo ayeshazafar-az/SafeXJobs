@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useState } from 'react';
@@ -7,6 +8,8 @@ import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Platfor
 
 export default function CompanyChatScreen() {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [conversations, setConversations] = useState<any[]>([]);
     const [activeChat, setActiveChat] = useState<any | null>(null);
     const [messages, setMessages] = useState<any[]>([]);
@@ -145,7 +148,7 @@ export default function CompanyChatScreen() {
     };
 
     if (loading) {
-        return <ActivityIndicator size="large" color="#3b82f6" style={{ flex: 1, backgroundColor: '#0f172a' }} />;
+        return <ActivityIndicator size="large" color={theme.primary} style={{ flex: 1, backgroundColor: theme.background }} />;
     }
 
     if (!activeChat) {
@@ -159,7 +162,7 @@ export default function CompanyChatScreen() {
                 <ScrollView contentContainerStyle={styles.listContent}>
                     {conversations.length === 0 ? (
                         <View style={styles.emptyContainer}>
-                            <Ionicons name="chatbubbles-outline" size={64} color="#334155" />
+                            <Ionicons name="chatbubbles-outline" size={64} color={theme.border} />
                             <Text style={styles.emptyText}>No active chats available.</Text>
                             <Text style={styles.emptySubText}>Shortlist a candidate in your Applications tab to unlock direct messaging.</Text>
                         </View>
@@ -192,7 +195,7 @@ export default function CompanyChatScreen() {
 
             <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', paddingTop: 50, paddingBottom: 15 }]}>
                 <TouchableOpacity onPress={() => setActiveChat(null)} style={{ marginRight: 16 }}>
-                    <Ionicons name="arrow-back" size={24} color="#f8fafc" />
+                    <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <View>
                     <Text style={styles.chatHeaderCompany}>{activeChat.profiles?.full_name}</Text>
@@ -226,21 +229,21 @@ export default function CompanyChatScreen() {
                                         {attachmentUrl.match(/\.(jpeg|jpg|gif|png)$/i) != null ? (
                                             <Image source={{ uri: attachmentUrl }} style={{ width: 200, height: 150, borderRadius: 8, marginBottom: 4 }} />
                                         ) : (
-                                            <Text style={[styles.messageText, isMe ? { color: '#fff', textDecorationLine: 'underline' } : { color: '#3b82f6', textDecorationLine: 'underline' }]}>{displayContent}</Text>
+                                            <Text style={[styles.messageText, isMe ? { color: '#fff', textDecorationLine: 'underline' } : { color: theme.primary, textDecorationLine: 'underline' }]}>{displayContent}</Text>
                                         )}
                                     </TouchableOpacity>
                                 ) : (
-                                    <Text style={[styles.messageText, isMe ? { color: '#fff' } : { color: '#f8fafc' }]}>{displayContent}</Text>
+                                    <Text style={[styles.messageText, isMe ? { color: '#fff' } : { color: theme.text }]}>{displayContent}</Text>
                                 )}
                                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4 }}>
-                                    <Text style={[styles.timeText, { marginTop: 0 }, isMe ? { color: 'rgba(255,255,255,0.7)' } : { color: '#64748b' }]}>
+                                    <Text style={[styles.timeText, { marginTop: 0 }, isMe ? { color: 'rgba(255,255,255,0.7)' } : { color: theme.textSecondary }]}>
                                         {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </Text>
                                     {isMe && (
                                         <Ionicons
                                             name="checkmark-done"
                                             size={14}
-                                            color={isRead ? "#38bdf8" : "rgba(255,255,255,0.5)"}
+                                            color={isRead ? theme.primary : "rgba(255,255,255,0.5)"}
                                             style={{ marginLeft: 4 }}
                                         />
                                     )}
@@ -253,12 +256,12 @@ export default function CompanyChatScreen() {
 
             <View style={styles.inputArea}>
                 <TouchableOpacity style={styles.attachBtn} onPress={handleAttach} disabled={isUploading}>
-                    {isUploading ? <ActivityIndicator size="small" color="#94a3b8" /> : <Ionicons name="document-attach" size={24} color="#94a3b8" />}
+                    {isUploading ? <ActivityIndicator size="small" color={theme.textSecondary} /> : <Ionicons name="document-attach" size={24} color={theme.textSecondary} />}
                 </TouchableOpacity>
                 <TextInput
                     style={styles.textInput}
                     placeholder="Type a message to the candidate..."
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor={theme.textSecondary}
                     value={inputText}
                     onChangeText={setInputText}
                     multiline
@@ -271,42 +274,42 @@ export default function CompanyChatScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     header: {
         padding: 24, paddingTop: 60, paddingBottom: 20,
-        backgroundColor: '#1e293b',
-        borderBottomWidth: 1, borderBottomColor: '#334155',
+        backgroundColor: theme.card,
+        borderBottomWidth: 1, borderBottomColor: theme.border,
     },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: '#94a3b8' },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: theme.textSecondary },
 
     listContent: { padding: 20 },
     conversationCard: {
         flexDirection: 'row', alignItems: 'center',
-        backgroundColor: '#1e293b',
+        backgroundColor: theme.card,
         padding: 16, borderRadius: 16,
         marginBottom: 12,
-        borderWidth: 1, borderColor: '#334155'
+        borderWidth: 1, borderColor: theme.border
     },
     avatarPlaceholder: {
         width: 48, height: 48, borderRadius: 12,
         backgroundColor: 'rgba(56, 189, 248, 0.15)',
         alignItems: 'center', justifyContent: 'center'
     },
-    avatarText: { color: '#38bdf8', fontSize: 20, fontWeight: 'bold' },
-    candidateName: { color: '#f8fafc', fontSize: 16, fontWeight: 'bold' },
-    jobTitle: { color: '#94a3b8', fontSize: 13 },
+    avatarText: { color: theme.primary, fontSize: 20, fontWeight: 'bold' },
+    candidateName: { color: theme.text, fontSize: 16, fontWeight: 'bold' },
+    jobTitle: { color: theme.textSecondary, fontSize: 13 },
     statusBadge: { backgroundColor: 'rgba(167, 139, 250, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-    statusText: { color: '#a78bfa', fontSize: 11, fontWeight: 'bold' },
+    statusText: { color: theme.primary, fontSize: 11, fontWeight: 'bold' },
 
     emptyContainer: { alignItems: 'center', marginTop: 100, opacity: 0.6 },
-    emptyText: { color: '#e2e8f0', fontSize: 16, fontWeight: 'bold', marginTop: 16 },
-    emptySubText: { color: '#94a3b8', fontSize: 13, marginTop: 8, textAlign: 'center', paddingHorizontal: 20, lineHeight: 20 },
+    emptyText: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginTop: 16 },
+    emptySubText: { color: theme.textSecondary, fontSize: 13, marginTop: 8, textAlign: 'center', paddingHorizontal: 20, lineHeight: 20 },
 
     // Chat Interface Styles
-    chatHeaderCompany: { color: '#f8fafc', fontSize: 18, fontWeight: 'bold' },
-    chatHeaderJob: { color: '#94a3b8', fontSize: 13 },
+    chatHeaderCompany: { color: theme.text, fontSize: 18, fontWeight: 'bold' },
+    chatHeaderJob: { color: theme.textSecondary, fontSize: 13 },
 
     chatContent: { padding: 20, paddingBottom: 40 },
     messageBubble: {
@@ -316,13 +319,13 @@ const styles = StyleSheet.create({
     },
     messageMe: {
         alignSelf: 'flex-end',
-        backgroundColor: '#3b82f6',
+        backgroundColor: theme.primary,
         borderBottomRightRadius: 4,
     },
     messageThem: {
         alignSelf: 'flex-start',
-        backgroundColor: '#1e293b',
-        borderWidth: 1, borderColor: '#334155',
+        backgroundColor: theme.card,
+        borderWidth: 1, borderColor: theme.border,
         borderBottomLeftRadius: 4,
     },
     messageText: { fontSize: 15, lineHeight: 22 },
@@ -331,22 +334,22 @@ const styles = StyleSheet.create({
     inputArea: {
         flexDirection: 'row', alignItems: 'center',
         padding: 16, paddingBottom: Platform.OS === 'ios' ? 30 : 16,
-        backgroundColor: '#1e293b',
-        borderTopWidth: 1, borderTopColor: '#334155',
+        backgroundColor: theme.card,
+        borderTopWidth: 1, borderTopColor: theme.border,
     },
     attachBtn: { padding: 8, marginRight: 8 },
     textInput: {
         flex: 1,
-        backgroundColor: '#0f172a',
-        color: '#f8fafc',
+        backgroundColor: theme.background,
+        color: theme.text,
         borderRadius: 20,
         paddingHorizontal: 16, paddingVertical: 10,
         maxHeight: 100,
-        borderWidth: 1, borderColor: '#334155'
+        borderWidth: 1, borderColor: theme.border
     },
     sendBtn: {
         width: 44, height: 44, borderRadius: 22,
-        backgroundColor: '#3b82f6',
+        backgroundColor: theme.primary,
         alignItems: 'center', justifyContent: 'center',
         marginLeft: 12
     }

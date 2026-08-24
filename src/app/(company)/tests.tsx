@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
@@ -29,8 +30,17 @@ function VideoModal({ url, visible, onClose }: { url: string, visible: boolean, 
     );
 }
 
+const styles = StyleSheet.create({
+    videoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+    videoContent: { width: '100%', height: 350, position: 'relative' },
+    videoPlayer: { width: '100%', height: '100%' },
+    closeVideoBtn: { position: 'absolute', top: -40, right: 20, zIndex: 10, padding: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 }
+});
+
 export default function CompanyTestsScreen() {
     const { user, role } = useAuth();
+    const { theme } = useTheme();
+    const screenStyles = getStyles(theme);
     const [tests, setTests] = useState<any[]>([]);
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -163,11 +173,11 @@ export default function CompanyTestsScreen() {
 
     const getStatusStyle = (status: string) => {
         switch (status) {
-            case 'Pending': return { bg: 'rgba(251, 146, 60, 0.1)', color: '#fb923c' };
-            case 'Submitted': return { bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' };
-            case 'Passed': return { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981' };
-            case 'Failed': return { bg: 'rgba(244, 63, 94, 0.1)', color: '#f43f5e' };
-            default: return { bg: 'rgba(148, 163, 184, 0.1)', color: '#94a3b8' };
+            case 'Pending': return { bg: 'rgba(251, 146, 60, 0.1)', color: theme.warning };
+            case 'Submitted': return { bg: 'rgba(59, 130, 246, 0.1)', color: theme.primary };
+            case 'Passed': return { bg: 'rgba(16, 185, 129, 0.1)', color: theme.success };
+            case 'Failed': return { bg: 'rgba(244, 63, 94, 0.1)', color: theme.danger };
+            default: return { bg: 'rgba(148, 163, 184, 0.1)', color: theme.textSecondary };
         }
     };
 
@@ -187,27 +197,27 @@ export default function CompanyTestsScreen() {
 
     const addMcqQuestion = () => setMcqQuestions([...mcqQuestions, { question: '', options: ['', '', '', ''], correctIndex: 0 }]);
 
-    if (loading) return <ActivityIndicator size="large" color="#3b82f6" style={{ flex: 1, backgroundColor: '#0f172a' }} />;
+    if (loading) return <ActivityIndicator size="large" color={theme.primary} style={{ flex: 1, backgroundColor: theme.background }} />;
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.title}>Skill Assessments</Text>
-                <Text style={styles.subtitle}>Assign, review, and evaluate candidate tests.</Text>
+        <View style={screenStyles.container}>
+            <View style={screenStyles.header}>
+                <Text style={screenStyles.title}>Skill Assessments</Text>
+                <Text style={screenStyles.subtitle}>Assign, review, and evaluate candidate tests.</Text>
             </View>
 
-            <ScrollView contentContainerStyle={styles.listContent}>
+            <ScrollView contentContainerStyle={screenStyles.listContent}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <Text style={styles.sectionTitle}>Active Assessments</Text>
-                    <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+                    <Text style={screenStyles.sectionTitle}>Active Assessments</Text>
+                    <TouchableOpacity style={screenStyles.addBtn} onPress={() => setModalVisible(true)}>
                         <Ionicons name="add" size={20} color="#fff" />
                     </TouchableOpacity>
                 </View>
 
                 {tests.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="document-text-outline" size={48} color="#334155" />
-                        <Text style={styles.emptyText}>No tests assigned yet.</Text>
+                    <View style={screenStyles.emptyContainer}>
+                        <Ionicons name="document-text-outline" size={48} color={theme.border} />
+                        <Text style={screenStyles.emptyText}>No tests assigned yet.</Text>
                     </View>
                 ) : (
                     tests.map(test => {
@@ -216,34 +226,34 @@ export default function CompanyTestsScreen() {
                         const isEvaluating = evalTestId === test.id;
 
                         return (
-                            <View key={test.id} style={styles.testCard}>
-                                <View style={styles.cardHeader}>
+                            <View key={test.id} style={screenStyles.testCard}>
+                                <View style={screenStyles.cardHeader}>
                                     <View style={{ flex: 1 }}>
-                                        <Text style={styles.testTitle}>{test.title}</Text>
-                                        <Text style={styles.candidateName}>Candidate: {test.applications?.profiles?.full_name}</Text>
+                                        <Text style={screenStyles.testTitle}>{test.title}</Text>
+                                        <Text style={screenStyles.candidateName}>Candidate: {test.applications?.profiles?.full_name}</Text>
                                         {test.max_marks && (
-                                            <Text style={styles.marksInfo}>
+                                            <Text style={screenStyles.marksInfo}>
                                                 Max: {test.max_marks} | Pass: {test.passing_marks}
                                                 {test.obtained_marks != null ? ` | Scored: ${test.obtained_marks}` : ''}
                                             </Text>
                                         )}
                                     </View>
-                                    <View style={[styles.statusBadge, { backgroundColor: ss.bg }]}>
-                                        <Text style={[styles.statusText, { color: ss.color }]}>{test.status}</Text>
+                                    <View style={[screenStyles.statusBadge, { backgroundColor: ss.bg }]}>
+                                        <Text style={[screenStyles.statusText, { color: ss.color }]}>{test.status}</Text>
                                     </View>
                                 </View>
 
                                 {test.deadline && (
-                                    <View style={styles.deadlineBanner}>
-                                        <Ionicons name="time-outline" size={14} color="#f59e0b" />
-                                        <Text style={styles.deadlineText}>Deadline: {new Date(test.deadline).toLocaleDateString()}</Text>
+                                    <View style={screenStyles.deadlineBanner}>
+                                        <Ionicons name="time-outline" size={14} color={theme.warning} />
+                                        <Text style={screenStyles.deadlineText}>Deadline: {new Date(test.deadline).toLocaleDateString()}</Text>
                                     </View>
                                 )}
 
                                 {test.evaluator_comments && (
-                                    <View style={styles.commentBox}>
-                                        <Text style={styles.commentLabel}>Your Feedback:</Text>
-                                        <Text style={styles.commentText}>{test.evaluator_comments}</Text>
+                                    <View style={screenStyles.commentBox}>
+                                        <Text style={screenStyles.commentLabel}>Your Feedback:</Text>
+                                        <Text style={screenStyles.commentText}>{test.evaluator_comments}</Text>
                                     </View>
                                 )}
 
@@ -251,41 +261,41 @@ export default function CompanyTestsScreen() {
                                     <View>
                                         {/* Submission link */}
                                         {test.submission_url && (
-                                            <TouchableOpacity style={styles.reviewBtn} onPress={() => handleSubmissionClick(test.submission_url)}>
-                                                <Ionicons name={isVideoUrl(test.submission_url) ? "videocam" : "link"} size={18} color="#3b82f6" style={{ marginRight: 6 }} />
-                                                <Text style={styles.reviewBtnText}>{isVideoUrl(test.submission_url) ? "Watch Submission Video" : "Review Submission Link"}</Text>
+                                            <TouchableOpacity style={screenStyles.reviewBtn} onPress={() => handleSubmissionClick(test.submission_url)}>
+                                                <Ionicons name={isVideoUrl(test.submission_url) ? "videocam" : "link"} size={18} color={theme.primary} style={{ marginRight: 6 }} />
+                                                <Text style={screenStyles.reviewBtnText}>{isVideoUrl(test.submission_url) ? "Watch Submission Video" : "Review Submission Link"}</Text>
                                             </TouchableOpacity>
                                         )}
                                         {test.submission_text && (
-                                            <View style={styles.submissionTextBox}>
-                                                <Text style={styles.submissionTextLabel}>Written Answer:</Text>
-                                                <Text style={styles.submissionText}>{test.submission_text}</Text>
+                                            <View style={screenStyles.submissionTextBox}>
+                                                <Text style={screenStyles.submissionTextLabel}>Written Answer:</Text>
+                                                <Text style={screenStyles.submissionText}>{test.submission_text}</Text>
                                             </View>
                                         )}
 
                                         {/* Evaluation Controls */}
                                         {isEvaluating ? (
-                                            <View style={styles.evalForm}>
+                                            <View style={screenStyles.evalForm}>
                                                 <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-                                                    <TextInput style={[styles.input, { flex: 1 }]} placeholder={`Marks (out of ${test.max_marks || 100})`} placeholderTextColor="#64748b" keyboardType="numeric" value={evalMarks} onChangeText={setEvalMarks} />
+                                                    <TextInput style={[screenStyles.input, { flex: 1 }]} placeholder={`Marks (out of ${test.max_marks || 100})`} placeholderTextColor={theme.textSecondary} keyboardType="numeric" value={evalMarks} onChangeText={setEvalMarks} />
                                                 </View>
-                                                <TextInput style={[styles.input, { height: 70, textAlignVertical: 'top', marginBottom: 10 }]} placeholder="Comments / Feedback for candidate..." placeholderTextColor="#64748b" multiline value={evalComments} onChangeText={setEvalComments} />
+                                                <TextInput style={[screenStyles.input, { height: 70, textAlignVertical: 'top', marginBottom: 10 }]} placeholder="Comments / Feedback for candidate..." placeholderTextColor={theme.textSecondary} multiline value={evalComments} onChangeText={setEvalComments} />
                                                 <View style={{ flexDirection: 'row', gap: 10 }}>
-                                                    <TouchableOpacity style={[styles.evalBtn, { backgroundColor: '#10b981' }]} onPress={() => handleEval(test.id, test.application_id, test.applications?.candidate_id, true)}>
-                                                        <Text style={styles.evalText}>Pass</Text>
+                                                    <TouchableOpacity style={[screenStyles.evalBtn, { backgroundColor: theme.success }]} onPress={() => handleEval(test.id, test.application_id, test.applications?.candidate_id, true)}>
+                                                        <Text style={screenStyles.evalText}>Pass</Text>
                                                     </TouchableOpacity>
-                                                    <TouchableOpacity style={[styles.evalBtn, { backgroundColor: '#ef4444' }]} onPress={() => handleEval(test.id, test.application_id, test.applications?.candidate_id, false)}>
-                                                        <Text style={styles.evalText}>Fail</Text>
+                                                    <TouchableOpacity style={[screenStyles.evalBtn, { backgroundColor: theme.danger }]} onPress={() => handleEval(test.id, test.application_id, test.applications?.candidate_id, false)}>
+                                                        <Text style={screenStyles.evalText}>Fail</Text>
                                                     </TouchableOpacity>
-                                                    <TouchableOpacity style={[styles.evalBtn, { backgroundColor: '#334155' }]} onPress={() => setEvalTestId(null)}>
-                                                        <Text style={styles.evalText}>Cancel</Text>
+                                                    <TouchableOpacity style={[screenStyles.evalBtn, { backgroundColor: theme.border }]} onPress={() => setEvalTestId(null)}>
+                                                        <Text style={screenStyles.evalText}>Cancel</Text>
                                                     </TouchableOpacity>
                                                 </View>
                                             </View>
                                         ) : (
-                                            <TouchableOpacity style={styles.evalTrigger} onPress={() => setEvalTestId(test.id)}>
-                                                <Ionicons name="clipboard-outline" size={18} color="#f8fafc" style={{ marginRight: 8 }} />
-                                                <Text style={styles.evalTriggerText}>Evaluate Submission</Text>
+                                            <TouchableOpacity style={screenStyles.evalTrigger} onPress={() => setEvalTestId(test.id)}>
+                                                <Ionicons name="clipboard-outline" size={18} color={theme.text} style={{ marginRight: 8 }} />
+                                                <Text style={screenStyles.evalTriggerText}>Evaluate Submission</Text>
                                             </TouchableOpacity>
                                         )}
                                     </View>
@@ -298,37 +308,37 @@ export default function CompanyTestsScreen() {
 
             {/* Create Test Modal */}
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
-                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={screenStyles.modalOverlay}>
+                    <View style={screenStyles.modalContent}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 }}>
-                            <Text style={styles.modalTitle}>Dispatch New Test</Text>
+                            <Text style={screenStyles.modalTitle}>Dispatch New Test</Text>
                             <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <Ionicons name="close" size={24} color="#94a3b8" />
+                                <Ionicons name="close" size={24} color={theme.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
                         <ScrollView style={{ maxHeight: 500 }} keyboardShouldPersistTaps="handled">
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Select Candidate</Text>
-                                <ScrollView style={{ maxHeight: 120, backgroundColor: '#0f172a', borderRadius: 12, borderWidth: 1, borderColor: '#334155' }}>
+                            <View style={screenStyles.inputGroup}>
+                                <Text style={screenStyles.label}>Select Candidate</Text>
+                                <ScrollView style={{ maxHeight: 120, backgroundColor: theme.background, borderRadius: 12, borderWidth: 1, borderColor: theme.border }}>
                                     {applications.map(app => (
-                                        <TouchableOpacity key={app.id} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#1e293b', backgroundColor: selectedApp?.id === app.id ? 'rgba(59, 130, 246, 0.2)' : 'transparent' }} onPress={() => setSelectedApp(app)}>
-                                            <Text style={{ color: '#f8fafc', fontWeight: 'bold' }}>{app.profiles?.full_name}</Text>
-                                            <Text style={{ color: '#64748b', fontSize: 11 }}>{app.jobs?.title} • {app.status}</Text>
+                                        <TouchableOpacity key={app.id} style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: theme.card, backgroundColor: selectedApp?.id === app.id ? 'rgba(59, 130, 246, 0.2)' : 'transparent' }} onPress={() => setSelectedApp(app)}>
+                                            <Text style={{ color: theme.text, fontWeight: 'bold' }}>{app.profiles?.full_name}</Text>
+                                            <Text style={{ color: theme.textSecondary, fontSize: 11 }}>{app.jobs?.title} • {app.status}</Text>
                                         </TouchableOpacity>
                                     ))}
                                 </ScrollView>
                             </View>
 
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Test Title *</Text>
-                                <TextInput style={styles.input} value={testTitle} onChangeText={setTestTitle} placeholder="e.g. React Native Challenge" placeholderTextColor="#64748b" />
+                            <View style={screenStyles.inputGroup}>
+                                <Text style={screenStyles.label}>Test Title *</Text>
+                                <TextInput style={screenStyles.input} value={testTitle} onChangeText={setTestTitle} placeholder="e.g. React Native Challenge" placeholderTextColor={theme.textSecondary} />
                             </View>
 
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-                                <Text style={styles.label}>Is this an MCQ Test?</Text>
+                                <Text style={screenStyles.label}>Is this an MCQ Test?</Text>
                                 <TouchableOpacity
-                                    style={[styles.toggleBtn, isMCQ ? { backgroundColor: '#10b981' } : { backgroundColor: '#334155' }]}
+                                    style={[screenStyles.toggleBtn, isMCQ ? { backgroundColor: theme.success } : { backgroundColor: theme.border }]}
                                     onPress={() => setIsMCQ(!isMCQ)}
                                 >
                                     <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>{isMCQ ? 'YES' : 'NO'}</Text>
@@ -336,71 +346,71 @@ export default function CompanyTestsScreen() {
                             </View>
 
                             {!isMCQ ? (
-                                <View style={styles.inputGroup}>
-                                    <Text style={styles.label}>Instructions</Text>
-                                    <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} value={testDesc} onChangeText={setTestDesc} placeholder="Write detailed requirements..." placeholderTextColor="#64748b" multiline />
+                                <View style={screenStyles.inputGroup}>
+                                    <Text style={screenStyles.label}>Instructions</Text>
+                                    <TextInput style={[screenStyles.input, { height: 80, textAlignVertical: 'top' }]} value={testDesc} onChangeText={setTestDesc} placeholder="Write detailed requirements..." placeholderTextColor={theme.textSecondary} multiline />
                                 </View>
                             ) : (
-                                <View style={styles.mcqBuilder}>
+                                <View style={screenStyles.mcqBuilder}>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                                        <Text style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: 16 }}>MCQ Builder</Text>
+                                        <Text style={{ color: theme.primary, fontWeight: 'bold', fontSize: 16 }}>MCQ Builder</Text>
                                     </View>
                                     {mcqQuestions.map((q, idx) => (
                                         <View key={idx} style={{ marginBottom: 20, backgroundColor: 'rgba(51, 65, 85, 0.3)', padding: 16, borderRadius: 12 }}>
-                                            <Text style={styles.label}>Question {idx + 1}</Text>
+                                            <Text style={screenStyles.label}>Question {idx + 1}</Text>
                                             <TextInput
-                                                style={[styles.input, { marginBottom: 12 }]}
+                                                style={[screenStyles.input, { marginBottom: 12 }]}
                                                 value={q.question}
                                                 onChangeText={txt => { const updated = [...mcqQuestions]; updated[idx].question = txt; setMcqQuestions(updated); }}
                                                 placeholder="Enter question text..."
-                                                placeholderTextColor="#64748b"
+                                                placeholderTextColor={theme.textSecondary}
                                             />
                                             {q.options.map((opt, oIdx) => (
                                                 <View key={oIdx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10 }}>
                                                     <TouchableOpacity
-                                                        style={[styles.radioBtn, q.correctIndex === oIdx && styles.radioBtnActive]}
+                                                        style={[screenStyles.radioBtn, q.correctIndex === oIdx && screenStyles.radioBtnActive]}
                                                         onPress={() => { const updated = [...mcqQuestions]; updated[idx].correctIndex = oIdx; setMcqQuestions(updated); }}
                                                     >
                                                         {q.correctIndex === oIdx && <Ionicons name="checkmark" size={14} color="#fff" />}
                                                     </TouchableOpacity>
                                                     <TextInput
-                                                        style={[styles.input, { flex: 1, height: 40, padding: 10 }]}
+                                                        style={[screenStyles.input, { flex: 1, height: 40, padding: 10 }]}
                                                         value={opt}
                                                         onChangeText={txt => { const updated = [...mcqQuestions]; updated[idx].options[oIdx] = txt; setMcqQuestions(updated); }}
                                                         placeholder={`Option ${String.fromCharCode(65 + oIdx)}`}
-                                                        placeholderTextColor="#64748b"
+                                                        placeholderTextColor={theme.textSecondary}
                                                     />
                                                 </View>
                                             ))}
-                                            <Text style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>* Tick the radio button to mark the correct answer.</Text>
+                                            <Text style={{ fontSize: 11, color: theme.textSecondary, fontStyle: 'italic', marginTop: 4 }}>* Tick the radio button to mark the correct answer.</Text>
                                         </View>
                                     ))}
-                                    <TouchableOpacity style={styles.addMcqBtn} onPress={addMcqQuestion}>
-                                        <Ionicons name="add" size={18} color="#3b82f6" />
-                                        <Text style={{ color: '#3b82f6', fontWeight: 'bold', marginLeft: 8 }}>Add Question</Text>
+                                    <TouchableOpacity style={screenStyles.addMcqBtn} onPress={addMcqQuestion}>
+                                        <Ionicons name="add" size={18} color={theme.primary} />
+                                        <Text style={{ color: theme.primary, fontWeight: 'bold', marginLeft: 8 }}>Add Question</Text>
                                     </TouchableOpacity>
                                 </View>
                             )}
 
                             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.label}>Max Marks</Text>
-                                    <TextInput style={styles.input} keyboardType="numeric" value={maxMarks} onChangeText={setMaxMarks} placeholder="100" placeholderTextColor="#64748b" />
+                                    <Text style={screenStyles.label}>Max Marks</Text>
+                                    <TextInput style={screenStyles.input} keyboardType="numeric" value={maxMarks} onChangeText={setMaxMarks} placeholder="100" placeholderTextColor={theme.textSecondary} />
                                 </View>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.label}>Passing Marks</Text>
-                                    <TextInput style={styles.input} keyboardType="numeric" value={passingMarks} onChangeText={setPassingMarks} placeholder="50" placeholderTextColor="#64748b" />
+                                    <Text style={screenStyles.label}>Passing Marks</Text>
+                                    <TextInput style={screenStyles.input} keyboardType="numeric" value={passingMarks} onChangeText={setPassingMarks} placeholder="50" placeholderTextColor={theme.textSecondary} />
                                 </View>
                             </View>
 
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Deadline (YYYY-MM-DD)</Text>
-                                <TextInput style={styles.input} value={testDeadline} onChangeText={setTestDeadline} placeholder="2026-09-30" placeholderTextColor="#64748b" />
+                            <View style={screenStyles.inputGroup}>
+                                <Text style={screenStyles.label}>Deadline (YYYY-MM-DD)</Text>
+                                <TextInput style={screenStyles.input} value={testDeadline} onChangeText={setTestDeadline} placeholder="2026-09-30" placeholderTextColor={theme.textSecondary} />
                             </View>
                         </ScrollView>
 
-                        <TouchableOpacity style={styles.submitBtn} onPress={handleAssign} disabled={saving}>
-                            {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Dispatch Assessment</Text>}
+                        <TouchableOpacity style={screenStyles.submitBtn} onPress={handleAssign} disabled={saving}>
+                            {saving ? <ActivityIndicator color="#fff" /> : <Text style={screenStyles.submitBtnText}>Dispatch Assessment</Text>}
                         </TouchableOpacity>
                     </View>
                 </KeyboardAvoidingView>
@@ -411,61 +421,56 @@ export default function CompanyTestsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
-    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155' },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: '#94a3b8' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: theme.textSecondary },
     listContent: { padding: 20, paddingBottom: 100 },
-    sectionTitle: { color: '#e2e8f0', fontSize: 18, fontWeight: 'bold' },
-    addBtn: { backgroundColor: '#3b82f6', width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+    sectionTitle: { color: theme.text, fontSize: 18, fontWeight: 'bold' },
+    addBtn: { backgroundColor: theme.primary, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
     emptyContainer: { alignItems: 'center', opacity: 0.5, padding: 20, marginTop: 40 },
-    emptyText: { color: '#e2e8f0', fontSize: 14, fontWeight: 'bold', marginTop: 10 },
+    emptyText: { color: theme.text, fontSize: 14, fontWeight: 'bold', marginTop: 10 },
 
-    testCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#334155' },
+    testCard: { backgroundColor: theme.card, borderRadius: 16, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: theme.border },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
-    testTitle: { color: '#f8fafc', fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
-    candidateName: { color: '#94a3b8', fontSize: 13, marginBottom: 2 },
-    marksInfo: { color: '#60a5fa', fontSize: 11, fontWeight: '600' },
+    testTitle: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginBottom: 4 },
+    candidateName: { color: theme.textSecondary, fontSize: 13, marginBottom: 2 },
+    marksInfo: { color: theme.primary, fontSize: 11, fontWeight: '600' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     statusText: { fontSize: 12, fontWeight: 'bold' },
 
     deadlineBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: 10, borderRadius: 8, marginBottom: 12 },
-    deadlineText: { color: '#f59e0b', fontSize: 12, fontWeight: '600' },
+    deadlineText: { color: theme.warning, fontSize: 12, fontWeight: '600' },
 
-    commentBox: { backgroundColor: '#0f172a', padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: '#60a5fa' },
-    commentLabel: { color: '#60a5fa', fontSize: 11, fontWeight: '700', marginBottom: 4 },
-    commentText: { color: '#cbd5e1', fontSize: 13, lineHeight: 20 },
+    commentBox: { backgroundColor: theme.background, padding: 12, borderRadius: 8, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: theme.primary },
+    commentLabel: { color: theme.primary, fontSize: 11, fontWeight: '700', marginBottom: 4 },
+    commentText: { color: theme.textSecondary, fontSize: 13, lineHeight: 20 },
 
     reviewBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, marginTop: 12 },
-    reviewBtnText: { color: '#3b82f6', fontSize: 13, fontWeight: 'bold' },
+    reviewBtnText: { color: theme.primary, fontSize: 13, fontWeight: 'bold' },
 
-    submissionTextBox: { backgroundColor: '#0f172a', padding: 12, borderRadius: 8, marginTop: 12, borderLeftWidth: 3, borderLeftColor: '#334155' },
-    submissionTextLabel: { color: '#94a3b8', fontSize: 11, fontWeight: '700', marginBottom: 4 },
-    submissionText: { color: '#cbd5e1', fontSize: 13, lineHeight: 20 },
+    submissionTextBox: { backgroundColor: theme.background, padding: 12, borderRadius: 8, marginTop: 12, borderLeftWidth: 3, borderLeftColor: theme.border },
+    submissionTextLabel: { color: theme.textSecondary, fontSize: 11, fontWeight: '700', marginBottom: 4 },
+    submissionText: { color: theme.textSecondary, fontSize: 13, lineHeight: 20 },
 
-    evalForm: { marginTop: 16, padding: 16, backgroundColor: '#0f172a', borderRadius: 12, borderWidth: 1, borderColor: '#334155' },
+    evalForm: { marginTop: 16, padding: 16, backgroundColor: theme.background, borderRadius: 12, borderWidth: 1, borderColor: theme.border },
     evalBtn: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
     evalText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-    evalTrigger: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#334155', paddingVertical: 12, borderRadius: 10, marginTop: 12 },
-    evalTriggerText: { color: '#f8fafc', fontSize: 14, fontWeight: 'bold' },
+    evalTrigger: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.border, paddingVertical: 12, borderRadius: 10, marginTop: 12 },
+    evalTriggerText: { color: theme.text, fontSize: 14, fontWeight: 'bold' },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-    modalTitle: { color: '#f8fafc', fontSize: 20, fontWeight: 'bold' },
+    modalContent: { backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+    modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold' },
     inputGroup: { marginBottom: 16 },
-    label: { color: '#cbd5e1', fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
-    input: { backgroundColor: '#0f172a', color: '#f8fafc', borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: '#334155' },
-    submitBtn: { backgroundColor: '#3b82f6', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
+    label: { color: theme.textSecondary, fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
+    input: { backgroundColor: theme.background, color: theme.text, borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: theme.border },
+    submitBtn: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
     submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
     toggleBtn: { marginLeft: 16, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
     mcqBuilder: { marginBottom: 16 },
-    radioBtn: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#334155', alignItems: 'center', justifyContent: 'center' },
-    radioBtnActive: { borderColor: '#10b981', backgroundColor: '#10b981' },
+    radioBtn: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: theme.border, alignItems: 'center', justifyContent: 'center' },
+    radioBtnActive: { borderColor: theme.success, backgroundColor: theme.success },
     addMcqBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: 12, borderRadius: 12 },
-
-    videoOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
-    videoContent: { width: '100%', height: 350, position: 'relative' },
-    videoPlayer: { width: '100%', height: '100%' },
-    closeVideoBtn: { position: 'absolute', top: -40, right: 20, zIndex: 10, padding: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 }
 });

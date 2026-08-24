@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
@@ -10,6 +11,8 @@ const GENDER_OPTIONS = ['Any', 'Male', 'Female'];
 
 export default function PostJobScreen() {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [title, setTitle] = useState('');
     const [department, setDepartment] = useState('');
     const [category, setCategory] = useState('');
@@ -56,11 +59,11 @@ export default function PostJobScreen() {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
                 <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', padding: 24, borderRadius: 100, marginBottom: 24 }}>
-                    <Ionicons name="shield-half" size={64} color="#f59e0b" />
+                    <Ionicons name="shield-half" size={64} color={theme.warning} />
                 </View>
-                <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#f8fafc', marginBottom: 12, textAlign: 'center' }}>Verification Required</Text>
-                <Text style={{ fontSize: 16, color: '#94a3b8', textAlign: 'center', lineHeight: 24 }}>
-                    Your company account is currently <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>{companyStatus}</Text>.{'\n\n'}
+                <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.text, marginBottom: 12, textAlign: 'center' }}>Verification Required</Text>
+                <Text style={{ fontSize: 16, color: theme.textSecondary, textAlign: 'center', lineHeight: 24 }}>
+                    Your company account is currently <Text style={{ color: theme.warning, fontWeight: 'bold' }}>{companyStatus}</Text>.{'\n\n'}
                     You must be verified by platform administrators before publishing jobs.
                 </Text>
             </View>
@@ -129,12 +132,12 @@ export default function PostJobScreen() {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Job Title *</Text>
-                        <TextInput style={styles.input} placeholder="e.g. Senior Frontend Developer" placeholderTextColor="#64748b" value={title} onChangeText={setTitle} />
+                        <TextInput style={styles.input} placeholder="e.g. Senior Frontend Developer" placeholderTextColor={theme.textSecondary} value={title} onChangeText={setTitle} />
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Department</Text>
-                        <TextInput style={styles.input} placeholder="e.g. Engineering, Marketing" placeholderTextColor="#64748b" value={department} onChangeText={setDepartment} />
+                        <TextInput style={styles.input} placeholder="e.g. Engineering, Marketing" placeholderTextColor={theme.textSecondary} value={department} onChangeText={setDepartment} />
                     </View>
 
                     <View style={styles.inputGroup}>
@@ -148,7 +151,7 @@ export default function PostJobScreen() {
                                 ))}
                             </View>
                         ) : (
-                            <TextInput style={styles.input} placeholder="e.g. Software Development, Design" placeholderTextColor="#64748b" value={category} onChangeText={setCategory} />
+                            <TextInput style={styles.input} placeholder="e.g. Software Development, Design" placeholderTextColor={theme.textSecondary} value={category} onChangeText={setCategory} />
                         )}
                     </View>
 
@@ -163,7 +166,7 @@ export default function PostJobScreen() {
                                 ))}
                             </View>
                         ) : (
-                            <TextInput style={styles.input} placeholder="e.g. Remote, Islamabad, Lahore" placeholderTextColor="#64748b" value={location} onChangeText={setLocation} />
+                            <TextInput style={styles.input} placeholder="e.g. Remote, Islamabad, Lahore" placeholderTextColor={theme.textSecondary} value={location} onChangeText={setLocation} />
                         )}
                     </View>
 
@@ -183,7 +186,7 @@ export default function PostJobScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Assign Hiring Manager</Text>
                         {hiringManagers.length === 0 ? (
-                            <Text style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>No hiring managers registered yet.</Text>
+                            <Text style={{ color: theme.textSecondary, fontSize: 13, marginTop: 4 }}>No hiring managers registered yet.</Text>
                         ) : (
                             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                 <TouchableOpacity style={[styles.chip, !selectedManager && styles.chipActive, { marginRight: 8 }]} onPress={() => setSelectedManager(null)}>
@@ -204,35 +207,35 @@ export default function PostJobScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Salary Range (PKR)</Text>
                         <View style={styles.rowInputs}>
-                            <TextInput style={[styles.input, { flex: 1, marginRight: 10 }]} placeholder="Min" placeholderTextColor="#64748b" keyboardType="numeric" value={salaryMin} onChangeText={setSalaryMin} />
-                            <TextInput style={[styles.input, { flex: 1 }]} placeholder="Max" placeholderTextColor="#64748b" keyboardType="numeric" value={salaryMax} onChangeText={setSalaryMax} />
+                            <TextInput style={[styles.input, { flex: 1, marginRight: 10 }]} placeholder="Min" placeholderTextColor={theme.textSecondary} keyboardType="numeric" value={salaryMin} onChangeText={setSalaryMin} />
+                            <TextInput style={[styles.input, { flex: 1 }]} placeholder="Max" placeholderTextColor={theme.textSecondary} keyboardType="numeric" value={salaryMax} onChangeText={setSalaryMax} />
                         </View>
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Required Skills</Text>
-                        <TextInput style={styles.input} placeholder="e.g. React, Node.js, TypeScript" placeholderTextColor="#64748b" value={requiredSkills} onChangeText={setRequiredSkills} />
+                        <TextInput style={styles.input} placeholder="e.g. React, Node.js, TypeScript" placeholderTextColor={theme.textSecondary} value={requiredSkills} onChangeText={setRequiredSkills} />
                     </View>
 
                     <View style={styles.rowInputs}>
                         <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
                             <Text style={styles.label}>Education</Text>
-                            <TextInput style={styles.input} placeholder="e.g. BS/MS" placeholderTextColor="#64748b" value={education} onChangeText={setEducation} />
+                            <TextInput style={styles.input} placeholder="e.g. BS/MS" placeholderTextColor={theme.textSecondary} value={education} onChangeText={setEducation} />
                         </View>
                         <View style={[styles.inputGroup, { flex: 1 }]}>
                             <Text style={styles.label}>Experience</Text>
-                            <TextInput style={styles.input} placeholder="e.g. 2-5 years" placeholderTextColor="#64748b" value={experience} onChangeText={setExperience} />
+                            <TextInput style={styles.input} placeholder="e.g. 2-5 years" placeholderTextColor={theme.textSecondary} value={experience} onChangeText={setExperience} />
                         </View>
                     </View>
 
                     <View style={styles.rowInputs}>
                         <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
                             <Text style={styles.label}>Vacancies</Text>
-                            <TextInput style={styles.input} placeholder="1" placeholderTextColor="#64748b" keyboardType="numeric" value={vacancies} onChangeText={setVacancies} />
+                            <TextInput style={styles.input} placeholder="1" placeholderTextColor={theme.textSecondary} keyboardType="numeric" value={vacancies} onChangeText={setVacancies} />
                         </View>
                         <View style={[styles.inputGroup, { flex: 1 }]}>
                             <Text style={styles.label}>Deadline (YYYY-MM-DD)</Text>
-                            <TextInput style={styles.input} placeholder="2026-09-30" placeholderTextColor="#64748b" value={deadline} onChangeText={setDeadline} />
+                            <TextInput style={styles.input} placeholder="2026-09-30" placeholderTextColor={theme.textSecondary} value={deadline} onChangeText={setDeadline} />
                         </View>
                     </View>
 
@@ -251,8 +254,8 @@ export default function PostJobScreen() {
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Age Range (Optional)</Text>
                         <View style={styles.rowInputs}>
-                            <TextInput style={[styles.input, { flex: 1, marginRight: 10 }]} placeholder="Min Age" placeholderTextColor="#64748b" keyboardType="numeric" value={ageMin} onChangeText={setAgeMin} />
-                            <TextInput style={[styles.input, { flex: 1 }]} placeholder="Max Age" placeholderTextColor="#64748b" keyboardType="numeric" value={ageMax} onChangeText={setAgeMax} />
+                            <TextInput style={[styles.input, { flex: 1, marginRight: 10 }]} placeholder="Min Age" placeholderTextColor={theme.textSecondary} keyboardType="numeric" value={ageMin} onChangeText={setAgeMin} />
+                            <TextInput style={[styles.input, { flex: 1 }]} placeholder="Max Age" placeholderTextColor={theme.textSecondary} keyboardType="numeric" value={ageMax} onChangeText={setAgeMax} />
                         </View>
                     </View>
 
@@ -261,17 +264,17 @@ export default function PostJobScreen() {
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Job Description *</Text>
-                        <TextInput style={[styles.input, styles.textArea]} placeholder="Describe the role, team, and expectations..." placeholderTextColor="#64748b" multiline numberOfLines={5} value={description} onChangeText={setDescription} />
+                        <TextInput style={[styles.input, styles.textArea]} placeholder="Describe the role, team, and expectations..." placeholderTextColor={theme.textSecondary} multiline numberOfLines={5} value={description} onChangeText={setDescription} />
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Responsibilities</Text>
-                        <TextInput style={[styles.input, styles.textArea]} placeholder="List key responsibilities (one per line)..." placeholderTextColor="#64748b" multiline numberOfLines={4} value={responsibilities} onChangeText={setResponsibilities} />
+                        <TextInput style={[styles.input, styles.textArea]} placeholder="List key responsibilities (one per line)..." placeholderTextColor={theme.textSecondary} multiline numberOfLines={4} value={responsibilities} onChangeText={setResponsibilities} />
                     </View>
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Benefits & Perks</Text>
-                        <TextInput style={[styles.input, styles.textArea]} placeholder="e.g. Health insurance, remote work, annual bonus..." placeholderTextColor="#64748b" multiline numberOfLines={3} value={benefits} onChangeText={setBenefits} />
+                        <TextInput style={[styles.input, styles.textArea]} placeholder="e.g. Health insurance, remote work, annual bonus..." placeholderTextColor={theme.textSecondary} multiline numberOfLines={3} value={benefits} onChangeText={setBenefits} />
                     </View>
 
                     <TouchableOpacity style={styles.submitBtn} onPress={handlePostJob} disabled={loading}>
@@ -290,40 +293,40 @@ export default function PostJobScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     content: { padding: 24, paddingTop: 60, paddingBottom: 40 },
     header: { marginBottom: 30 },
-    title: { fontSize: 28, fontWeight: '800', color: '#f8fafc', marginBottom: 8 },
-    subtitle: { fontSize: 15, color: '#94a3b8', lineHeight: 22 },
+    title: { fontSize: 28, fontWeight: '800', color: theme.text, marginBottom: 8 },
+    subtitle: { fontSize: 15, color: theme.textSecondary, lineHeight: 22 },
     formCard: {
-        backgroundColor: '#1e293b', borderRadius: 20, padding: 24,
-        borderWidth: 1, borderColor: '#334155',
+        backgroundColor: theme.card, borderRadius: 20, padding: 24,
+        borderWidth: 1, borderColor: theme.border,
     },
     sectionLabel: {
-        color: '#60a5fa', fontSize: 14, fontWeight: '700', letterSpacing: 0.5,
+        color: theme.primary, fontSize: 14, fontWeight: '700', letterSpacing: 0.5,
         marginBottom: 16, marginTop: 8, textTransform: 'uppercase',
     },
     inputGroup: { marginBottom: 20 },
-    label: { color: '#e2e8f0', fontSize: 14, fontWeight: '600', marginBottom: 8 },
+    label: { color: theme.text, fontSize: 14, fontWeight: '600', marginBottom: 8 },
     input: {
-        backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155',
-        borderRadius: 12, padding: 16, color: '#f8fafc', fontSize: 15,
+        backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border,
+        borderRadius: 12, padding: 16, color: theme.text, fontSize: 15,
     },
     textArea: { height: 100, textAlignVertical: 'top' },
     chipsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
     chip: {
         paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20,
-        backgroundColor: '#0f172a', borderWidth: 1, borderColor: '#334155',
+        backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border,
     },
-    chipActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-    chipText: { color: '#94a3b8', fontSize: 13, fontWeight: '600' },
+    chipActive: { backgroundColor: theme.primary, borderColor: theme.primary },
+    chipText: { color: theme.textSecondary, fontSize: 13, fontWeight: '600' },
     chipTextActive: { color: '#ffffff' },
     rowInputs: { flexDirection: 'row' },
     submitBtn: {
-        backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 16,
+        backgroundColor: theme.warning, borderRadius: 12, paddingVertical: 16,
         alignItems: 'center', justifyContent: 'center', flexDirection: 'row', marginTop: 10,
-        shadowColor: '#f59e0b', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
+        shadowColor: theme.warning, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
     },
     submitBtnText: { color: '#ffffff', fontSize: 16, fontWeight: 'bold' },
 });

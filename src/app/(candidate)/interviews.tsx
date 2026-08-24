@@ -1,11 +1,14 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CandidateInterviewsScreen() {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [interviews, setInterviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -41,7 +44,7 @@ export default function CandidateInterviewsScreen() {
         }
     };
 
-    if (loading) return <ActivityIndicator size="large" color="#3b82f6" style={{ flex: 1, backgroundColor: '#0f172a' }} />;
+    if (loading) return <ActivityIndicator size="large" color={theme.primary} style={{ flex: 1, backgroundColor: theme.background }} />;
 
     return (
         <View style={styles.container}>
@@ -50,10 +53,10 @@ export default function CandidateInterviewsScreen() {
                 <Text style={styles.subtitle}>Your scheduled meetings with hiring managers.</Text>
             </View>
 
-            <ScrollView contentContainerStyle={styles.listContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}>
+            <ScrollView contentContainerStyle={styles.listContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}>
                 {interviews.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Ionicons name="calendar-outline" size={64} color="#334155" />
+                        <Ionicons name="calendar-outline" size={64} color={theme.border} />
                         <Text style={styles.emptyText}>No upcoming interviews.</Text>
                         <Text style={styles.emptySubText}>When a hiring manager schedules an interview for a shortlisted application, it will appear here.</Text>
                     </View>
@@ -83,18 +86,18 @@ export default function CandidateInterviewsScreen() {
 
                                 <View style={styles.detailsBox}>
                                     <View style={styles.detailRow}>
-                                        <Ionicons name="time-outline" size={16} color="#64748b" />
+                                        <Ionicons name="time-outline" size={16} color={theme.textSecondary} />
                                         <Text style={styles.detailText}>{dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
                                     </View>
                                     <View style={styles.detailRow}>
-                                        <Ionicons name={interview.interview_type?.toLowerCase() === 'online' ? 'videocam-outline' : 'location-outline'} size={16} color="#64748b" />
+                                        <Ionicons name={interview.interview_type?.toLowerCase() === 'online' ? 'videocam-outline' : 'location-outline'} size={16} color={theme.textSecondary} />
                                         <Text style={styles.detailText}>{interview.interview_type || 'Online'}</Text>
                                     </View>
                                 </View>
 
                                 {(interview.status === 'Completed' || interview.status === 'Cancelled' || interview.status === 'No-Show') && interview.feedback && (
-                                    <View style={[styles.feedbackBox, interview.status === 'Completed' ? { borderLeftColor: '#10b981' } : { borderLeftColor: '#f43f5e' }]}>
-                                        <Text style={[styles.feedbackLabel, interview.status === 'Completed' ? { color: '#10b981' } : { color: '#f43f5e' }]}>Feedback from Hiring Manager:</Text>
+                                    <View style={[styles.feedbackBox, interview.status === 'Completed' ? { borderLeftColor: theme.success } : { borderLeftColor: theme.danger }]}>
+                                        <Text style={[styles.feedbackLabel, interview.status === 'Completed' ? { color: theme.success } : { color: theme.danger }]}>Feedback from Hiring Manager:</Text>
                                         <Text style={styles.feedbackText}>{interview.feedback}</Text>
                                     </View>
                                 )}
@@ -107,7 +110,7 @@ export default function CandidateInterviewsScreen() {
                                         </TouchableOpacity>
                                     ) : (
                                         <View style={styles.pendingLinkBox}>
-                                            <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center' }}>Meeting link pending</Text>
+                                            <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: 'center' }}>Meeting link pending</Text>
                                         </View>
                                     )
                                 )}
@@ -120,35 +123,35 @@ export default function CandidateInterviewsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
-    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155' },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: '#94a3b8' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: theme.textSecondary },
     listContent: { padding: 20 },
     emptyContainer: { alignItems: 'center', marginTop: 100, opacity: 0.6 },
-    emptyText: { color: '#e2e8f0', fontSize: 16, fontWeight: 'bold', marginTop: 16 },
-    emptySubText: { color: '#94a3b8', fontSize: 13, marginTop: 8, textAlign: 'center', paddingHorizontal: 20, lineHeight: 20 },
+    emptyText: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginTop: 16 },
+    emptySubText: { color: theme.textSecondary, fontSize: 13, marginTop: 8, textAlign: 'center', paddingHorizontal: 20, lineHeight: 20 },
 
-    interviewCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#334155' },
+    interviewCard: { backgroundColor: theme.card, borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: theme.border },
     cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
-    calendarIconBg: { backgroundColor: '#0f172a', borderRadius: 12, width: 54, height: 54, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+    calendarIconBg: { backgroundColor: theme.background, borderRadius: 12, width: 54, height: 54, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
     calMonth: { fontSize: 11, fontWeight: '900' },
-    calDay: { color: '#f8fafc', fontSize: 18, fontWeight: '900' },
-    jobTitle: { color: '#f8fafc', fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-    companyName: { color: '#94a3b8', fontSize: 14, fontWeight: '500' },
+    calDay: { color: theme.text, fontSize: 18, fontWeight: '900' },
+    jobTitle: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
+    companyName: { color: theme.textSecondary, fontSize: 14, fontWeight: '500' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
     statusText: { fontSize: 11, fontWeight: 'bold' },
 
-    detailsBox: { backgroundColor: '#0f172a', padding: 12, borderRadius: 8, flexDirection: 'row', gap: 16, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: '#3b82f6' },
+    detailsBox: { backgroundColor: theme.background, padding: 12, borderRadius: 8, flexDirection: 'row', gap: 16, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.primary },
     detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    detailText: { color: '#cbd5e1', fontSize: 13, fontWeight: '600' },
+    detailText: { color: theme.textSecondary, fontSize: 13, fontWeight: '600' },
 
-    feedbackBox: { backgroundColor: '#0f172a', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 3 },
+    feedbackBox: { backgroundColor: theme.background, padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 3 },
     feedbackLabel: { fontSize: 11, fontWeight: '700', marginBottom: 4 },
-    feedbackText: { color: '#cbd5e1', fontSize: 13, lineHeight: 20 },
+    feedbackText: { color: theme.textSecondary, fontSize: 13, lineHeight: 20 },
 
-    actionBtn: { backgroundColor: '#3b82f6', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10 },
+    actionBtn: { backgroundColor: theme.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10 },
     actionBtnText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-    pendingLinkBox: { backgroundColor: '#334155', paddingVertical: 12, borderRadius: 10, alignItems: 'center', opacity: 0.5 }
+    pendingLinkBox: { backgroundColor: theme.border, paddingVertical: 12, borderRadius: 10, alignItems: 'center', opacity: 0.5 }
 });

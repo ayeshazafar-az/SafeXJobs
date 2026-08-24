@@ -1,6 +1,7 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { checkReminders } from '@/lib/reminderService';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -8,6 +9,8 @@ import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpa
 
 export default function CandidateDashboardScreen() {
     const { user } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [stats, setStats] = useState({ total: 0, shortlisted: 0, interviews: 0, hired: 0, rejected: 0, pendingTests: 0, unreadNotes: 0 });
     const [profileCompletion, setProfileCompletion] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -77,7 +80,7 @@ export default function CandidateDashboardScreen() {
     if (loading) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#3b82f6" />
+                <ActivityIndicator size="large" color={theme.primary} />
             </View>
         );
     }
@@ -90,7 +93,7 @@ export default function CandidateDashboardScreen() {
                     <Text style={styles.subtitle}>Overview of your career progress.</Text>
                 </View>
                 <TouchableOpacity onPress={() => router.push('/(candidate)/notifications')} style={styles.bellBtn}>
-                    <Ionicons name="notifications-outline" size={24} color="#f8fafc" />
+                    <Ionicons name="notifications-outline" size={24} color={theme.text} />
                 </TouchableOpacity>
             </View>
 
@@ -107,7 +110,7 @@ export default function CandidateDashboardScreen() {
                     </View>
 
                     <View style={styles.progressBarBg}>
-                        <View style={[styles.progressBarFill, { width: `${profileCompletion}%`, backgroundColor: profileCompletion === 100 ? '#10b981' : '#38bdf8' }]} />
+                        <View style={[styles.progressBarFill, { width: `${profileCompletion}%`, backgroundColor: profileCompletion === 100 ? theme.success : '#38bdf8' }]} />
                     </View>
 
                     {profileCompletion < 100 && (
@@ -132,12 +135,12 @@ export default function CandidateDashboardScreen() {
                         <Text style={styles.statLabel}>Interviews</Text>
                     </View>
                     <View style={styles.statBox}>
-                        <Text style={[styles.statNum, { color: '#10b981' }]}>{stats.hired}</Text>
+                        <Text style={[styles.statNum, { color: theme.success }]}>{stats.hired}</Text>
                         <Text style={styles.statLabel}>Selected</Text>
                     </View>
                 </View>
 
-                {/* Upcoming Tasks & Notifications (Module 20 & 23 placeholder for vertical flow) */}
+                {/* Upcoming Tasks & Notifications */}
                 <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Upcoming Tasks & Action Items</Text>
 
                 {stats.interviews > 0 ? (
@@ -149,7 +152,7 @@ export default function CandidateDashboardScreen() {
                             <Text style={styles.taskTitle}>Upcoming Interview</Text>
                             <Text style={styles.taskDesc}>You have {stats.interviews} interview(s) to prepare for. Check your chat inbox for scheduled times.</Text>
                         </View>
-                        <Ionicons name="arrow-forward" size={20} color="#94a3b8" />
+                        <Ionicons name="arrow-forward" size={20} color={theme.textSecondary} />
                     </TouchableOpacity>
                 ) : null}
 
@@ -164,7 +167,7 @@ export default function CandidateDashboardScreen() {
                             {stats.pendingTests > 0 ? `You have ${stats.pendingTests} pending skill assessment(s) to complete.` : 'No pending skill assessments or assignments.'}
                         </Text>
                     </View>
-                    <Ionicons name="arrow-forward" size={20} color="#94a3b8" />
+                    <Ionicons name="arrow-forward" size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.taskCard, stats.unreadNotes === 0 && { opacity: 0.7 }]} onPress={() => router.push('/(candidate)/notifications')}>
@@ -178,7 +181,7 @@ export default function CandidateDashboardScreen() {
                             {stats.unreadNotes > 0 ? `You have ${stats.unreadNotes} unread notification(s).` : 'All caught up! No recent system alerts.'}
                         </Text>
                     </View>
-                    <Ionicons name="arrow-forward" size={20} color="#94a3b8" />
+                    <Ionicons name="arrow-forward" size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
 
             </ScrollView>
@@ -186,28 +189,28 @@ export default function CandidateDashboardScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
     header: {
         padding: 24, paddingTop: 60, paddingBottom: 20,
-        backgroundColor: '#1e293b',
-        borderBottomWidth: 1, borderBottomColor: '#334155',
+        backgroundColor: theme.card,
+        borderBottomWidth: 1, borderBottomColor: theme.border,
     },
     bellBtn: {
         width: 44, height: 44, borderRadius: 22,
-        backgroundColor: '#0f172a',
+        backgroundColor: theme.background,
         alignItems: 'center', justifyContent: 'center',
-        borderWidth: 1, borderColor: '#334155'
+        borderWidth: 1, borderColor: theme.border
     },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: '#94a3b8' },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: theme.textSecondary },
 
     content: { padding: 20, paddingBottom: 100 },
 
     progressCard: {
-        backgroundColor: '#1e293b',
+        backgroundColor: theme.card,
         borderRadius: 16, padding: 20,
-        borderWidth: 1, borderColor: '#334155',
+        borderWidth: 1, borderColor: theme.border,
         marginBottom: 24,
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 },
@@ -215,42 +218,42 @@ const styles = StyleSheet.create({
         })
     },
     progressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    progressTitle: { color: '#f8fafc', fontSize: 16, fontWeight: 'bold' },
+    progressTitle: { color: theme.text, fontSize: 16, fontWeight: 'bold' },
     progressValue: { color: '#38bdf8', fontSize: 18, fontWeight: '900' },
-    progressBarBg: { height: 8, backgroundColor: '#0f172a', borderRadius: 4, overflow: 'hidden' },
+    progressBarBg: { height: 8, backgroundColor: theme.background, borderRadius: 4, overflow: 'hidden' },
     progressBarFill: { height: '100%', borderRadius: 4 },
-    progressHint: { color: '#94a3b8', fontSize: 12, marginTop: 12, lineHeight: 18 },
+    progressHint: { color: theme.textSecondary, fontSize: 12, marginTop: 12, lineHeight: 18 },
 
-    sectionTitle: { color: '#e2e8f0', fontSize: 16, fontWeight: '700', marginBottom: 16 },
+    sectionTitle: { color: theme.text, fontSize: 16, fontWeight: '700', marginBottom: 16 },
 
     statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
     statBox: {
         flex: 1, minWidth: '45%',
-        backgroundColor: '#1e293b',
+        backgroundColor: theme.card,
         padding: 16, borderRadius: 16,
-        borderWidth: 1, borderColor: '#334155',
+        borderWidth: 1, borderColor: theme.border,
         alignItems: 'center'
     },
-    statNum: { fontSize: 26, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
-    statLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
+    statNum: { fontSize: 26, fontWeight: '900', color: theme.text, marginBottom: 4 },
+    statLabel: { fontSize: 12, color: theme.textSecondary, fontWeight: '600' },
 
     taskCard: {
         flexDirection: 'row', alignItems: 'center',
-        backgroundColor: '#1e293b',
+        backgroundColor: theme.card,
         padding: 16, borderRadius: 16,
         marginBottom: 12,
-        borderWidth: 1, borderColor: '#334155'
+        borderWidth: 1, borderColor: theme.border
     },
     taskIconWrapper: {
         width: 48, height: 48, borderRadius: 12,
         alignItems: 'center', justifyContent: 'center',
         marginRight: 16
     },
-    taskTitle: { color: '#f8fafc', fontSize: 15, fontWeight: 'bold', marginBottom: 4 },
-    taskDesc: { color: '#94a3b8', fontSize: 12, lineHeight: 18, paddingRight: 10 },
+    taskTitle: { color: theme.text, fontSize: 15, fontWeight: 'bold', marginBottom: 4 },
+    taskDesc: { color: theme.textSecondary, fontSize: 12, lineHeight: 18, paddingRight: 10 },
     badgeIndicator: {
         position: 'absolute', top: -4, right: -4,
         width: 12, height: 12, borderRadius: 6,
-        backgroundColor: '#ef4444', borderWidth: 2, borderColor: '#1e293b'
+        backgroundColor: theme.danger, borderWidth: 2, borderColor: theme.card
     }
 });

@@ -1,5 +1,6 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -8,6 +9,8 @@ const INTERVIEW_STATUSES = ['Scheduled', 'Confirmed', 'Rescheduled', 'Cancelled'
 
 export default function CompanyInterviewsScreen() {
     const { user, role } = useAuth();
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
     const [interviews, setInterviews] = useState<any[]>([]);
     const [shortlistedApps, setShortlistedApps] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -131,16 +134,16 @@ export default function CompanyInterviewsScreen() {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'Scheduled': return { color: '#fb923c', bg: 'rgba(251, 146, 60, 0.1)' };
-            case 'Confirmed': return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' };
-            case 'Completed': return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' };
-            case 'Cancelled': case 'No-Show': return { color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.1)' };
-            case 'Rescheduled': return { color: '#a855f7', bg: 'rgba(168, 85, 247, 0.1)' };
-            default: return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)' };
+            case 'Scheduled': return { color: theme.warning, bg: 'rgba(251, 146, 60, 0.1)' };
+            case 'Confirmed': return { color: theme.primary, bg: 'rgba(59, 130, 246, 0.1)' };
+            case 'Completed': return { color: theme.success, bg: 'rgba(16, 185, 129, 0.1)' };
+            case 'Cancelled': case 'No-Show': return { color: theme.danger, bg: 'rgba(244, 63, 94, 0.1)' };
+            case 'Rescheduled': return { color: theme.warning, bg: 'rgba(168, 85, 247, 0.1)' };
+            default: return { color: theme.textSecondary, bg: 'rgba(148, 163, 184, 0.1)' };
         }
     };
 
-    if (loading) return <ActivityIndicator size="large" color="#3b82f6" style={{ flex: 1, backgroundColor: '#0f172a' }} />;
+    if (loading) return <ActivityIndicator size="large" color={theme.primary} style={{ flex: 1, backgroundColor: theme.background }} />;
 
     return (
         <View style={styles.container}>
@@ -154,7 +157,7 @@ export default function CompanyInterviewsScreen() {
                 <Text style={styles.sectionTitle}>Upcoming & Past Interviews</Text>
                 {interviews.length === 0 ? (
                     <View style={styles.emptyContainer}>
-                        <Ionicons name="calendar-clear-outline" size={32} color="#334155" />
+                        <Ionicons name="calendar-clear-outline" size={32} color={theme.border} />
                         <Text style={styles.emptyText}>No interviews scheduled.</Text>
                     </View>
                 ) : (
@@ -185,7 +188,7 @@ export default function CompanyInterviewsScreen() {
                                         {/* Meeting Link */}
                                         {interview.meeting_link && (
                                             <TouchableOpacity style={styles.linkBtn} onPress={() => Linking.openURL(interview.meeting_link)}>
-                                                <Ionicons name="videocam" size={16} color="#3b82f6" style={{ marginRight: 6 }} />
+                                                <Ionicons name="videocam" size={16} color={theme.primary} style={{ marginRight: 6 }} />
                                                 <Text style={styles.linkBtnText}>Join Meeting</Text>
                                             </TouchableOpacity>
                                         )}
@@ -214,8 +217,8 @@ export default function CompanyInterviewsScreen() {
                                         {/* Feedback Form Button */}
                                         {interview.status === 'Completed' && !interview.feedback && (
                                             <TouchableOpacity style={styles.addFeedbackBtn} onPress={() => setFeedbackVisible(interview.id)}>
-                                                <Ionicons name="pencil" size={16} color="#e2e8f0" style={{ marginRight: 6 }} />
-                                                <Text style={{ color: '#e2e8f0', fontWeight: 'bold', fontSize: 13 }}>Add Post-Interview Feedback</Text>
+                                                <Ionicons name="pencil" size={16} color={theme.text} style={{ marginRight: 6 }} />
+                                                <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 13 }}>Add Post-Interview Feedback</Text>
                                             </TouchableOpacity>
                                         )}
 
@@ -225,7 +228,7 @@ export default function CompanyInterviewsScreen() {
                                                 <TextInput
                                                     style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
                                                     placeholder="Evaluate candidate performance..."
-                                                    placeholderTextColor="#64748b"
+                                                    placeholderTextColor={theme.textSecondary}
                                                     multiline
                                                     value={feedbackText}
                                                     onChangeText={setFeedbackText}
@@ -245,13 +248,13 @@ export default function CompanyInterviewsScreen() {
                 {/* Candidate Pipeline */}
                 <Text style={[styles.sectionTitle, { marginTop: 32 }]}>Candidates Awaiting Interview</Text>
                 {shortlistedApps.length === 0 ? (
-                    <Text style={{ color: '#64748b', fontSize: 13 }}>No candidates currently pending interview scheduling.</Text>
+                    <Text style={{ color: theme.textSecondary, fontSize: 13 }}>No candidates currently pending interview scheduling.</Text>
                 ) : (
                     shortlistedApps.map(app => (
                         <View key={app.id} style={styles.shortlistCard}>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.shortlistName}>{app.profiles?.full_name}</Text>
-                                <Text style={styles.shortlistJob}>{app.jobs?.title} • <Text style={{ color: '#10b981' }}>{app.status}</Text></Text>
+                                <Text style={styles.shortlistJob}>{app.jobs?.title} • <Text style={{ color: theme.success }}>{app.status}</Text></Text>
                             </View>
                             <TouchableOpacity style={styles.scheduleBtn} onPress={() => { setSelectedApp(app); setModalVisible(true); }}>
                                 <Text style={styles.scheduleBtnText}>Schedule</Text>
@@ -268,23 +271,23 @@ export default function CompanyInterviewsScreen() {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
                             <Text style={styles.modalTitle}>Schedule Meeting</Text>
                             <TouchableOpacity onPress={() => setModalVisible(false)}>
-                                <Ionicons name="close" size={24} color="#94a3b8" />
+                                <Ionicons name="close" size={24} color={theme.textSecondary} />
                             </TouchableOpacity>
                         </View>
-                        <Text style={{ color: '#94a3b8', marginBottom: 20 }}>
-                            Candidate: <Text style={{ color: '#fff', fontWeight: 'bold' }}>{selectedApp?.profiles?.full_name}</Text>
+                        <Text style={{ color: theme.textSecondary, marginBottom: 20 }}>
+                            Candidate: <Text style={{ color: theme.text, fontWeight: 'bold' }}>{selectedApp?.profiles?.full_name}</Text>
                         </Text>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Date (YYYY-MM-DD)</Text>
-                            <TextInput style={styles.input} value={intDate} onChangeText={setIntDate} placeholder="2026-11-20" placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={intDate} onChangeText={setIntDate} placeholder="2026-11-20" placeholderTextColor={theme.textSecondary} />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Time (HH:MM) - 24hr format</Text>
-                            <TextInput style={styles.input} value={intTime} onChangeText={setIntTime} placeholder="14:30" placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={intTime} onChangeText={setIntTime} placeholder="14:30" placeholderTextColor={theme.textSecondary} />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Meeting Link (Google Meet / Zoom)</Text>
-                            <TextInput style={styles.input} value={intLink} onChangeText={setIntLink} placeholder="https://meet.google.com/..." placeholderTextColor="#64748b" />
+                            <TextInput style={styles.input} value={intLink} onChangeText={setIntLink} placeholder="https://meet.google.com/..." placeholderTextColor={theme.textSecondary} />
                         </View>
                         <TouchableOpacity style={styles.submitBtn} onPress={handleSchedule} disabled={saving}>
                             {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Dispatch Schedule</Text>}
@@ -296,55 +299,55 @@ export default function CompanyInterviewsScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0f172a' },
-    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: '#1e293b', borderBottomWidth: 1, borderBottomColor: '#334155' },
-    title: { fontSize: 28, fontWeight: '900', color: '#f8fafc', marginBottom: 4 },
-    subtitle: { fontSize: 13, color: '#94a3b8' },
+const getStyles = (theme: any) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    header: { padding: 24, paddingTop: 60, paddingBottom: 20, backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border },
+    title: { fontSize: 28, fontWeight: '900', color: theme.text, marginBottom: 4 },
+    subtitle: { fontSize: 13, color: theme.textSecondary },
     listContent: { padding: 20, paddingBottom: 100 },
-    sectionTitle: { color: '#e2e8f0', fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
+    sectionTitle: { color: theme.text, fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
     emptyContainer: { alignItems: 'center', opacity: 0.5, padding: 20 },
-    emptyText: { color: '#e2e8f0', fontSize: 14, fontWeight: 'bold', marginTop: 10 },
+    emptyText: { color: theme.text, fontSize: 14, fontWeight: 'bold', marginTop: 10 },
 
-    interviewCard: { backgroundColor: '#1e293b', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#334155' },
+    interviewCard: { backgroundColor: theme.card, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: theme.border },
     cardHeader: { flexDirection: 'row', alignItems: 'center' },
-    calendarIconBg: { backgroundColor: '#0f172a', borderRadius: 12, width: 54, height: 54, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+    calendarIconBg: { backgroundColor: theme.background, borderRadius: 12, width: 54, height: 54, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
     calMonth: { fontSize: 11, fontWeight: '900' },
-    calDay: { color: '#f8fafc', fontSize: 18, fontWeight: '900' },
-    candidateName: { color: '#f8fafc', fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
-    jobTitle: { color: '#94a3b8', fontSize: 13, marginBottom: 2 },
-    timeStr: { color: '#60a5fa', fontSize: 12, fontWeight: 'bold' },
+    calDay: { color: theme.text, fontSize: 18, fontWeight: '900' },
+    candidateName: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginBottom: 2 },
+    jobTitle: { color: theme.textSecondary, fontSize: 13, marginBottom: 2 },
+    timeStr: { color: theme.primary, fontSize: 12, fontWeight: 'bold' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
     statusText: { fontSize: 11, fontWeight: 'bold' },
 
-    expandedSection: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#334155' },
+    expandedSection: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: theme.border },
     linkBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: 10, borderRadius: 8, marginBottom: 16 },
-    linkBtnText: { color: '#3b82f6', fontSize: 13, fontWeight: 'bold' },
+    linkBtnText: { color: theme.primary, fontSize: 13, fontWeight: 'bold' },
 
-    feedbackBox: { backgroundColor: '#0f172a', padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: '#10b981' },
-    feedbackLabel: { color: '#10b981', fontSize: 11, fontWeight: '700', marginBottom: 4 },
-    feedbackText: { color: '#cbd5e1', fontSize: 13, lineHeight: 20 },
+    feedbackBox: { backgroundColor: theme.background, padding: 12, borderRadius: 8, marginBottom: 16, borderLeftWidth: 3, borderLeftColor: theme.success },
+    feedbackLabel: { color: theme.success, fontSize: 11, fontWeight: '700', marginBottom: 4 },
+    feedbackText: { color: theme.textSecondary, fontSize: 13, lineHeight: 20 },
 
-    actionPrompt: { color: '#64748b', fontSize: 12, fontWeight: '600', marginBottom: 8 },
+    actionPrompt: { color: theme.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 8 },
     statusActionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, marginRight: 8 },
     statusActionBtnText: { fontSize: 11, fontWeight: 'bold' },
 
-    addFeedbackBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#334155', padding: 10, borderRadius: 8, marginTop: 12 },
+    addFeedbackBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.border, padding: 10, borderRadius: 8, marginTop: 12 },
     feedbackFormBox: { marginTop: 12 },
-    saveFeedbackBtn: { backgroundColor: '#10b981', padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 8 },
+    saveFeedbackBtn: { backgroundColor: theme.success, padding: 12, borderRadius: 8, alignItems: 'center', marginTop: 8 },
 
-    shortlistCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1e293b', padding: 16, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#334155' },
-    shortlistName: { color: '#f8fafc', fontSize: 15, fontWeight: 'bold' },
-    shortlistJob: { color: '#94a3b8', fontSize: 12, marginTop: 4 },
-    scheduleBtn: { backgroundColor: '#3b82f6', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+    shortlistCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.card, padding: 16, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: theme.border },
+    shortlistName: { color: theme.text, fontSize: 15, fontWeight: 'bold' },
+    shortlistJob: { color: theme.textSecondary, fontSize: 12, marginTop: 4 },
+    scheduleBtn: { backgroundColor: theme.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
     scheduleBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
 
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-    modalContent: { backgroundColor: '#1e293b', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
-    modalTitle: { color: '#f8fafc', fontSize: 20, fontWeight: 'bold' },
+    modalContent: { backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+    modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold' },
     inputGroup: { marginBottom: 16 },
-    label: { color: '#cbd5e1', fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
-    input: { backgroundColor: '#0f172a', color: '#f8fafc', borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: '#334155' },
-    submitBtn: { backgroundColor: '#10b981', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
+    label: { color: theme.text, fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
+    input: { backgroundColor: theme.background, color: theme.text, borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: theme.border },
+    submitBtn: { backgroundColor: theme.success, paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
     submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });
