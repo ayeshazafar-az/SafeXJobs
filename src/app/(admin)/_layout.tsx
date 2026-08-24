@@ -48,6 +48,11 @@ export default function AdminLayout() {
                     tabBarIcon: ({ color }) => <Ionicons name="settings" size={24} color={color} />,
                 }}
             />
+            {/* Hidden screens (accessible via routing from Dashboard & Settings but not tab bar) */}
+            <Tabs.Screen name="applications" options={{ href: null }} />
+            <Tabs.Screen name="chats" options={{ href: null }} />
+            <Tabs.Screen name="categories" options={{ href: null }} />
+            <Tabs.Screen name="locations" options={{ href: null }} />
         </Tabs>
     );
 }
