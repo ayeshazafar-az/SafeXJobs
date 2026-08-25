@@ -76,14 +76,14 @@ export default function CompanyManagersScreen() {
                 company_id: user?.id,
                 status: 'Verified'
             };
-            if (designation) profilePayload.designation = designation;
-            if (department) profilePayload.department = department;
+            // Remove designation and department from profilePayload since they don't exist in DB schema
+            // which causes a strict rejection
 
             const { error: profileError } = await adminSupabase.from('profiles').upsert(profilePayload);
             if (profileError) throw profileError;
 
             // Successfully created! Update local state
-            setManagers(prev => [profilePayload, ...prev]);
+            setManagers(prev => [{ ...profilePayload, designation, department }, ...prev]);
             setModalVisible(false);
 
             // Reset form
