@@ -17,6 +17,7 @@ export default function CompanyManagersScreen() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [designation, setDesignation] = useState('');
     const [department, setDepartment] = useState('');
     const [saving, setSaving] = useState(false);
@@ -164,7 +165,12 @@ export default function CompanyManagersScreen() {
                             </View>
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>Internal Password *</Text>
-                                <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Must be at least 6 characters" secureTextEntry placeholderTextColor={theme.textSecondary} />
+                                <View style={styles.passwordWrapper}>
+                                    <TextInput style={styles.passwordInput} value={password} onChangeText={setPassword} placeholder="Must be at least 6 characters" secureTextEntry={!showPassword} placeholderTextColor={theme.textSecondary} />
+                                    <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+                                        <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color={theme.textSecondary} />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
                                 <View style={{ flex: 1 }}>
@@ -215,6 +221,9 @@ const getStyles = (theme: any) => StyleSheet.create({
     inputGroup: { marginBottom: 16 },
     label: { color: theme.text, fontSize: 13, fontWeight: 'bold', marginBottom: 8 },
     input: { backgroundColor: theme.background, color: theme.text, borderRadius: 12, padding: 14, fontSize: 15, borderWidth: 1, borderColor: theme.border },
+    passwordWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.background, borderRadius: 12, borderWidth: 1, borderColor: theme.border },
+    passwordInput: { flex: 1, padding: 14, fontSize: 15, color: theme.text },
+    eyeIcon: { padding: 14 },
     submitBtn: { backgroundColor: theme.success, paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
     submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

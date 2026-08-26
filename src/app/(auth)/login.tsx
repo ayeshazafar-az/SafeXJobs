@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -13,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const router = useRouter();
@@ -64,14 +66,19 @@ export default function LoginScreen() {
 
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>Password</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="••••••••"
-                            placeholderTextColor="#64748b"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                        />
+                        <View style={styles.passwordWrapper}>
+                            <TextInput
+                                style={styles.passwordInput}
+                                placeholder="••••••••"
+                                placeholderTextColor="#64748b"
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry={!showPassword}
+                            />
+                            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+                                <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color="#64748b" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
@@ -160,6 +167,23 @@ const styles = StyleSheet.create({
         padding: 16,
         color: '#f8fafc',
         fontSize: 16,
+    },
+    passwordWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#0f172a',
+        borderWidth: 1,
+        borderColor: '#334155',
+        borderRadius: 12,
+    },
+    passwordInput: {
+        flex: 1,
+        padding: 16,
+        color: '#f8fafc',
+        fontSize: 16,
+    },
+    eyeIcon: {
+        padding: 16,
     },
     loginButton: {
         backgroundColor: '#3b82f6',

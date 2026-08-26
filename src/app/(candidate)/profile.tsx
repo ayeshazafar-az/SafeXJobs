@@ -163,6 +163,12 @@ export default function CandidateProfileScreen() {
     };
 
     const handleRecordVideo = () => {
+        if (Platform.OS === 'web') {
+            // Web doesn't support custom buttons in window.confirm, so jump straight to picker
+            processVideoUpload(false);
+            return;
+        }
+
         // Ask user if they want to record or pick from gallery
         Alert.alert(
             "Upload Video Intro",
