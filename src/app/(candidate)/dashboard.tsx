@@ -58,12 +58,27 @@ export default function CandidateDashboardScreen() {
 
                 if (profile) {
                     let score = 20; // Base score for making an account
-                    if (profile.full_name) score += 10;
-                    if (profile.career_objective) score += 20;
-                    if (profile.skills && profile.skills.length > 0) score += 15;
-                    if (profile.education && profile.education.length > 0) score += 15;
-                    if (profile.experience && profile.experience.length > 0) score += 10;
-                    if (profile.resume_url || profile.linkedin_url) score += 10;
+
+                    const meta = user.user_metadata || {};
+
+                    let fn = profile.full_name || meta.full_name;
+                    if (fn) score += 10;
+
+                    let co = profile.career_objective || meta.career_objective;
+                    if (co) score += 20;
+
+                    let sk = profile.skills || meta.skills;
+                    if (sk && sk.length > 0) score += 15;
+
+                    let ed = profile.education || meta.education;
+                    if (ed && ed.length > 0) score += 15;
+
+                    let ex = profile.experience || meta.experience;
+                    if (ex && ex.length > 0) score += 10;
+
+                    let lu = profile.linkedin_url || meta.linkedin_url;
+                    if (profile.resume_url || lu) score += 10;
+
                     setProfileCompletion(score);
                 }
 

@@ -37,21 +37,29 @@ export default function CandidateProfileScreen() {
         if (!user) return;
         const loadProfile = async () => {
             const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            const meta = user.user_metadata || {};
+
             if (data) {
-                setFullName(data.full_name || '');
-                setLocation(data.company_location || '');
-                setCareerObjective(data.career_objective || '');
+                setFullName(data.full_name || meta.full_name || '');
+                setLocation(data.company_location || meta.company_location || '');
+                setCareerObjective(data.career_objective || meta.career_objective || '');
 
-                if (data.skills) setSkills(Array.isArray(data.skills) ? data.skills.join(', ') : data.skills);
-                if (data.education) setEducationStr(Array.isArray(data.education) ? data.education.join('\n') : data.education);
-                if (data.experience) setExperienceStr(Array.isArray(data.experience) ? data.experience.join('\n') : data.experience);
-                // We map certifications safely if it exists on the DB, else skip without throwing error
-                if (data.certifications) setCertificationsStr(Array.isArray(data.certifications) ? data.certifications.join('\n') : data.certifications);
+                const dbSkills = data.skills || meta.skills;
+                if (dbSkills) setSkills(Array.isArray(dbSkills) ? dbSkills.join(', ') : dbSkills);
 
-                setPhone(data.phone || '');
-                setLanguages(data.languages || '');
-                setLinkedinUrl(data.linkedin_url || '');
-                setPortfolioUrl(data.portfolio_url || '');
+                const dbEdu = data.education || meta.education;
+                if (dbEdu) setEducationStr(Array.isArray(dbEdu) ? dbEdu.join('\n') : dbEdu);
+
+                const dbExp = data.experience || meta.experience;
+                if (dbExp) setExperienceStr(Array.isArray(dbExp) ? dbExp.join('\n') : dbExp);
+
+                const dbCerts = data.certifications || meta.certifications;
+                if (dbCerts) setCertificationsStr(Array.isArray(dbCerts) ? dbCerts.join('\n') : dbCerts);
+
+                setPhone(data.phone || meta.phone || '');
+                setLanguages(data.languages || meta.languages || '');
+                setLinkedinUrl(data.linkedin_url || meta.linkedin_url || '');
+                setPortfolioUrl(data.portfolio_url || meta.portfolio_url || '');
                 setResumeUrl(data.resume_url || '');
                 setVideoUrl(data.video_intro_url || '');
                 setProfilePictureUrl(data.profile_picture_url || '');
@@ -70,9 +78,16 @@ export default function CandidateProfileScreen() {
         const formattedExp = experienceStr.split('\n').map(s => s.trim()).filter(Boolean);
         const formattedCerts = certificationsStr.split('\n').map(s => s.trim()).filter(Boolean);
 
-        const updates = {
-            full_name: fullName,
-            phone,
+        // Standard profiles table columns that we know exist
+        const dbUpdates: any = {};
+        if (fullName) dbUpdates.full_name = fullName;
+        if (phone) dbUpdates.phone = phone;
+        if (resumeUrl) dbUpdates.resume_url = resumeUrl;
+        if (videoUrl) dbUpdates.video_intro_url = videoUrl;
+        if (profilePictureUrl) dbUpdates.profile_picture_url = profilePictureUrl;
+
+        // Everything else to Auth User Metadata to bypass strict static column schema crashes
+        const metaUpdates = {
             company_location: location,
             career_objective: careerObjective,
             skills: formattedSkills,
@@ -81,17 +96,24 @@ export default function CandidateProfileScreen() {
             languages,
             linkedin_url: linkedinUrl,
             portfolio_url: portfolioUrl,
-            resume_url: resumeUrl,
-            video_intro_url: videoUrl,
             certifications: formattedCerts,
-            profile_picture_url: profilePictureUrl || undefined,
         };
 
-        const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+        const [dbRes, metaRes] = await Promise.all([
+            Object.keys(dbUpdates).length > 0 ? supabase.from('profiles').update(dbUpdates).eq('id', user.id) : Promise.resolve({ error: null }),
+            supabase.auth.updateUser({ data: metaUpdates })
+        ]);
+
         setSaving(false);
 
-        if (error) Alert.alert('Error Saving Profile', error.message);
-        else Alert.alert('Profile Saved!', 'Your professional portfolio has been updated successfully.');
+        if (dbRes.error || metaRes.error) {
+            const err = dbRes.error || metaRes.error;
+            if (Platform.OS === 'web') alert('Error Saving Profile: ' + err?.message);
+            else Alert.alert('Error Saving Profile', err?.message);
+        } else {
+            if (Platform.OS === 'web') alert('Profile Saved!');
+            else Alert.alert('Profile Saved!', 'Your professional portfolio has been updated successfully.');
+        }
     };
 
     const handleSignOut = () => {
