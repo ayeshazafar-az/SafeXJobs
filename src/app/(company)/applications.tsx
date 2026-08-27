@@ -10,6 +10,9 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 function VideoModal({ url, visible, onClose }: { url: string, visible: boolean, onClose: () => void }) {
+    const { theme } = useTheme();
+    const styles = getStyles(theme);
+
     const player = useVideoPlayer(url, player => {
         player.loop = false;
         if (visible) player.play();
@@ -342,6 +345,21 @@ export default function CompanyApplicationsScreen() {
                         const isExpanded = expandedId === app.id;
                         const nextActions = getNextActions(app.status);
 
+                        const parseArray = (val: any) => {
+                            if (Array.isArray(val)) return val;
+                            if (typeof val === 'string') {
+                                try {
+                                    const parsed = JSON.parse(val);
+                                    if (Array.isArray(parsed)) return parsed;
+                                } catch { }
+                            }
+                            return [];
+                        };
+
+                        const safeSkills = parseArray(c?.skills);
+                        const safeEdu = parseArray(c?.education);
+                        const safeExp = parseArray(c?.experience);
+
                         return (
                             <TouchableOpacity key={app.id} style={styles.appCard} onPress={() => setExpandedId(isExpanded ? null : app.id)} activeOpacity={0.85}>
                                 <View style={styles.cardHeader}>
@@ -364,9 +382,9 @@ export default function CompanyApplicationsScreen() {
                                     </View>
                                 )}
 
-                                {c?.skills && c.skills.length > 0 && (
+                                {safeSkills.length > 0 && (
                                     <View style={styles.skillsWrapper}>
-                                        {(isExpanded ? c.skills : c.skills.slice(0, 4)).map((s: string, i: number) => (
+                                        {(isExpanded ? safeSkills : safeSkills.slice(0, 4)).map((s: string, i: number) => (
                                             <View key={i} style={styles.skillTag}><Text style={styles.skillText}>{s}</Text></View>
                                         ))}
                                     </View>
@@ -374,16 +392,16 @@ export default function CompanyApplicationsScreen() {
 
                                 {isExpanded && (
                                     <View style={styles.expandedSection}>
-                                        {c?.education && c.education.length > 0 && (
+                                        {safeEdu.length > 0 && (
                                             <View style={styles.detailRow}>
                                                 <Ionicons name="school-outline" size={16} color={theme.primary} />
-                                                <Text style={styles.detailText}>{c.education.map((e: any) => `${e.degree} - ${e.institution}`).join('\n')}</Text>
+                                                <Text style={styles.detailText}>{safeEdu.join('\n')}</Text>
                                             </View>
                                         )}
-                                        {c?.experience && c.experience.length > 0 && (
+                                        {safeExp.length > 0 && (
                                             <View style={styles.detailRow}>
                                                 <Ionicons name="briefcase-outline" size={16} color={theme.warning} />
-                                                <Text style={styles.detailText}>{c.experience.map((e: any) => `${e.title} at ${e.company}`).join('\n')}</Text>
+                                                <Text style={styles.detailText}>{safeExp.join('\n')}</Text>
                                             </View>
                                         )}
 
