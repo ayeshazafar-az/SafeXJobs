@@ -37,7 +37,7 @@ export default function CompanyChatScreen() {
                     )
                 `)
                 .eq('jobs.company_id', user.id)
-                .neq('status', 'Pending'); // Usually, companies only chat with shortlisted/interview candidates
+                .in('status', ['Shortlisted', 'Test Assigned', 'Test Submitted', 'Test Passed', 'Interview Scheduled', 'Interview Completed', 'Selected', 'Offer Sent', 'Hired']);
 
             if (data) setConversations(data);
             setLoading(false);

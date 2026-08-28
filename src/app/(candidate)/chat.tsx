@@ -34,7 +34,7 @@ export default function CandidateChatScreen() {
                     )
                 `)
                 .eq('candidate_id', user.id)
-                .neq('status', 'Pending'); // Or allow pending if you want them to chat immediately
+                .in('status', ['Shortlisted', 'Test Assigned', 'Test Submitted', 'Test Passed', 'Interview Scheduled', 'Interview Completed', 'Selected', 'Offer Sent', 'Hired']);
 
             if (data) setConversations(data);
             setLoading(false);

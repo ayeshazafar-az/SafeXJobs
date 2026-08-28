@@ -93,6 +93,14 @@ export default function CandidateTestsScreen() {
         const test = tests.find(t => t.id === testId);
         if (!test) return;
 
+        if (isPastDeadline(test.deadline)) {
+            if (Platform.OS === 'web') alert('Error: Submission rejected because the deadline has passed.');
+            else Alert.alert('Submission Rejected', 'The deadline for this assessment has passed.');
+            setSubmittingId(null);
+            fetchTests();
+            return;
+        }
+
         let autoMarks = null;
         let finalStatus = 'Submitted';
         let finalSubmissionText = submissionText;

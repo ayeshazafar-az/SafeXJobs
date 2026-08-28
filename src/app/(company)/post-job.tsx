@@ -98,13 +98,41 @@ export default function PostJobScreen() {
         // category, responsibilities, benefits, required_skills, required_education, required_experience, 
         // vacancies, application_deadline, gender_requirement, age_min, age_max, status
 
-        const { error } = await supabase.from('jobs').insert(jobPayload);
+        const { data: insertedJob, error } = await supabase.from('jobs').insert(jobPayload).select().single();
 
         setLoading(false);
         if (error) {
             if (Platform.OS === 'web') alert('Error: ' + error.message);
             else Alert.alert('Error Posting Job', error.message);
             return;
+        }
+
+        // Job Matcher Engine (Module 25)
+        // Note: For this to work properly, Company profiles need RLS read access on Candidate profiles.
+        if (insertedJob && insertedJob.id && requiredSkills) {
+            try {
+                const { data: candidates } = await supabase.from('profiles').select('id, skills').eq('role', 'candidate');
+                if (candidates) {
+                    const jobSkills = requiredSkills.toLowerCase();
+                    const matchedCandidates = candidates.filter(c => {
+                        const cSkills = (c.skills || '').toLowerCase();
+                        // simplistic keyword overlap matching
+                        return jobSkills.split(',').some((s: string) => s.trim().length > 2 && cSkills.includes(s.trim()));
+                    });
+
+                    if (matchedCandidates.length > 0) {
+                        const alertsToInsert = matchedCandidates.map(c => ({
+                            user_id: c.id,
+                            title: 'New Job Match: ' + title,
+                            message: `A new job posting "${title}" matches your listed skills! Check it out.`,
+                            type: 'job_alert'
+                        }));
+                        await supabase.from('notifications').insert(alertsToInsert);
+                    }
+                }
+            } catch (err) {
+                console.log('Failed to run job matching engine', err);
+            }
         }
 
         if (Platform.OS === 'web') alert('Job Published! Your job is now live.');
