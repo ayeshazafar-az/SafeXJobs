@@ -86,7 +86,18 @@ export default function CandidateApplicationsScreen() {
         setRefreshing(false);
     };
 
-    useEffect(() => { fetchApplications(); }, [user]);
+    useEffect(() => {
+        fetchApplications();
+
+        if (!user) return;
+        const channel = supabase.channel(`candidate_apps_${user.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' },
+                () => {
+                    fetchApplications(); // Re-fetch on any DB changes to Applications
+                }).subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [user]);
 
     const onRefresh = () => { setRefreshing(true); fetchApplications(); };
 

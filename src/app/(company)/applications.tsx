@@ -132,7 +132,18 @@ export default function CompanyApplicationsScreen() {
         setRefreshing(false);
     };
 
-    useEffect(() => { fetchApplications(); }, [user]);
+    useEffect(() => {
+        fetchApplications();
+
+        if (!user) return;
+        const channel = supabase.channel(`company_apps_${user.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'applications' },
+                () => {
+                    fetchApplications(); // Re-fetch to pull nested relational data
+                }).subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [user]);
 
     const onRefresh = () => { setRefreshing(true); fetchApplications(); };
 

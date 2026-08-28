@@ -12,7 +12,7 @@ import {
 const JOB_TYPES = ['Full-Time', 'Part-Time', 'Contract', 'Internship', 'Remote'];
 
 export default function MyJobsScreen() {
-    const { user } = useAuth();
+    const { user, role } = useAuth();
     const { theme } = useTheme();
     const styles = getStyles(theme);
     const [jobs, setJobs] = useState<any[]>([]);
@@ -34,11 +34,15 @@ export default function MyJobsScreen() {
 
     const fetchJobs = async () => {
         if (!user) return;
-        const { data, error } = await supabase
-            .from('jobs')
-            .select('*, applications(count)')
-            .eq('company_id', user.id)
-            .order('created_at', { ascending: false });
+
+        let query = supabase.from('jobs').select('*, applications(count)');
+        if (role === 'hiring_manager') {
+            query = query.eq('hiring_manager_id', user.id);
+        } else {
+            query = query.eq('company_id', user.id);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
 
         if (data) setJobs(data);
         else console.error('Error fetching jobs:', error);
