@@ -46,6 +46,13 @@ export default function AdminChatsMonitor() {
             <View style={styles.header}>
                 <Text style={styles.title}>Global Chat Monitor</Text>
                 <Text style={styles.subtitle}>Supervision logs for platform safety.</Text>
+
+                <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: 12, borderRadius: 8, marginTop: 12, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)' }}>
+                    <Text style={{ color: theme.danger, fontSize: 12, fontWeight: 'bold' }}>⚠️ PRIVACY COMPLIANCE WARNING</Text>
+                    <Text style={{ color: theme.danger, fontSize: 11, marginTop: 4 }}>
+                        This view accesses private candidate-company communications. Access should be restricted strictly to Trust & Safety moderation. Unauthorized distribution violates GDPR and platform privacy agreements.
+                    </Text>
+                </View>
             </View>
             {loading ? (
                 <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />

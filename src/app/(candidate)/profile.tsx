@@ -125,9 +125,17 @@ export default function CandidateProfileScreen() {
         }
     };
 
-    const uploadToSupabase = async (uri: string, prefix: string, contentType: string, extension: string) => {
+    const uploadToSupabase = async (uri: string, prefix: string, contentType: string, extension: string, oldUrl?: string) => {
         if (!user) return null;
         try {
+            if (oldUrl) {
+                // Delete orphaned old file to prevent memory leaks in Supabase Storage
+                const oldPath = oldUrl.split('/candidate_media/')[1];
+                if (oldPath) {
+                    await supabase.storage.from('candidate_media').remove([oldPath]);
+                }
+            }
+
             const response = await fetch(uri);
             const blob = await response.blob();
             // unique file name to avoid cache issues
@@ -163,7 +171,7 @@ export default function CandidateProfileScreen() {
 
             setUploadingMedia('resume');
             const file = result.assets[0];
-            const url = await uploadToSupabase(file.uri, 'resumes', 'application/pdf', 'pdf');
+            const url = await uploadToSupabase(file.uri, 'resumes', 'application/pdf', 'pdf', resumeUrl);
             if (url) {
                 setResumeUrl(url);
                 // Auto save the link to profile immediately
@@ -228,7 +236,7 @@ export default function CandidateProfileScreen() {
 
             setUploadingMedia('video');
             const file = result.assets[0];
-            const url = await uploadToSupabase(file.uri, 'videos', 'video/mp4', 'mp4');
+            const url = await uploadToSupabase(file.uri, 'videos', 'video/mp4', 'mp4', videoUrl);
             if (url) {
                 setVideoUrl(url);
                 await supabase.from('profiles').update({ video_intro_url: url }).eq('id', user?.id);
@@ -252,7 +260,7 @@ export default function CandidateProfileScreen() {
             if (result.canceled || !result.assets[0]) return;
 
             setUploadingMedia('picture');
-            const url = await uploadToSupabase(result.assets[0].uri, 'profile-pictures', 'image/jpeg', 'jpg');
+            const url = await uploadToSupabase(result.assets[0].uri, 'profile-pictures', 'image/jpeg', 'jpg', profilePictureUrl);
             if (url) {
                 setProfilePictureUrl(url);
                 await supabase.from('profiles').update({ profile_picture_url: url }).eq('id', user?.id);

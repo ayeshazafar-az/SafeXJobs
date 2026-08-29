@@ -313,6 +313,14 @@ export default function CompanyApplicationsScreen() {
         `;
 
         try {
+            // Background compliance logging - Upload the HTML record to storage
+            try {
+                const blob = new Blob([html], { type: 'text/html' });
+                await supabase.storage.from('candidate_media').upload(`offers/offer_${app.id}_${Date.now()}.html`, blob, { contentType: 'text/html;charset=UTF-8' });
+            } catch (e) {
+                console.log("Compliance log upload skipped:", e);
+            }
+
             const { uri } = await Print.printToFileAsync({ html });
             if (Platform.OS === 'web') {
                 window.open(uri, '_blank');
