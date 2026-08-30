@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Platform, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CandidateInterviewsScreen() {
     const { user } = useAuth();
@@ -12,6 +12,7 @@ export default function CandidateInterviewsScreen() {
     const [interviews, setInterviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
     const fetchInterviews = async () => {
         if (!user) return;
@@ -19,7 +20,7 @@ export default function CandidateInterviewsScreen() {
             .from('interviews')
             .select(`
                 *,
-                applications!inner ( candidate_id, jobs ( title, profiles!jobs_company_id_fkey (company_name) ) )
+                applications!inner ( candidate_id, jobs ( title, company_id, profiles!jobs_company_id_fkey (company_name) ) )
             `)
             .eq('applications.candidate_id', user.id)
             .order('interview_date', { ascending: false });
@@ -32,6 +33,28 @@ export default function CandidateInterviewsScreen() {
     useEffect(() => { fetchInterviews(); }, [user]);
 
     const onRefresh = () => { setRefreshing(true); fetchInterviews(); };
+
+    const handleConfirm = async (interview: any) => {
+        setConfirmingId(interview.id);
+        const { error } = await supabase.from('interviews').update({ status: 'Confirmed' }).eq('id', interview.id);
+
+        if (!error) {
+            const companyId = interview.applications?.jobs?.company_id;
+            if (companyId) {
+                await supabase.from('notifications').insert({
+                    user_id: companyId,
+                    title: '✅ Interview Confirmed',
+                    body: `The candidate has successfully confirmed attendance for the ${interview.applications?.jobs?.title} interview.`,
+                    type: 'application'
+                });
+            }
+            fetchInterviews();
+        } else {
+            if (Platform.OS === 'web') alert('Failed: ' + error.message);
+            else Alert.alert('Error', 'Could not confirm interview.');
+        }
+        setConfirmingId(null);
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -103,16 +126,32 @@ export default function CandidateInterviewsScreen() {
                                 )}
 
                                 {(interview.status === 'Scheduled' || interview.status === 'Rescheduled' || interview.status === 'Confirmed') && (
-                                    interview.meeting_link ? (
-                                        <TouchableOpacity style={styles.actionBtn} onPress={() => Linking.openURL(interview.meeting_link)}>
-                                            <Ionicons name="link-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-                                            <Text style={styles.actionBtnText}>Join Online Meeting</Text>
-                                        </TouchableOpacity>
-                                    ) : (
-                                        <View style={styles.pendingLinkBox}>
-                                            <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: 'center' }}>Meeting link pending</Text>
-                                        </View>
-                                    )
+                                    <View>
+                                        {interview.status !== 'Confirmed' && (
+                                            <TouchableOpacity
+                                                style={[styles.actionBtn, { backgroundColor: theme.card, borderWidth: 1, borderColor: theme.primary, marginBottom: 8 }]}
+                                                onPress={() => handleConfirm(interview)}
+                                                disabled={confirmingId === interview.id}
+                                            >
+                                                {confirmingId === interview.id ? <ActivityIndicator size="small" color={theme.primary} /> : (
+                                                    <>
+                                                        <Ionicons name="checkmark-circle-outline" size={18} color={theme.primary} style={{ marginRight: 8 }} />
+                                                        <Text style={[styles.actionBtnText, { color: theme.primary }]}>Acknowledge & Confirm</Text>
+                                                    </>
+                                                )}
+                                            </TouchableOpacity>
+                                        )}
+                                        {interview.meeting_link ? (
+                                            <TouchableOpacity style={styles.actionBtn} onPress={() => Linking.openURL(interview.meeting_link)}>
+                                                <Ionicons name="link-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                                <Text style={styles.actionBtnText}>Join Online Meeting</Text>
+                                            </TouchableOpacity>
+                                        ) : (
+                                            <View style={styles.pendingLinkBox}>
+                                                <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: 'center' }}>Meeting link pending</Text>
+                                            </View>
+                                        )}
+                                    </View>
                                 )}
                             </View>
                         );

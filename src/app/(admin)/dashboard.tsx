@@ -11,7 +11,7 @@ export default function AdminDashboardScreen() {
     const styles = getStyles(theme);
     const [companies, setCompanies] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({ companies: 0, candidates: 0, jobs: 0, apps: 0 });
+    const [stats, setStats] = useState({ companies: 0, candidates: 0, jobs: 0, apps: 0, complaints: 0, openComplaints: 0, suspendedUsers: 0 });
     const [selectedCompany, setSelectedCompany] = useState<any>(null);
     const [modalVisible, setModalVisible] = useState(false);
 
@@ -37,17 +37,23 @@ export default function AdminDashboardScreen() {
             Alert.alert('Fatal Exception', e.message || String(e));
         }
 
-        const [companiesCount, candidatesCount, jobsCount] = await Promise.all([
+        const [companiesCount, candidatesCount, jobsCount, totalComplaintsCount, openComplaintsCount, suspendedUsersCount] = await Promise.all([
             adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'company'),
             adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'candidate'),
-            adminSupabase.from('jobs').select('*', { count: 'exact', head: true })
+            adminSupabase.from('jobs').select('*', { count: 'exact', head: true }),
+            adminSupabase.from('complaints').select('*', { count: 'exact', head: true }),
+            adminSupabase.from('complaints').select('*', { count: 'exact', head: true }).eq('status', 'Pending'),
+            adminSupabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_suspended', true),
         ]);
 
         setStats({
             companies: companiesCount.count || 0,
             candidates: candidatesCount.count || 0,
             jobs: jobsCount.count || 0,
-            apps: 0
+            apps: 0,
+            complaints: totalComplaintsCount.count || 0,
+            openComplaints: openComplaintsCount.count || 0,
+            suspendedUsers: suspendedUsersCount.count || 0
         });
 
         setLoading(false);
@@ -88,15 +94,36 @@ export default function AdminDashboardScreen() {
             <ScrollView contentContainerStyle={styles.content}>
                 {/* Stats Row */}
                 <View style={styles.statsRow}>
-                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(admin)/users')}>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(admin)/users' as any)}>
                         <Ionicons name="business" size={28} color={theme.primary} />
                         <Text style={styles.statNumber}>{stats.companies}</Text>
                         <Text style={styles.statLabel}>Companies</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.statCard}>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(admin)/applications' as any)}>
                         <Ionicons name="document-text" size={28} color={theme.warning} />
                         <Text style={styles.statNumber}>{stats.apps !== 0 ? stats.apps : '-'}</Text>
                         <Text style={styles.statLabel}>Applications</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.statsRow}>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(admin)/reports' as any)}>
+                        <Ionicons name="shield-outline" size={28} color={theme.warning} />
+                        <Text style={styles.statNumber}>{stats.openComplaints}</Text>
+                        <Text style={styles.statLabel}>Open Complaints</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.statCard} onPress={() => router.push('/(admin)/reports' as any)}>
+                        <Ionicons name="shield-checkmark" size={28} color={theme.success} />
+                        <Text style={styles.statNumber}>{stats.complaints}</Text>
+                        <Text style={styles.statLabel}>Total Reports</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={[styles.statsRow, { justifyContent: 'flex-start' }]}>
+                    <TouchableOpacity style={[styles.statCard, { flex: 0.48, marginLeft: 'auto', marginRight: 'auto' }]} onPress={() => router.push('/(admin)/users' as any)}>
+                        <Ionicons name="alert-circle-outline" size={28} color={theme.danger} />
+                        <Text style={styles.statNumber}>{stats.suspendedUsers}</Text>
+                        <Text style={styles.statLabel}>Suspended Users</Text>
                     </TouchableOpacity>
                 </View>
 

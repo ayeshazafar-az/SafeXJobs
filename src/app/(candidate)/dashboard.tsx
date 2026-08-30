@@ -11,7 +11,7 @@ export default function CandidateDashboardScreen() {
     const { user } = useAuth();
     const { theme } = useTheme();
     const styles = getStyles(theme);
-    const [stats, setStats] = useState({ total: 0, shortlisted: 0, interviews: 0, hired: 0, rejected: 0, pendingTests: 0, unreadNotes: 0 });
+    const [stats, setStats] = useState({ total: 0, underReview: 0, shortlisted: 0, tests: 0, interviews: 0, selected: 0, rejected: 0, pendingTests: 0, unreadNotes: 0 });
     const [profileCompletion, setProfileCompletion] = useState(0);
     const [loading, setLoading] = useState(true);
 
@@ -30,9 +30,11 @@ export default function CandidateDashboardScreen() {
                     setStats(prev => ({
                         ...prev,
                         total: apps.length,
+                        underReview: apps.filter(a => a.status === 'Under Review').length,
                         shortlisted: apps.filter(a => a.status === 'Shortlisted').length,
-                        interviews: apps.filter(a => a.status === 'Interview').length,
-                        hired: apps.filter(a => a.status === 'Hired').length,
+                        tests: apps.filter(a => ['Test Assigned', 'Test Submitted', 'Test Passed', 'Test Failed', 'Test Expired'].includes(a.status)).length,
+                        interviews: apps.filter(a => ['Interview Scheduled', 'Interview Completed'].includes(a.status)).length,
+                        selected: apps.filter(a => ['Selected', 'Offer Sent', 'Hired'].includes(a.status)).length,
                         rejected: apps.filter(a => a.status === 'Rejected').length,
                     }));
                 }
@@ -142,34 +144,48 @@ export default function CandidateDashboardScreen() {
                         <Text style={styles.statLabel}>Total Apps</Text>
                     </View>
                     <View style={styles.statBox}>
+                        <Text style={[styles.statNum, { color: '#64748b' }]}>{stats.underReview}</Text>
+                        <Text style={styles.statLabel}>Under Review</Text>
+                    </View>
+                    <View style={styles.statBox}>
                         <Text style={[styles.statNum, { color: '#a78bfa' }]}>{stats.shortlisted}</Text>
                         <Text style={styles.statLabel}>Shortlisted</Text>
+                    </View>
+                    <View style={styles.statBox}>
+                        <Text style={[styles.statNum, { color: '#38bdf8' }]}>{stats.tests}</Text>
+                        <Text style={styles.statLabel}>Tests</Text>
                     </View>
                     <View style={styles.statBox}>
                         <Text style={[styles.statNum, { color: '#fb923c' }]}>{stats.interviews}</Text>
                         <Text style={styles.statLabel}>Interviews</Text>
                     </View>
                     <View style={styles.statBox}>
-                        <Text style={[styles.statNum, { color: theme.success }]}>{stats.hired}</Text>
+                        <Text style={[styles.statNum, { color: theme.success }]}>{stats.selected}</Text>
                         <Text style={styles.statLabel}>Selected</Text>
+                    </View>
+                    <View style={styles.statBox}>
+                        <Text style={[styles.statNum, { color: theme.danger }]}>{stats.rejected}</Text>
+                        <Text style={styles.statLabel}>Rejected</Text>
                     </View>
                 </View>
 
                 {/* Upcoming Tasks & Notifications */}
                 <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Upcoming Tasks & Action Items</Text>
 
-                {stats.interviews > 0 ? (
-                    <TouchableOpacity style={styles.taskCard} onPress={() => router.push('/(candidate)/interviews')}>
-                        <View style={[styles.taskIconWrapper, { backgroundColor: 'rgba(251, 146, 60, 0.1)' }]}>
-                            <Ionicons name="calendar" size={24} color="#fb923c" />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.taskTitle}>Upcoming Interview</Text>
-                            <Text style={styles.taskDesc}>You have {stats.interviews} interview(s) to prepare for. Check your chat inbox for scheduled times.</Text>
-                        </View>
-                        <Ionicons name="arrow-forward" size={20} color={theme.textSecondary} />
-                    </TouchableOpacity>
-                ) : null}
+                {
+                    stats.interviews > 0 ? (
+                        <TouchableOpacity style={styles.taskCard} onPress={() => router.push('/(candidate)/interviews')}>
+                            <View style={[styles.taskIconWrapper, { backgroundColor: 'rgba(251, 146, 60, 0.1)' }]}>
+                                <Ionicons name="calendar" size={24} color="#fb923c" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.taskTitle}>Upcoming Interview</Text>
+                                <Text style={styles.taskDesc}>You have {stats.interviews} interview(s) to prepare for. Check your chat inbox for scheduled times.</Text>
+                            </View>
+                            <Ionicons name="arrow-forward" size={20} color={theme.textSecondary} />
+                        </TouchableOpacity>
+                    ) : null
+                }
 
                 <TouchableOpacity style={styles.taskCard} onPress={() => router.push('/(candidate)/tests')}>
                     <View style={[styles.taskIconWrapper, { backgroundColor: 'rgba(56, 189, 248, 0.1)' }]}>
@@ -199,8 +215,8 @@ export default function CandidateDashboardScreen() {
                     <Ionicons name="arrow-forward" size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
 
-            </ScrollView>
-        </View>
+            </ScrollView >
+        </View >
     );
 }
 

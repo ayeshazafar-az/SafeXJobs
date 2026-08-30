@@ -70,6 +70,7 @@ export default function CompanyApplicationsScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [statusFilter, setStatusFilter] = useState('All');
 
     // Offer Modal State
     const [offerModalVisible, setOfferModalVisible] = useState(false);
@@ -82,6 +83,23 @@ export default function CompanyApplicationsScreen() {
     const [reportModalVisible, setReportModalVisible] = useState(false);
     const [reportedCandidate, setReportedCandidate] = useState<any>(null);
     const [complaintDesc, setComplaintDesc] = useState('');
+
+    // Test Modal State
+    const [testModalVisible, setTestModalVisible] = useState(false);
+    const [selectedTestApp, setSelectedTestApp] = useState<any>(null);
+    const [testTitle, setTestTitle] = useState('');
+    const [testDescription, setTestDescription] = useState('');
+    const [testDeadline, setTestDeadline] = useState('');
+    const [testMaxMarks, setTestMaxMarks] = useState('100');
+
+    // Reject Modal State
+    const [rejectModalVisible, setRejectModalVisible] = useState(false);
+    const [selectedRejectApp, setSelectedRejectApp] = useState<any>(null);
+    const [rejectionReason, setRejectionReason] = useState('');
+
+    // Test Submission View State
+    const [testSubmissionModalVisible, setTestSubmissionModalVisible] = useState(false);
+    const [viewedTestData, setViewedTestData] = useState<any>(null);
     const [complaintSaving, setComplaintSaving] = useState(false);
 
     // Video Player State
@@ -155,6 +173,20 @@ export default function CompanyApplicationsScreen() {
             return;
         }
 
+        if (newStatus === 'Test Assigned') {
+            const app = applications.find(a => a.id === appId);
+            setSelectedTestApp(app);
+            setTestModalVisible(true);
+            return;
+        }
+
+        if (newStatus === 'Rejected') {
+            const app = applications.find(a => a.id === appId);
+            setSelectedRejectApp(app);
+            setRejectModalVisible(true);
+            return;
+        }
+
         setUpdatingId(appId);
         const { error } = await supabase.from('applications').update({ status: newStatus }).eq('id', appId);
         setUpdatingId(null);
@@ -183,6 +215,100 @@ export default function CompanyApplicationsScreen() {
                     type: 'application_update',
                 });
             }
+        }
+    };
+
+    const handleSendTest = async () => {
+        if (!selectedTestApp || !testTitle || !testDescription || !testDeadline) {
+            if (Platform.OS === 'web') alert('Please fill in title, description, and deadline.');
+            else Alert.alert('Required', 'Please fill in title, description, and deadline.');
+            return;
+        }
+        setUpdatingId(selectedTestApp.id);
+
+        const { error: testErr } = await supabase.from('tests').insert({
+            candidate_id: selectedTestApp.candidate_id,
+            application_id: selectedTestApp.id,
+            title: testTitle,
+            description: testDescription,
+            max_marks: parseInt(testMaxMarks) || 100,
+            passing_marks: Math.floor((parseInt(testMaxMarks) || 100) * 0.5),
+            deadline: testDeadline,
+            assigned_by: user?.id,
+            status: 'Pending'
+        });
+
+        if (testErr) {
+            if (Platform.OS === 'web') alert('Failed to create test: ' + testErr.message);
+            else Alert.alert('Error', testErr.message);
+            setUpdatingId(null);
+            return;
+        }
+
+        const { error: updErr } = await supabase.from('applications').update({ status: 'Test Assigned' }).eq('id', selectedTestApp.id);
+
+        if (!updErr) {
+            await supabase.from('notifications').insert({
+                user_id: selectedTestApp.candidate_id,
+                title: '📝 New Skill Assessment',
+                body: `You have been assigned a test for the ${selectedTestApp.jobs?.title} position. Deadline: ${new Date(testDeadline).toLocaleDateString()}`,
+                type: 'application_update'
+            });
+
+            setApplications(apps => apps.map(app => app.id === selectedTestApp.id ? { ...app, status: 'Test Assigned' } : app));
+            setTestModalVisible(false);
+            setTestTitle(''); setTestDescription(''); setTestDeadline('');
+
+            if (Platform.OS === 'web') alert('Test assigned successfully!');
+            else Alert.alert('Success', 'Test assigned successfully!');
+        } else {
+            if (Platform.OS === 'web') alert('Failed to update status.');
+            else Alert.alert('Error', 'Failed to update status.');
+        }
+        setUpdatingId(null);
+    };
+
+    const handleRejectApp = async () => {
+        if (!selectedRejectApp || !rejectionReason.trim()) {
+            if (Platform.OS === 'web') alert('Please provide a rejection reason for internal records.');
+            else Alert.alert('Required', 'Please provide a rejection reason for internal records.');
+            return;
+        }
+
+        setUpdatingId(selectedRejectApp.id);
+
+        let updateRes = await supabase.from('applications').update({
+            status: 'Rejected',
+            internal_rejection_reason: rejectionReason
+        }).eq('id', selectedRejectApp.id);
+
+        if (updateRes.error) {
+            updateRes = await supabase.from('applications').update({ status: 'Rejected' }).eq('id', selectedRejectApp.id);
+        }
+
+        if (!updateRes.error) {
+            await supabase.from('notifications').insert({
+                user_id: selectedRejectApp.candidate_id,
+                title: `Application Update`,
+                body: `Thank you for your interest. After careful consideration, we have decided to move forward with other candidates for the ${selectedRejectApp.jobs?.title} position.`,
+                type: 'application_update',
+            });
+
+            setApplications(apps => apps.map(app => app.id === selectedRejectApp.id ? { ...app, status: 'Rejected' } : app));
+            setRejectModalVisible(false);
+            setRejectionReason('');
+        }
+
+        setUpdatingId(null);
+    };
+
+    const handleViewTest = async (appId: string) => {
+        const { data, error } = await supabase.from('tests').select('*').eq('application_id', appId).single();
+        if (data) {
+            setViewedTestData(data);
+            setTestSubmissionModalVisible(true);
+        } else {
+            alert('Could not retrieve test submission data.');
         }
     };
 
@@ -346,6 +472,18 @@ export default function CompanyApplicationsScreen() {
             <View style={styles.header}>
                 <Text style={styles.title}>Candidate Review</Text>
                 <Text style={styles.subtitle}>Evaluate incoming applications for your active listings.</Text>
+
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16 }}>
+                    {['All', ...ALL_STATUSES].map(status => (
+                        <TouchableOpacity
+                            key={status}
+                            style={[styles.filterChip, statusFilter === status && styles.filterChipActive]}
+                            onPress={() => setStatusFilter(status)}
+                        >
+                            <Text style={[styles.filterText, statusFilter === status && styles.filterTextActive]}>{status}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
             </View>
 
             <ScrollView contentContainerStyle={styles.listContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}>
@@ -357,137 +495,155 @@ export default function CompanyApplicationsScreen() {
                         <Text style={styles.emptyText}>No applications received yet.</Text>
                     </View>
                 ) : (
-                    applications.map((app) => {
-                        const c = app.profiles;
-                        const job = app.jobs;
-                        const statusColor = getStatusColor(app.status);
-                        const isExpanded = expandedId === app.id;
-                        const nextActions = getNextActions(app.status);
-
-                        const parseArray = (val: any) => {
-                            if (Array.isArray(val)) return val;
-                            if (typeof val === 'string') {
-                                try {
-                                    const parsed = JSON.parse(val);
-                                    if (Array.isArray(parsed)) return parsed;
-                                } catch { }
-                            }
-                            return [];
-                        };
-
-                        const safeSkills = parseArray(c?.skills);
-                        const safeEdu = parseArray(c?.education);
-                        const safeExp = parseArray(c?.experience);
-
-                        return (
-                            <TouchableOpacity key={app.id} style={styles.appCard} onPress={() => setExpandedId(isExpanded ? null : app.id)} activeOpacity={0.85}>
-                                <View style={styles.cardHeader}>
-                                    <View style={styles.avatarPlaceholder}>
-                                        <Text style={styles.avatarText}>{(c?.full_name || 'U')[0].toUpperCase()}</Text>
-                                    </View>
-                                    <View style={{ flex: 1, marginLeft: 12 }}>
-                                        <Text style={styles.candidateName}>{c?.full_name || 'Anonymous'}</Text>
-                                        <Text style={styles.jobTitleApplied}>Applied for: <Text style={{ color: theme.text }}>{job?.title}</Text></Text>
-                                        <Text style={styles.timeText}>{c?.province && c?.city ? `${c.city}, ${c.province}` : ''} • {new Date(app.created_at).toLocaleDateString()}</Text>
-                                    </View>
-                                    <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20`, borderColor: `${statusColor}40` }]}>
-                                        <Text style={[styles.statusText, { color: statusColor }]}>{app.status}</Text>
-                                    </View>
+                    (() => {
+                        const filteredApps = statusFilter === 'All' ? applications : applications.filter(a => a.status === statusFilter);
+                        if (filteredApps.length === 0) {
+                            return (
+                                <View style={styles.emptyContainer}>
+                                    <Ionicons name="filter-outline" size={64} color={theme.border} />
+                                    <Text style={styles.emptyText}>No applications in {statusFilter} status.</Text>
                                 </View>
+                            );
+                        }
+                        return <>{filteredApps.map((app) => {
+                            const c = app.profiles;
+                            const job = app.jobs;
+                            const statusColor = getStatusColor(app.status);
+                            const isExpanded = expandedId === app.id;
+                            const nextActions = getNextActions(app.status);
 
-                                {c?.career_objective && (
-                                    <View style={styles.bioBox}>
-                                        <Text style={styles.bioText} numberOfLines={isExpanded ? undefined : 2}>{c.career_objective}</Text>
+                            const parseArray = (val: any) => {
+                                if (Array.isArray(val)) return val;
+                                if (typeof val === 'string') {
+                                    try {
+                                        const parsed = JSON.parse(val);
+                                        if (Array.isArray(parsed)) return parsed;
+                                    } catch { }
+                                }
+                                return [];
+                            };
+
+                            const safeSkills = parseArray(c?.skills);
+                            const safeEdu = parseArray(c?.education);
+                            const safeExp = parseArray(c?.experience);
+
+                            return (
+                                <TouchableOpacity key={app.id} style={styles.appCard} onPress={() => setExpandedId(isExpanded ? null : app.id)} activeOpacity={0.85}>
+                                    <View style={styles.cardHeader}>
+                                        <View style={styles.avatarPlaceholder}>
+                                            <Text style={styles.avatarText}>{(c?.full_name || 'U')[0].toUpperCase()}</Text>
+                                        </View>
+                                        <View style={{ flex: 1, marginLeft: 12 }}>
+                                            <Text style={styles.candidateName}>{c?.full_name || 'Anonymous'}</Text>
+                                            <Text style={styles.jobTitleApplied}>Applied for: <Text style={{ color: theme.text }}>{job?.title}</Text></Text>
+                                            <Text style={styles.timeText}>{c?.province && c?.city ? `${c.city}, ${c.province}` : ''} • {new Date(app.created_at).toLocaleDateString()}</Text>
+                                        </View>
+                                        <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20`, borderColor: `${statusColor}40` }]}>
+                                            <Text style={[styles.statusText, { color: statusColor }]}>{app.status}</Text>
+                                        </View>
                                     </View>
-                                )}
 
-                                {safeSkills.length > 0 && (
-                                    <View style={styles.skillsWrapper}>
-                                        {(isExpanded ? safeSkills : safeSkills.slice(0, 4)).map((s: string, i: number) => (
-                                            <View key={i} style={styles.skillTag}><Text style={styles.skillText}>{s}</Text></View>
-                                        ))}
-                                    </View>
-                                )}
+                                    {c?.career_objective && (
+                                        <View style={styles.bioBox}>
+                                            <Text style={styles.bioText} numberOfLines={isExpanded ? undefined : 2}>{c.career_objective}</Text>
+                                        </View>
+                                    )}
 
-                                {isExpanded && (
-                                    <View style={styles.expandedSection}>
-                                        {safeEdu.length > 0 && (
-                                            <View style={styles.detailRow}>
-                                                <Ionicons name="school-outline" size={16} color={theme.primary} />
-                                                <Text style={styles.detailText}>{safeEdu.join('\n')}</Text>
+                                    {safeSkills.length > 0 && (
+                                        <View style={styles.skillsWrapper}>
+                                            {(isExpanded ? safeSkills : safeSkills.slice(0, 4)).map((s: string, i: number) => (
+                                                <View key={i} style={styles.skillTag}><Text style={styles.skillText}>{s}</Text></View>
+                                            ))}
+                                        </View>
+                                    )}
+
+                                    {isExpanded && (
+                                        <View style={styles.expandedSection}>
+                                            {safeEdu.length > 0 && (
+                                                <View style={styles.detailRow}>
+                                                    <Ionicons name="school-outline" size={16} color={theme.primary} />
+                                                    <Text style={styles.detailText}>{safeEdu.join('\n')}</Text>
+                                                </View>
+                                            )}
+                                            {safeExp.length > 0 && (
+                                                <View style={styles.detailRow}>
+                                                    <Ionicons name="briefcase-outline" size={16} color={theme.warning} />
+                                                    <Text style={styles.detailText}>{safeExp.join('\n')}</Text>
+                                                </View>
+                                            )}
+
+                                            <View style={styles.quickActions}>
+                                                {c?.video_intro_url && (
+                                                    <TouchableOpacity style={styles.quickBtn} onPress={() => { setVideoUrl(c.video_intro_url); setVideoModalVisible(true); }}>
+                                                        <Ionicons name="videocam" size={16} color={theme.primary} />
+                                                        <Text style={styles.quickBtnText}>Watch Video</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                                {c?.resume_url && (
+                                                    <TouchableOpacity style={styles.quickBtn} onPress={() => openUrl(c.resume_url)}>
+                                                        <Ionicons name="document-attach" size={16} color={theme.primary} />
+                                                        <Text style={styles.quickBtnText}>Download CV</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                                {c?.linkedin_url && (
+                                                    <TouchableOpacity style={styles.quickBtn} onPress={() => openUrl(c.linkedin_url)}>
+                                                        <Ionicons name="logo-linkedin" size={16} color="#0a66c2" />
+                                                        <Text style={styles.quickBtnText}>LinkedIn</Text>
+                                                    </TouchableOpacity>
+                                                )}
+                                                {c?.portfolio_url && (
+                                                    <TouchableOpacity style={styles.quickBtn} onPress={() => openUrl(c.portfolio_url)}>
+                                                        <Ionicons name="globe-outline" size={16} color={theme.success} />
+                                                        <Text style={styles.quickBtnText}>Portfolio</Text>
+                                                    </TouchableOpacity>
+                                                )}
                                             </View>
-                                        )}
-                                        {safeExp.length > 0 && (
-                                            <View style={styles.detailRow}>
-                                                <Ionicons name="briefcase-outline" size={16} color={theme.warning} />
-                                                <Text style={styles.detailText}>{safeExp.join('\n')}</Text>
-                                            </View>
-                                        )}
 
-                                        <View style={styles.quickActions}>
-                                            {c?.video_intro_url && (
-                                                <TouchableOpacity style={styles.quickBtn} onPress={() => { setVideoUrl(c.video_intro_url); setVideoModalVisible(true); }}>
-                                                    <Ionicons name="videocam" size={16} color={theme.primary} />
-                                                    <Text style={styles.quickBtnText}>Watch Video</Text>
+                                            {app.status === 'Test Submitted' && (
+                                                <TouchableOpacity style={[styles.quickBtn, { borderColor: theme.warning, marginTop: 8 }]} onPress={() => handleViewTest(app.id)}>
+                                                    <Ionicons name="document-text-outline" size={16} color={theme.warning} />
+                                                    <Text style={[styles.quickBtnText, { color: theme.warning }]}>View Assessment Submission</Text>
                                                 </TouchableOpacity>
                                             )}
-                                            {c?.resume_url && (
-                                                <TouchableOpacity style={styles.quickBtn} onPress={() => openUrl(c.resume_url)}>
-                                                    <Ionicons name="document-attach" size={16} color={theme.primary} />
-                                                    <Text style={styles.quickBtnText}>Download CV</Text>
-                                                </TouchableOpacity>
-                                            )}
-                                            {c?.linkedin_url && (
-                                                <TouchableOpacity style={styles.quickBtn} onPress={() => openUrl(c.linkedin_url)}>
-                                                    <Ionicons name="logo-linkedin" size={16} color="#0a66c2" />
-                                                    <Text style={styles.quickBtnText}>LinkedIn</Text>
-                                                </TouchableOpacity>
-                                            )}
-                                            {c?.portfolio_url && (
-                                                <TouchableOpacity style={styles.quickBtn} onPress={() => openUrl(c.portfolio_url)}>
-                                                    <Ionicons name="globe-outline" size={16} color={theme.success} />
-                                                    <Text style={styles.quickBtnText}>Portfolio</Text>
+
+                                            {(app.status === 'Hired' || app.status === 'Offer Sent' || app.status === 'Offer Accepted') && (
+                                                <TouchableOpacity style={[styles.submitBtn, { backgroundColor: theme.primary, marginTop: 16 }]} onPress={() => generateOfferPDF(app)}>
+                                                    <Ionicons name="document-text" size={18} color="#fff" style={{ marginRight: 8 }} />
+                                                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Generate Offer Letter (PDF)</Text>
                                                 </TouchableOpacity>
                                             )}
                                         </View>
+                                    )}
 
-                                        {(app.status === 'Hired' || app.status === 'Offer Sent' || app.status === 'Offer Accepted') && (
-                                            <TouchableOpacity style={[styles.submitBtn, { backgroundColor: theme.primary, marginTop: 16 }]} onPress={() => generateOfferPDF(app)}>
-                                                <Ionicons name="document-text" size={18} color="#fff" style={{ marginRight: 8 }} />
-                                                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Generate Offer Letter (PDF)</Text>
-                                            </TouchableOpacity>
-                                        )}
-                                    </View>
-                                )}
-
-                                {/* Status Actions */}
-                                {nextActions.length > 0 && (
-                                    <>
-                                        <View style={styles.actionsDivider} />
-                                        <Text style={styles.actionPrompt}>Update Status:</Text>
-                                        <View style={styles.actionsRow}>
-                                            {updatingId === app.id ? (
-                                                <ActivityIndicator color={theme.primary} style={{ marginVertical: 10 }} />
-                                            ) : (
-                                                nextActions.map(action => {
-                                                    const isReject = action === 'Rejected';
-                                                    const isHire = action === 'Hired';
-                                                    const color = getStatusColor(action);
-                                                    return (
-                                                        <TouchableOpacity key={action} style={[styles.actionBtn, isReject ? styles.rejectBtn : (isHire ? styles.hireBtn : { backgroundColor: `${color}25` })]} onPress={() => updateStatus(app.id, action, app.candidate_id, isHire)}>
-                                                            <Text style={[styles.actionBtnText, { color: isReject ? theme.danger : (isHire ? '#fff' : color) }]}>
-                                                                {isHire ? 'Extend Offer & Hire' : action}
-                                                            </Text>
-                                                        </TouchableOpacity>
-                                                    );
-                                                })
-                                            )}
-                                        </View>
-                                    </>
-                                )}
-                            </TouchableOpacity>
-                        );
-                    })
+                                    {/* Status Actions */}
+                                    {nextActions.length > 0 && (
+                                        <>
+                                            <View style={styles.actionsDivider} />
+                                            <Text style={styles.actionPrompt}>Update Status:</Text>
+                                            <View style={styles.actionsRow}>
+                                                {updatingId === app.id ? (
+                                                    <ActivityIndicator color={theme.primary} style={{ marginVertical: 10 }} />
+                                                ) : (
+                                                    nextActions.map(action => {
+                                                        const isReject = action === 'Rejected';
+                                                        const isHire = action === 'Hired';
+                                                        const color = getStatusColor(action);
+                                                        return (
+                                                            <TouchableOpacity key={action} style={[styles.actionBtn, isReject ? styles.rejectBtn : (isHire ? styles.hireBtn : { backgroundColor: `${color}25` })]} onPress={() => updateStatus(app.id, action, app.candidate_id, isHire)}>
+                                                                <Text style={[styles.actionBtnText, { color: isReject ? theme.danger : (isHire ? '#fff' : color) }]}>
+                                                                    {isHire ? 'Extend Offer & Hire' : action}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        );
+                                                    })
+                                                )}
+                                            </View>
+                                        </>
+                                    )}
+                                </TouchableOpacity>
+                            );
+                        })}</>;
+                    })()
                 )}
             </ScrollView>
 
@@ -520,6 +676,93 @@ export default function CompanyApplicationsScreen() {
 
                         <TouchableOpacity style={[styles.submitBtn, { backgroundColor: theme.success }]} onPress={handleSendOffer} disabled={updatingId === selectedOfferApp?.id}>
                             {updatingId === selectedOfferApp?.id ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Send Official Offer</Text>}
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Test Assignment Modal */}
+            <Modal visible={testModalVisible} animationType="slide" transparent={true}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <Text style={styles.modalTitle}>Assign Skill Assessment</Text>
+                            <TouchableOpacity onPress={() => setTestModalVisible(false)}><Ionicons name="close" size={24} color={theme.textSecondary} /></TouchableOpacity>
+                        </View>
+                        <Text style={{ color: theme.textSecondary, marginBottom: 20 }}>
+                            Assign a test to <Text style={{ color: theme.text, fontWeight: 'bold' }}>{selectedTestApp?.profiles?.full_name}</Text>.
+                        </Text>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Test Title</Text>
+                            <TextInput style={styles.input} value={testTitle} onChangeText={setTestTitle} placeholder="e.g. Frontend Architecture Review" placeholderTextColor={theme.textSecondary} />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Test Deadline</Text>
+                            <TextInput style={styles.input} value={testDeadline} onChangeText={setTestDeadline} placeholder="YYYY-MM-DDTHH:MM:SS" placeholderTextColor={theme.textSecondary} />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Total Marks</Text>
+                            <TextInput style={styles.input} value={testMaxMarks} onChangeText={setTestMaxMarks} placeholder="100" keyboardType="numeric" placeholderTextColor={theme.textSecondary} />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Test Description / Instructions / JSON Payload</Text>
+                            <TextInput style={[styles.input, { height: 100, textAlignVertical: 'top' }]} value={testDescription} onChangeText={setTestDescription} placeholder="Instructions or [MCQ_JSON]..." multiline placeholderTextColor={theme.textSecondary} />
+                        </View>
+
+                        <TouchableOpacity style={[styles.submitBtn, { backgroundColor: theme.primary }]} onPress={handleSendTest} disabled={updatingId === selectedTestApp?.id}>
+                            {updatingId === selectedTestApp?.id ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Assign Test</Text>}
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Test Submission Details Modal */}
+            <Modal visible={testSubmissionModalVisible} animationType="fade" transparent={true}>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <Text style={styles.modalTitle}>Candidate Assessment</Text>
+                            <TouchableOpacity onPress={() => setTestSubmissionModalVisible(false)}><Ionicons name="close" size={24} color={theme.textSecondary} /></TouchableOpacity>
+                        </View>
+                        <ScrollView>
+                            <Text style={{ color: theme.textSecondary, marginBottom: 4 }}>Test Assigned:</Text>
+                            <Text style={{ color: theme.text, fontSize: 16, fontWeight: 'bold', marginBottom: 16 }}>{viewedTestData?.title || 'Unknown Test'}</Text>
+
+                            <Text style={{ color: theme.textSecondary, marginBottom: 4 }}>Candidate Submission:</Text>
+                            <View style={{ backgroundColor: theme.background, padding: 12, borderRadius: 8, borderWidth: 1, borderColor: theme.border, minHeight: 100 }}>
+                                <Text style={{ color: theme.text }}>
+                                    {viewedTestData?.submitted_answers || 'No submission payload provided.'}
+                                </Text>
+                            </View>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Rejection Modal */}
+            <Modal visible={rejectModalVisible} animationType="slide" transparent={true}>
+                <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <Text style={styles.modalTitle}>Reject Candidate</Text>
+                            <TouchableOpacity onPress={() => setRejectModalVisible(false)}><Ionicons name="close" size={24} color={theme.textSecondary} /></TouchableOpacity>
+                        </View>
+                        <Text style={{ color: theme.textSecondary, marginBottom: 20 }}>
+                            You are about to reject <Text style={{ color: theme.text, fontWeight: 'bold' }}>{selectedRejectApp?.profiles?.full_name}</Text>. Please provide a clear reason for your decision.
+                            <Text style={{ color: theme.danger }}> This will be recorded for internal compliance.</Text>
+                        </Text>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Internal Rejection Reason</Text>
+                            <TextInput style={[styles.input, { height: 100, textAlignVertical: 'top' }]} value={rejectionReason} onChangeText={setRejectionReason} placeholder="e.g. Lacked required React Native experience." multiline placeholderTextColor={theme.textSecondary} />
+                        </View>
+
+                        <TouchableOpacity style={[styles.submitBtn, { backgroundColor: theme.danger }]} onPress={handleRejectApp} disabled={updatingId === selectedRejectApp?.id}>
+                            {updatingId === selectedRejectApp?.id ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Confirm Rejection</Text>}
                         </TouchableOpacity>
                     </View>
                 </KeyboardAvoidingView>
@@ -581,6 +824,11 @@ const getStyles = (theme: any) => StyleSheet.create({
     timeText: { color: theme.textSecondary, fontSize: 11 },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, position: 'absolute', right: 0, top: 0 },
     statusText: { fontSize: 11, fontWeight: 'bold' },
+
+    filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.background, borderWidth: 1, borderColor: theme.border, marginRight: 8 },
+    filterChipActive: { backgroundColor: theme.primary, borderColor: theme.primary },
+    filterText: { color: theme.textSecondary, fontSize: 13, fontWeight: '600' },
+    filterTextActive: { color: '#fff' },
 
     bioBox: { backgroundColor: theme.background, padding: 12, borderRadius: 8, borderLeftWidth: 3, borderLeftColor: theme.border, marginBottom: 12 },
     bioText: { color: theme.textSecondary, fontSize: 13, fontStyle: 'italic', lineHeight: 20 },

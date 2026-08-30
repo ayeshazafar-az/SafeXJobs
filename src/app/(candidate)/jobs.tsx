@@ -31,7 +31,8 @@ export default function FindJobsScreen() {
     const [applyingTo, setApplyingTo] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    // Complaint State
+    // Application Confirm State
+    const [confirmingJob, setConfirmingJob] = useState<any>(null);
     const [reportModalVisible, setReportModalVisible] = useState(false);
     const [reportedJob, setReportedJob] = useState<any>(null);
     const [complaintDesc, setComplaintDesc] = useState('');
@@ -54,10 +55,21 @@ export default function FindJobsScreen() {
 
     const onRefresh = () => { setRefreshing(true); fetchJobs(); };
 
-    const handleApply = async (jobId: string, jobTitle: string, companyName: string) => {
+    const handleApply = async (jobId: string, jobTitle: string, companyName: string, companyId: string) => {
         if (!user) return;
         setApplyingTo(jobId);
 
+        // 1. Mandatory Video Requirement Check
+        const { data: profile } = await supabase.from('profiles').select('video_intro_url').eq('id', user.id).single();
+        if (!profile?.video_intro_url) {
+            const msg = 'A video introduction is mandatory to apply for jobs. Please complete your profile first.';
+            if (Platform.OS === 'web') alert(msg);
+            else Alert.alert('Incomplete Profile', msg);
+            setApplyingTo(null);
+            return;
+        }
+
+        // 2. Already Applied Check
         const { data: existingApp } = await supabase
             .from('applications').select('id').eq('job_id', jobId).eq('candidate_id', user.id).single();
 
@@ -68,18 +80,40 @@ export default function FindJobsScreen() {
             return;
         }
 
-        const { error } = await supabase.from('applications').insert({
-            job_id: jobId, candidate_id: user.id, status: 'Pending',
-        });
+        // 3. Open Confirmation Modal
+        setConfirmingJob({ jobId, jobTitle, companyName, companyId });
         setApplyingTo(null);
+    };
+
+    const executeApply = async () => {
+        if (!user || !confirmingJob) return;
+        setApplyingTo(confirmingJob.jobId);
+
+        const { error, data } = await supabase.from('applications').insert({
+            job_id: confirmingJob.jobId,
+            candidate_id: user.id,
+            status: 'Applied',
+        }).select('id').single();
 
         if (error) {
+            setApplyingTo(null);
+            setConfirmingJob(null);
             if (Platform.OS === 'web') alert('Application failed: ' + error.message);
             else Alert.alert('Application Failed', error.message);
-        } else {
-            if (Platform.OS === 'web') alert(`Application submitted to ${companyName} for ${jobTitle}!`);
-            else Alert.alert('Application Submitted', `Your profile has been sent to ${companyName} for the ${jobTitle} position!`);
+            return;
         }
+
+        // PRD Notifications Trigger: 1 for Candidate, 1 for Company
+        await supabase.from('notifications').insert([
+            { user_id: user.id, title: '✅ Application Submitted', body: `Your application for ${confirmingJob.jobTitle} at ${confirmingJob.companyName} has been submitted successfully!`, type: 'system' },
+            { user_id: confirmingJob.companyId, title: '📄 New Application Received', body: `A candidate has sent their profile for the ${confirmingJob.jobTitle} position.`, type: 'application' }
+        ]);
+
+        setApplyingTo(null);
+        setConfirmingJob(null);
+
+        if (Platform.OS === 'web') alert(`Application submitted to ${confirmingJob.companyName} for ${confirmingJob.jobTitle}!`);
+        else Alert.alert('Application Submitted', `Your profile has been sent to ${confirmingJob.companyName} for the ${confirmingJob.jobTitle} position!`);
     };
 
     const handleReportSubmit = async () => {
@@ -278,7 +312,7 @@ export default function FindJobsScreen() {
                                     </View>
                                     <TouchableOpacity
                                         style={styles.applyBtn}
-                                        onPress={() => handleApply(job.id, job.title, job.profiles?.company_name || 'the company')}
+                                        onPress={() => handleApply(job.id, job.title, job.profiles?.company_name || 'the company', job.company_id)}
                                         disabled={applyingTo === job.id}
                                     >
                                         {applyingTo === job.id ? (
@@ -400,6 +434,34 @@ export default function FindJobsScreen() {
                         >
                             {complaintSaving ? <ActivityIndicator color="#fff" /> : <Text style={styles.applyBtnText}>Submit Report</Text>}
                         </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+            {/* Application Confirmation Modal */}
+            <Modal visible={!!confirmingJob} animationType="fade" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { height: 'auto', padding: 24 }]}>
+                        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                            <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: `${theme.primary}20`, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                                <Ionicons name="document-text" size={32} color={theme.primary} />
+                            </View>
+                            <Text style={styles.modalTitle}>Confirm Application</Text>
+                        </View>
+                        <Text style={{ color: theme.text, fontSize: 16, textAlign: 'center', marginBottom: 20, lineHeight: 24 }}>
+                            You are about to submit your profile for the <Text style={{ fontWeight: 'bold' }}>{confirmingJob?.jobTitle}</Text> role at <Text style={{ fontWeight: 'bold' }}>{confirmingJob?.companyName}</Text>.
+                        </Text>
+                        <Text style={{ color: theme.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: 24, fontStyle: 'italic' }}>
+                            Your current Video Introduction and Professional Profile will be securely shared with the Hiring Manager.
+                        </Text>
+
+                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                            <TouchableOpacity style={[styles.applyBtn, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.border, alignItems: 'center' }]} onPress={() => setConfirmingJob(null)}>
+                                <Text style={{ color: theme.textSecondary, fontWeight: 'bold' }}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.applyBtn, { flex: 1, alignItems: 'center' }]} onPress={executeApply} disabled={applyingTo === confirmingJob?.jobId}>
+                                {applyingTo === confirmingJob?.jobId ? <ActivityIndicator color="#fff" /> : <Text style={styles.applyBtnText}>Send Application</Text>}
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>

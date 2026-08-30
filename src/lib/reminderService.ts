@@ -8,7 +8,7 @@ export const checkReminders = async (userId: string) => {
     const fortyEightHoursFromNow = new Date(now.getTime() + 48 * 60 * 60 * 1000);
     const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    // 1. Check for tests due within 48 hours
+    // 1. Tiered Check for tests due within 48 hours and 24 hours (Block 15, 23)
     const { data: upcomingTests, error: testsError } = await supabase
         .from('applications')
         .select('id, test_deadline, jobs(title)')
@@ -20,10 +20,15 @@ export const checkReminders = async (userId: string) => {
     if (!testsError && upcomingTests) {
         for (const test of upcomingTests) {
             const jobData = Array.isArray(test.jobs) ? test.jobs[0] : test.jobs;
-            const title = `🚨 Action Required: Test Deadline Approaching!`;
-            const body = `Your test for ${jobData?.title || 'a job'} is due soon! Please submit it before ${new Date(test.test_deadline).toLocaleString()}.`;
+            const hoursLeft = (new Date(test.test_deadline).getTime() - now.getTime()) / (1000 * 60 * 60);
 
-            // Check if reminder already sent for this specific test app
+            const isFinal24 = hoursLeft <= 24;
+            const title = isFinal24 ? `🚨 FINAL WARNING: Test Deadline!` : `⏰ Reminder: Test Deadline Approaching`;
+            const body = isFinal24
+                ? `Your test for ${jobData?.title || 'a job'} is due in LESS THAN 24 HOURS! Submit before ${new Date(test.test_deadline).toLocaleString()}.`
+                : `Your test for ${jobData?.title || 'a job'} is due within 48 hours. Please complete it soon.`;
+
+            // Tiering: We check if this EXACT tier title was already pushed
             const { data: existingTestNotifs } = await supabase
                 .from('notifications')
                 .select('id')

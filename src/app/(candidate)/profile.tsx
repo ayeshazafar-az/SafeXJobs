@@ -19,7 +19,8 @@ export default function CandidateProfileScreen() {
     // Form State
     const [fullName, setFullName] = useState('');
     const [phone, setPhone] = useState('');
-    const [location, setLocation] = useState('');
+    const [city, setCity] = useState('');
+    const [province, setProvince] = useState('');
     const [careerObjective, setCareerObjective] = useState('');
     const [skills, setSkills] = useState('');
     const [languages, setLanguages] = useState('');
@@ -39,7 +40,8 @@ export default function CandidateProfileScreen() {
             const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
             if (data) {
                 setFullName(data.full_name || '');
-                setLocation(data.company_location || '');
+                setCity(data.city || '');
+                setProvince(data.province || '');
                 setCareerObjective(data.career_objective || '');
 
                 const parseDbArr = (val: any, joiner: string) => {
@@ -82,7 +84,8 @@ export default function CandidateProfileScreen() {
         const updates = {
             full_name: fullName,
             phone,
-            company_location: location,
+            city,
+            province,
             career_objective: careerObjective,
             // We stringify arrays to gracefully handle Supabase text/JSON discrepancies
             skills: JSON.stringify(formattedSkills),
@@ -340,8 +343,22 @@ export default function CandidateProfileScreen() {
                             <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="+92 3XX XXXXXXX" placeholderTextColor={theme.textSecondary} keyboardType="phone-pad" />
                         </View>
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Province & City</Text>
-                            <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="Islamabad, Capital Territory" placeholderTextColor={theme.textSecondary} />
+                            <Text style={styles.label}>Province</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                                {['Punjab', 'Sindh', 'KPK', 'Balochistan', 'Federal Capital'].map(p => (
+                                    <TouchableOpacity
+                                        key={p}
+                                        onPress={() => setProvince(p)}
+                                        style={[{ padding: 10, paddingHorizontal: 16, backgroundColor: theme.card, borderRadius: 20, borderWidth: 1, borderColor: theme.border, marginRight: 8 }, province === p && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                                    >
+                                        <Text style={[{ color: theme.textSecondary, fontWeight: '500' }, province === p && { color: '#fff' }]}>{p}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>City</Text>
+                            <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="e.g. Lahore, Islamabad" placeholderTextColor={theme.textSecondary} />
                         </View>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Career Objective</Text>

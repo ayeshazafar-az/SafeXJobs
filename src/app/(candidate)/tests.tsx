@@ -5,6 +5,38 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+const CountdownTimer = ({ deadlineStr, theme }: { deadlineStr: string, theme: any }) => {
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+        const updateTimer = () => {
+            const diff = new Date(deadlineStr).getTime() - Date.now();
+            if (diff <= 0) return setTimeLeft('Expired');
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            if (hours > 24) {
+                const days = Math.floor(hours / 24);
+                setTimeLeft(`${days} day${days > 1 ? 's' : ''} left`);
+            } else {
+                setTimeLeft(`${hours}h ${minutes}m ${seconds}s left`);
+            }
+        };
+
+        updateTimer();
+        const intv = setInterval(updateTimer, 1000);
+        return () => clearInterval(intv);
+    }, [deadlineStr]);
+
+    return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: timeLeft === 'Expired' ? theme.danger : theme.warning, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+            <Ionicons name="timer-outline" size={14} color="#fff" style={{ marginRight: 4 }} />
+            <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>{timeLeft}</Text>
+        </View>
+    );
+};
 
 export default function CandidateTestsScreen() {
     const { user } = useAuth();
@@ -223,11 +255,14 @@ export default function CandidateTestsScreen() {
                                 </View>
 
                                 {test.deadline && (
-                                    <View style={styles.deadlineBanner}>
-                                        <Ionicons name="time-outline" size={14} color={pastDeadline ? theme.danger : theme.warning} />
-                                        <Text style={[styles.deadlineText, { color: pastDeadline ? theme.danger : theme.warning }]}>
-                                            {pastDeadline ? 'Deadline Passed: ' : 'Deadline: '}{new Date(test.deadline).toLocaleDateString()}
-                                        </Text>
+                                    <View style={[styles.deadlineBanner, { justifyContent: 'space-between' }]}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                            <Ionicons name="calendar-outline" size={14} color={pastDeadline ? theme.danger : theme.textSecondary} />
+                                            <Text style={[styles.deadlineText, { color: pastDeadline ? theme.danger : theme.textSecondary }]}>
+                                                {pastDeadline ? 'Deadline Passed: ' : 'Deadline: '}{new Date(test.deadline).toLocaleDateString()}
+                                            </Text>
+                                        </View>
+                                        {isPending && <CountdownTimer deadlineStr={test.deadline} theme={theme} />}
                                     </View>
                                 )}
 

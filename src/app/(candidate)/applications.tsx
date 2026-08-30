@@ -58,6 +58,24 @@ export default function CandidateApplicationsScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [respondingId, setRespondingId] = useState<string | null>(null);
+    const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
+
+    const handleWithdraw = async (appId: string) => {
+        Alert.alert('Withdraw Application', 'Are you sure you want to withdraw from this position? This action cannot be undone.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Withdraw', style: 'destructive', onPress: async () => {
+                    setWithdrawingId(appId);
+                    const { error } = await supabase.from('applications').update({ status: 'Withdrawn' }).eq('id', appId);
+                    if (error) {
+                        if (Platform.OS === 'web') alert('Withdraw failed: ' + error.message);
+                        else Alert.alert('Error', 'Failed to withdraw application.');
+                    }
+                    setWithdrawingId(null);
+                }
+            }
+        ]);
+    };
 
     const fetchApplications = async () => {
         if (!user) return;
@@ -284,8 +302,23 @@ export default function CandidateApplicationsScreen() {
                                     </View>
                                 )}
 
-                                {/* Applied date */}
-                                <Text style={styles.dateText}>Applied on {new Date(app.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                                    <Text style={styles.dateText}>Applied on {new Date(app.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+                                    {!isTerminal && app.status !== 'Hired' && (
+                                        <TouchableOpacity
+                                            style={{ flexDirection: 'row', alignItems: 'center' }}
+                                            onPress={() => handleWithdraw(app.id)}
+                                            disabled={withdrawingId === app.id}
+                                        >
+                                            {withdrawingId === app.id ? <ActivityIndicator size="small" color={theme.danger} /> : (
+                                                <>
+                                                    <Ionicons name="trash-outline" size={14} color={theme.danger} />
+                                                    <Text style={{ color: theme.danger, fontSize: 13, fontWeight: 'bold', marginLeft: 4 }}>Withdraw</Text>
+                                                </>
+                                            )}
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             </View>
                         );
                     })

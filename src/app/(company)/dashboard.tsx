@@ -16,7 +16,7 @@ export default function CompanyDashboard() {
     const [stats, setStats] = useState({
         totalJobs: 0, activeJobs: 0, closedJobs: 0,
         totalApps: 0, shortlisted: 0, pendingTests: 0,
-        upcomingInterviews: 0, hired: 0,
+        upcomingInterviews: 0, selectedCandidates: 0, hired: 0,
     });
     const [jobAppStats, setJobAppStats] = useState<{ title: string, count: number }[]>([]);
     const [profileCompletion, setProfileCompletion] = useState(0);
@@ -55,7 +55,7 @@ export default function CompanyDashboard() {
             const closedJobs = jobs?.filter(j => j.status === 'Closed').length || 0;
 
             // 3. Fetch applications for those jobs
-            let totalApps = 0, shortlisted = 0, hired = 0;
+            let totalApps = 0, shortlisted = 0, hired = 0, selectedCandidates = 0;
             let pendingTests = 0;
             let upcomingInterviews = 0;
 
@@ -66,6 +66,7 @@ export default function CompanyDashboard() {
                 if (apps && apps.length > 0) {
                     totalApps = apps.length;
                     shortlisted = apps.filter(a => a.status === 'Shortlisted').length;
+                    selectedCandidates = apps.filter(a => a.status === 'Selected').length;
                     hired = apps.filter(a => a.status === 'Hired').length;
 
                     // Group apps by job
@@ -103,6 +104,7 @@ export default function CompanyDashboard() {
                 totalApps, shortlisted,
                 pendingTests: pendingTests || 0,
                 upcomingInterviews: upcomingInterviews || 0,
+                selectedCandidates,
                 hired,
             });
 
@@ -222,6 +224,7 @@ export default function CompanyDashboard() {
                             {renderBar('Shortlisted', stats.shortlisted, theme.warning)}
                             {renderBar('Pending Tests', stats.pendingTests, theme.warning)}
                             {renderBar('Interviews', stats.upcomingInterviews, theme.warning)}
+                            {renderBar('Selected', stats.selectedCandidates, theme.primary)}
                             {renderBar('Hired', stats.hired, theme.success)}
                         </>
                     );
