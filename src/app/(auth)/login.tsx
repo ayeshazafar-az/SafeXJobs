@@ -12,6 +12,11 @@ import {
 import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
+    const [loginMethod, setLoginMethod] = useState<'email' | 'phone'>('email');
+    const [step, setStep] = useState<'login' | 'verify'>('login');
+    const [phone, setPhone] = useState('');
+    const [otp, setOtp] = useState('');
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -20,21 +25,55 @@ export default function LoginScreen() {
     const router = useRouter();
 
     const handleLogin = async () => {
-        if (!email || !password) {
-            setErrorMsg('Please carefully provide both email and password.');
+        setLoading(true);
+        setErrorMsg('');
+
+        if (loginMethod === 'email') {
+            if (!email || !password) {
+                setErrorMsg('Please carefully provide both email and password.');
+                setLoading(false);
+                return;
+            }
+            const { error } = await supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password,
+            });
+            if (error) setErrorMsg(error.message);
+        } else {
+            if (!phone) {
+                setErrorMsg('Please provide a valid phone number including country code (e.g. +92).');
+                setLoading(false);
+                return;
+            }
+            const { error } = await supabase.auth.signInWithOtp({
+                phone: phone.trim(),
+            });
+            if (error) {
+                setErrorMsg(error.message);
+            } else {
+                setStep('verify');
+            }
+        }
+        setLoading(false);
+        // Auth state listener in RootLayout navigates the user automatically upon successful session creation.
+    };
+
+    const handleVerifyOtp = async () => {
+        if (!otp || otp.length < 6) {
+            setErrorMsg('Please enter the 6-digit code sent to your phone.');
             return;
         }
         setLoading(true);
         setErrorMsg('');
-        const { error } = await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password,
+        const { error, data } = await supabase.auth.verifyOtp({
+            phone: phone.trim(),
+            token: otp,
+            type: 'sms',
         });
         setLoading(false);
         if (error) {
             setErrorMsg(error.message);
         }
-        // Auth state listener in RootLayout navigates the user automatically.
     };
 
     return (
@@ -49,54 +88,85 @@ export default function LoginScreen() {
                 </View>
 
                 <View style={styles.form}>
-                    {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
+                    {step === 'login' ? (
+                        <>
+                            {/* Login Method Toggle */}
+                            <View style={styles.segmentedControl}>
+                                <TouchableOpacity style={[styles.segmentBtn, loginMethod === 'email' && styles.segmentBtnActive]} onPress={() => setLoginMethod('email')}>
+                                    <Text style={[styles.segmentBtnText, loginMethod === 'email' && styles.segmentBtnTextActive]}>Email</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.segmentBtn, loginMethod === 'phone' && styles.segmentBtnActive]} onPress={() => setLoginMethod('phone')}>
+                                    <Text style={[styles.segmentBtnText, loginMethod === 'phone' && styles.segmentBtnTextActive]}>Phone (SMS)</Text>
+                                </TouchableOpacity>
+                            </View>
 
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Email Address</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="you@example.com"
-                            placeholderTextColor="#64748b"
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                        />
-                    </View>
+                            {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
 
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Password</Text>
-                        <View style={styles.passwordWrapper}>
-                            <TextInput
-                                style={styles.passwordInput}
-                                placeholder="••••••••"
-                                placeholderTextColor="#64748b"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry={!showPassword}
-                            />
-                            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
-                                <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color="#64748b" />
+                            {loginMethod === 'email' ? (
+                                <>
+                                    <View style={styles.inputContainer}>
+                                        <Text style={styles.label}>Email Address</Text>
+                                        <TextInput
+                                            style={styles.input} placeholder="you@example.com" placeholderTextColor="#64748b"
+                                            value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address"
+                                        />
+                                    </View>
+                                    <View style={styles.inputContainer}>
+                                        <Text style={styles.label}>Password</Text>
+                                        <View style={styles.passwordWrapper}>
+                                            <TextInput
+                                                style={styles.passwordInput} placeholder="••••••••" placeholderTextColor="#64748b"
+                                                value={password} onChangeText={setPassword} secureTextEntry={!showPassword}
+                                            />
+                                            <TouchableOpacity style={styles.eyeIcon} onPress={() => setShowPassword(!showPassword)}>
+                                                <Ionicons name={showPassword ? "eye-off" : "eye"} size={22} color="#64748b" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                </>
+                            ) : (
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.label}>Phone Number</Text>
+                                    <TextInput
+                                        style={styles.input} placeholder="+1234567890" placeholderTextColor="#64748b"
+                                        value={phone} onChangeText={setPhone} keyboardType="phone-pad"
+                                    />
+                                </View>
+                            )}
+
+                            <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
+                                {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.loginButtonText}>{loginMethod === 'email' ? 'Sign In' : 'Send Verification Code'}</Text>}
+                            </TouchableOpacity>
+
+                            <View style={styles.footerRow}>
+                                <Text style={styles.footerText}>Don't have an account? </Text>
+                                <Link href="/(auth)/register" asChild>
+                                    <TouchableOpacity>
+                                        <Text style={styles.registerLink}>Sign up here</Text>
+                                    </TouchableOpacity>
+                                </Link>
+                            </View>
+                        </>
+                    ) : (
+                        <View>
+                            {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>Enter 6-Digit OTP</Text>
+                                <TextInput
+                                    style={styles.input} placeholder="123456" placeholderTextColor="#64748b"
+                                    value={otp} onChangeText={setOtp} keyboardType="number-pad" maxLength={6}
+                                />
+                            </View>
+                            
+                            <TouchableOpacity style={styles.loginButton} onPress={handleVerifyOtp} disabled={loading}>
+                                {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.loginButtonText}>Verify & Login</Text>}
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity style={{ marginTop: 24, alignItems: 'center' }} onPress={() => setStep('login')}>
+                                <Text style={styles.registerLink}>Cancel & Return</Text>
                             </TouchableOpacity>
                         </View>
-                    </View>
-
-                    <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={loading}>
-                        {loading ? (
-                            <ActivityIndicator color="#ffffff" />
-                        ) : (
-                            <Text style={styles.loginButtonText}>Sign In</Text>
-                        )}
-                    </TouchableOpacity>
-
-                    <View style={styles.footerRow}>
-                        <Text style={styles.footerText}>Don't have an account? </Text>
-                        <Link href="/(auth)/register" asChild>
-                            <TouchableOpacity>
-                                <Text style={styles.registerLink}>Sign up here</Text>
-                            </TouchableOpacity>
-                        </Link>
-                    </View>
+                    )}
                 </View>
             </View>
         </KeyboardAvoidingView>
@@ -215,5 +285,31 @@ const styles = StyleSheet.create({
         color: '#3b82f6',
         fontSize: 14,
         fontWeight: 'bold',
+    },
+    segmentedControl: {
+        flexDirection: 'row',
+        backgroundColor: '#0f172a',
+        borderRadius: 12,
+        padding: 4,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: '#334155',
+    },
+    segmentBtn: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 8,
+    },
+    segmentBtnActive: {
+        backgroundColor: '#1e293b',
+    },
+    segmentBtnText: {
+        color: '#64748b',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    segmentBtnTextActive: {
+        color: '#f8fafc',
     },
 });
